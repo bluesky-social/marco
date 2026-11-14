@@ -39,7 +39,7 @@ block. The design and its measurements are in [the design doc](seek.html).
 |---|---|---|
 | `seek builder` | Holds every actor's handle claim, display name and status. It follows Jetstream into them, verifies handles, and every 15 minutes builds the artifact and serves it at `/artifact/latest` (uploading it to a bucket when one is configured). On each new marco checkpoint it mirrors the checkpoint (files it already has by name and size are skipped, and each fetched file is checked against its section checksums) and runs PageRank on the mirror. | Its volume: the names state, the artifacts, the mirror and the ranks |
 | `seek serve` (a pod) | Downloads the newest artifact, checks it, maps it, replays Jetstream from the artifact's cursor into a small live overlay, and answers queries. A newer artifact is swapped in without a pause. | None: a scratch directory for the mapped artifacts |
-| marco | Gives a pod each viewer's follows and mutuals (once per session) and filters every logged-in page by blocks both ways. It exports its checkpoint to the builder's mirror. | Its own |
+| marco | Gives a pod each viewer's follow count, follows and mutuals (once per viewer, then cached) and filters every logged-in page by blocks both ways. It exports its checkpoint to the builder's mirror. | Its own |
 
 The artifact is one file: named sections, each 64-byte aligned with its own xxh3, behind a
 checksummed header. It holds the DID table (seek's ids are DID order), each actor's u16 rank,
@@ -124,11 +124,13 @@ Every flag has an env var. `seek serve`:
 | `--data` | `SEEK_DATA` | `/var/lib/seek` | Where the mapped artifacts live: two at a swap. Never the source's directory |
 | `--poll-seconds` | `SEEK_POLL_SECONDS` | 30 | Between source polls |
 | `--marco` | `SEEK_MARCO` | | marco's API listener |
+| `--marco-connections` | `SEEK_MARCO_CONNECTIONS` | 4 | h2 connections to marco, calls spread round-robin over them |
 | `--marco-timeout-ms` | `SEEK_MARCO_TIMEOUT_MS` | 500 | Each marco call |
 | `--viewer-deadline-ms` | `SEEK_VIEWER_DEADLINE_MS` | 2000 | A viewer's follows and mutuals, every page. Past it the query answers without follows first; blocks are still filtered. 0 turns follows first off |
-| `--max-follows` | `SEEK_MAX_FOLLOWS` | 50000 | Follows read per viewer, newest first |
-| `--viewer-cache-mb` | `SEEK_VIEWER_CACHE_MB` | 256 | The viewer cache's weighed size |
-| `--viewer-idle-seconds` | `SEEK_VIEWER_IDLE_SECONDS` | 600 | A viewer's entry goes this long after its last query, or when Jetstream shows them follow or unfollow |
+| `--max-follows` | `SEEK_MAX_FOLLOWS` | 5000 | A viewer following more gets no follows first, though blocks are still filtered. One marco Counts call decides, and the cache keeps the verdict. Just past the 95th percentile of accounts that post mentions (Viewer builds, below) |
+| `--viewer-cache-mb` | `SEEK_VIEWER_CACHE_MB` | 1024 | The viewer cache's weighed size, about 13 KB a viewer. 1 GiB holds every account that posted a mention in two days, 783 MB of them |
+| `--viewer-idle-seconds` | `SEEK_VIEWER_IDLE_SECONDS` | 86400 | A viewer's entry goes this long after its last query, and is read from marco again this long after the last read however often it's used. Jetstream follow events drop it sooner. Keep it short with `--follow-events false` |
+| `--marco-lag-ms` | `SEEK_MARCO_LAG_MS` | 5000 | How far marco's follows may trail Jetstream's. A build whose marco read starts within this of a follow event isn't cached, and the entry is dropped again at twice this |
 | `--follows` | `SEEK_FOLLOWS` | `wall` | `wall`, or a boost in nats |
 | `--replay-window-hours` | `SEEK_REPLAY_WINDOW_HOURS` | 24 | Jetstream's replay window |
 | `--max-lag-seconds` | `SEEK_MAX_LAG_SECONDS` | 300 | Not ready while Jetstream is further behind, or silent this long |
@@ -186,8 +188,11 @@ thread, as marco's op histograms are.
 | `seek_viewer_cache_hits_total`, `seek_viewer_cache_misses_total` | | |
 | `seek_viewer_cache_evictions_total` | `cause`: `idle`, `size`, `invalidated` | |
 | `seek_viewer_cache_entries`, `seek_viewer_cache_bytes` | | |
-| `seek_viewer_build_seconds`, `seek_viewer_keys_seconds`, `seek_viewer_follows` | | A viewer's entry from marco, its keys folded against an artifact, and its follows |
-| `seek_marco_seconds` | `method`: `filter`, `list_out`, `intersect` | |
+| `seek_viewer_cache_rekeys_total` | | Entries moved onto a new artifact's ids, without marco |
+| `seek_viewer_capped_total` | | Viewer builds that found more than `--max-follows` follows |
+| `seek_viewer_builds_unkept_total` | | Builds used for their query but not cached, as a follow event for the viewer came during or just before marco's read |
+| `seek_viewer_build_seconds`, `seek_viewer_keys_seconds`, `seek_viewer_follows` | | A viewer's entry from marco, its keys found in an artifact, and each built viewer's follow count |
+| `seek_marco_seconds` | `method`: `filter`, `list_out`, `intersect`, `counts` | |
 | `seek_marco_errors_total` | `method`, `kind`: `timeout`, `unavailable`, `other` | |
 | `seek_artifact_info` | `version` | 1 for the artifact served |
 | `seek_artifact_built_timestamp_seconds`, `seek_artifact_cursor_timestamp_seconds`, `seek_artifact_age_seconds` | | |
@@ -244,7 +249,7 @@ queue of 65,536, so a slow collector drops spans and never holds a query.
 - { value: "~45k", unit: req/s, label: per core logged out, note: "1 to 4 cores, bare metal; 490k on 8 cores with SMT", tone: accent }
 - { value: "22", unit: µs, label: CPU per query at peak, note: "the match itself is 7 µs p50, 110 µs p99", tone: blue }
 - { value: "2.6", unit: GB, label: RSS at any load, note: "the mapped artifact; load adds nothing", tone: muted }
-- { value: "~115", unit: µs, label: marco CPU per logged-in query, note: "~300 µs at low rates, where nothing batches", tone: violet }
+- { value: "~68k", unit: req/s, label: marco's logged-in ceiling, note: "4 vCPUs, 54 µs a query, ~2,500 viewer builds/s", tone: violet }
 ```
 
 `seek bench --mode closed` keeps N queries in flight over several h2 connections and steps N up.
@@ -298,25 +303,144 @@ then jumps to a few milliseconds (on 16 threads: 206 µs at 49,000/s, then 1.5 t
 bursts queueing in the pod's transport. Fewer or more connections, and fewer in flight, don't
 change it.
 
-**The 2-vCPU microVM.** The same artifact in a cloud-hypervisor microVM with 2 vCPUs, its load
-generated on the host (a 64-core EPYC 7713). The VM's cgroup quota of 2 CPUs covers the vCPUs and
-the VMM's virtio-net thread, so seek itself gets about 1.5 cores, and the VM hits the quota from 4
-queries in flight. Past that it's throttled for 100 to 670 ms of every second, and each throttle
-stalls the whole VM until the next 100 ms period. That's the 20 to 40 ms p99.
+**The 4-vCPU microVM.** The same artifact in a cloud-hypervisor microVM with 4 vCPUs and 8 GB, its
+load generated on the host (a 64-core EPYC 7713). Logged-in queries go to marco in its own 4-vCPU VM
+on the same host. agent sets each VM's cgroup quota (`cpu.max`) to one CPU per vCPU, and the quota
+covers the VMM and its virtio-net thread as well as the vCPUs, so the guest never gets all 4.
+Raising the pod's quota to 8 CPUs lets the 4 vCPUs run flat out with the NIC beside them. That's what a pod
+sized at 4 vCPUs plus NIC headroom does.
 
-| | Closed loop, short queue | Open loop, low p99 | Peak | seek's CPU per query |
+| | Quota | Closed loop, short queue | Open loop, low p99 | Peak |
 |---|---|---|---|---|
-| Logged out | 12,500/s at 8 in flight, p99 1.2 ms | 6,000/s, p99 0.7 ms | 29,500/s at 512 in flight, p50 15 ms | 113 µs at 1 in flight, 53 µs at peak |
-| Logged in | 2,600/s at 2 in flight, p99 2.6 ms | 2,700/s, p99 4.4 ms | 10,800/s at 256 in flight, p50 20 ms | 290 µs at 2 in flight, 144 µs at peak |
+| Logged out | 4 CPUs | 13,100/s at 4 in flight, p99 0.59 ms | | 74,700/s at 2,048 in flight, p50 26 ms |
+| Logged out | 8 CPUs | 13,700/s at 4 in flight, p99 0.54 ms | | 80,400/s at 2,048 in flight, p50 24 ms |
+| Logged in | 4 CPUs | 2,200/s at 2 in flight, p99 2.8 ms | 6,000/s, p99 21 ms | 23,900/s at 1,024 in flight; open loop 21,400/s |
+| Logged in | 8 CPUs | 4,800/s at 4 in flight, p99 2.4 ms | 7,000/s, p99 2.7 ms | 28,000/s at 2,048 in flight; open loop 22,500/s |
 
-CPU per query counts seek's process. The whole VM uses 1.3 to 2.5 times that, the virtio-net path
-and the guest kernel being the rest. Logged in, the ceiling is seek's quota too: marco's VM
-(4 vCPUs) peaks at 1.75 cores and is never throttled. Each logged-in query costs marco's VM
-about 300 µs of CPU at low rates and 115 µs at seek's ceiling, so its 4 vCPUs would carry about
-35,000 logged-in queries a second if that holds. marco's own `marco_rpc_seconds` p99 is 0.4 to
-0.7 ms at low load and climbs to 24 to 51 ms as seek's VM throttles harder, with marco's CPU to
-spare: its replies most likely wait on a reader that's stalled.
+Logged in, every viewer is in seek's viewer cache, so a query costs one marco Filter (500 viewers).
+At agent's quota the VM is throttled from 256 in flight logged out (520 to 630 ms of every second at
+the top) and from 8 in flight logged in. At 8 CPUs it's never throttled. The logged-out peak is the
+same at both quotas within 8%, because seek's own process reaches 3.4 to 3.9 cores either way. The
+low-load logged-in p99 of 19 to 26 ms at agent's quota at 2,400 to 6,000/s came with little or no
+throttling, so the quota doesn't explain it.
 
-An artifact swap takes the 2-vCPU pod a few seconds of CPU (the download, its check and the swap).
+What the whole VM costs next to seek's process, per query:
+
+| | 1 in flight, seek | 1 in flight, VM | Peak, seek | Peak, VM |
+|---|---|---|---|---|
+| Logged out, 8 CPUs | 112 µs | 272 µs | 48 µs | 53 µs |
+| Logged in, 8 CPUs | 282 µs | 751 µs | 134 µs | 154 µs |
+
+At low rates the guest kernel and virtio-net cost 1.5 to 2.5 times seek's own CPU (every query is
+its own wakeup and packet). At the peak, deep queues batch them and they add 10 to 15%.
+
+**marco under logged-in load.** To take the pod out of the way, `seek serve` ran on the host
+itself, not in a VM, on 8 cores (16 threads) that no VM uses. It sent logged-in queries to marco's API
+over loopback, with the same 500 cached viewers, so each query was one Filter in marco:
+
+| seek on the host | Logged-in req/s | p99 | marco CPU (process / VM) | marco VM per query | marco p50 / p99 |
+|---|---|---|---|---|---|
+| Open loop, 10,700/s | 10,700 | 1.6 ms | 1.3 / 2.4 cores | 223 µs | 48 µs / 0.25 ms |
+| Open loop, 34,300/s | 34,300 | 11 ms | 2.5 / 3.6 cores | 102 µs | 45 µs / 1.3 ms |
+| One pod, peak | 42,900 | 10 ms (closed, 256 in flight) | 2.7 / 3.5 cores | 80 µs | 95 µs / 3.9 ms |
+| Two pods, peak | 67,900 | 20 ms (closed, 256 in flight each) | 3.2 / 3.9 cores | 54 µs | 0.65 ms / 7.3 ms |
+
+**marco tops out at about 68,000 logged-in queries a second** on its 4 vCPUs, 54 µs of VM CPU a
+query (47 µs in marco's process). With two pods it's throttled in nearly every 100 ms period (145 to
+156 of 150 in a 15 s window), so its cgroup quota is the limit. With one pod it stops at 43,000/s with its VM at 3.5 cores
+and never throttled: each vCPU thread at 0.7 to 0.85 of a core, the virtio-net thread at 0.65. That
+limit is one h2 connection to marco, not marco: these runs used one connection a pod, and two
+reach the quota. A pod opens `--marco-connections` (4) and spreads its calls over them. marco's miss pool stayed idle (`marco_store_miss_pool_busy` 0) and no query
+errored. Per query, marco's CPU falls from 316 µs at 1 in flight to 54 µs at the top as deeper
+queues batch more calls per h2 frame and wakeup.
+
+**Viewer builds.** A viewer that isn't cached costs marco a Counts call for their follow count,
+then a ListOut of their follows (a page per 1,000) and one Intersect page for their mutuals. A viewer
+who follows more than `--max-follows` gets neither: the cache keeps a small verdict, and their queries
+are filtered by blocks without follows first. The test mix is every account that posted a mention in
+the last two days, 62,978 of them, with these follow counts:
+
+| Follows | p50 | p90 | p95 | p99 | p99.9 | max | mean |
+|---|---|---|---|---|---|---|---|
+| Mention authors | 324 | 2,087 | 4,241 | 23,734 | 79,219 | 591,685 | 1,406 |
+
+| Cap | Viewers over it | Their share of all follows | Mean follows under it |
+|---|---|---|---|
+| 2,000 | 10.4% | 73% | 421 |
+| 5,000 | 4.3% | 60% | 588 |
+| 10,000 | 2.4% | 51% | 712 |
+| 50,000 | 0.3% | 19% | 1,148 |
+
+The long tail is mostly bots, which don't type into a search box. A cap of 5,000 sits just past the
+95th percentile: it drops the 2,705 accounts (4.3%) that hold 60% of the mix's follows, and a build
+reads at most five ListOut pages and one Intersect page. Built once each, 16 at a time against
+production marco, the mix took 25.6 s (2,460 builds a second) against 97.6 s (645 a second) with
+the old 50,000 cap. With every author asking at random against a 256 MB cache, the pod answered
+4,540 logged-in queries a second at 256 in flight against 2,560, and no query lost follows first.
+With the old cap 23,166 did, because builds ran past marco's timeout and paused.
+
+**The cache entry.** An entry holds the viewer's follows and mutuals as the artifact's u32 ids,
+sorted, and the positions of the follows' keys in the artifact's sorted key array. A key starts with
+the typed prefix exactly when its position falls inside the prefix's range, so a viewer's matching
+follows are a range of their positions, with no key bytes kept. Follows the overlay speaks for (new
+accounts and changed names) keep their keys. That's about 21 bytes a follow, where the old entry kept
+each follow's DID and folded keys:
+
+| Follows (mention authors under the cap) | Before, weighed | Before, RSS | Now, weighed | Now, RSS |
+|---|---|---|---|---|
+| 43 (p10 to p20) | 7.6 KB | 11.1 KB | 1.4 KB | 1.6 KB |
+| 359 (p50 to p60) | 63 KB | 85 KB | 8.1 KB | 8.6 KB |
+| 1,157 (p80 to p90) | 202 KB | 257 KB | 25 KB | 28 KB |
+| 4,461 (p99 to p100) | 781 KB | 1.0 MB | 96 KB | 101 KB |
+| Mean, 588 | 103 KB | 138 KB | 13.0 KB | 14.6 KB |
+
+The weight is each allocation at its jemalloc size class plus 512 bytes for moka's entry and the key.
+RSS grew 12% more than the weight over all 60,264 entries (783 MB weighed, 880 MB RSS). Logged-in
+CPU is the same: with 500 cached viewers on bare metal, 296 µs of pod CPU a query before and 298 µs
+after at 16 in flight. The match itself is 29 µs either way (`seek_query_stage_seconds`): the global
+fill is 0.9 µs slower, as a follow check is now a binary search.
+
+**Artifact swaps.** Ids are per artifact. At a swap the pod maps each old id to the new artifact's
+in one merge of the two DID tables, then a sweep moves every cached entry onto the new ids. It keeps
+the entry's idle deadline and asks marco nothing. A query that reaches an entry first moves it
+itself. A follow neither artifact nor overlay has (an account with no handle or name yet) is kept as
+its DID and tried again at each swap. On the whole network's artifact the map (43.0M ids, 172 MB)
+took 342 ms. With 60,148 viewers cached (783 MB weighed), the sweep took 8.0 s on one thread, about
+1% of a core at one swap every 15 minutes, and the map went when it ended. Of 2,000 of those viewers
+asked after the swap, all but 9 hit. Those 9 had followed someone since, so Jetstream had dropped
+their entries.
+
+**Hit rate.** Replaying the two days of mention posts in order, each post a session whose first
+keystroke finds its viewer cached or builds it (121,508 sessions after the 12,284 from capped
+authors, 42 a minute, about 350 distinct viewers in 10 minutes). Half the sessions are a viewer
+coming back, so 50.4% is the most a cache can hit:
+
+| Cache | 64 MB | 128 MB | 256 MB | 512 MB | 1 GB | 2 GB |
+|---|---|---|---|---|---|---|
+| Idle 10 minutes | 22.6% | 22.6% | 22.6% | 22.6% | 22.6% | 22.6% |
+| Idle 6 hours | 34.7% | 37.8% | 38.8% | 38.8% | 38.8% | 38.8% |
+| Idle 24 hours | 34.7% | 38.3% | 42.7% | 48.0% | 48.0% | 48.0% |
+| No idle limit | 34.7% | 38.3% | 42.7% | 49.3% | 50.4% | 50.4% |
+| The old entry (same cap), no idle limit | 25.3% | 28.5% | 32.0% | 35.5% | 39.1% | 43.8% |
+
+At 10 minutes idle the cache's size doesn't matter: more than half of returning viewers come back
+later. So entries live a day (`--viewer-idle-seconds 86400`). A day-old entry stays right because
+Jetstream's follow records drop it:
+
+- A viewer's follow or unfollow drops their entry, and a follow drops its subject's too, since the
+  subject's mutuals changed. An unfollow's delete doesn't name the subject, so the subject keeps
+  the unfollower as a mutual (a +1 nat among follows) until their entry is read again.
+- marco can apply a follow after seek sees it on Jetstream: 99% of marco's events within 1.1 s of
+  their time, and at most 2.4 s behind seek's own Jetstream position over a day. A build whose marco
+  read starts before the event plus `--marco-lag-ms` (5 s) isn't cached, so a build already reading
+  when the event came isn't kept either. The entry is dropped once more at 10 s.
+- Whatever an event missed, an entry is read from marco again a day after its last read, however
+  often it's used. 1 GiB (`--viewer-cache-mb 1024`)
+holds the whole two days of authors (783 MB weighed) with room for more traffic. The pod's 8 GB
+has 4.87 GB at a swap with two artifacts mapped. A full cache adds about 1.2 GB of RSS and the id
+map 0.17 GB while the sweep runs, so a swap peaks near 6.3 GB. On bare metal, with 783 MB cached
+and both artifacts paged in, the swap above peaked at 6.06 GB.
+
+On 2 vCPUs, an artifact swap takes the pod a few seconds of CPU (the download, its check and the swap).
 At 21,000/s offered, logged out, one step that overlapped it backed up to a 2.7 s p50. During the
 swap RSS reached 4.87 GB, with both artifacts mapped, against the VM's 5 GB.

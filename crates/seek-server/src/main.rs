@@ -102,14 +102,26 @@ enum Cmd {
         /// marco's API for logged-in queries; without it every query is logged out.
         #[arg(long, env = "SEEK_MARCO")]
         marco: Option<String>,
+        /// h2 connections to marco, calls spread round-robin (one tops out at ~43k Filters/s).
+        #[arg(long, env = "SEEK_MARCO_CONNECTIONS", default_value_t = 4)]
+        marco_connections: usize,
         #[arg(long, env = "SEEK_MARCO_TIMEOUT_MS", default_value_t = 500)]
         marco_timeout_ms: u64,
-        /// The most follows a viewer's entry reads (newest first).
-        #[arg(long, env = "SEEK_MAX_FOLLOWS", default_value_t = 50_000)]
+        /// A viewer following more accounts than this gets no follows first (their queries are
+        /// still filtered by blocks): one marco Counts call decides, and the cache keeps the
+        /// verdict. 5,000 is past the 95th percentile of accounts that post mentions (4,241
+        /// follows). The 4.3% past it are mostly bots and hold 60% of the sample's follows
+        /// (docs/seek.md).
+        #[arg(long, env = "SEEK_MAX_FOLLOWS", default_value_t = 5_000)]
         max_follows: usize,
-        #[arg(long, env = "SEEK_VIEWER_CACHE_MB", default_value_t = 256)]
+        /// The viewer cache's weighed size. About 13 KB a viewer on average (21 B a follow): 1 GiB
+        /// holds every account that posted a mention in two days, with room to spare (docs/seek.md).
+        #[arg(long, env = "SEEK_VIEWER_CACHE_MB", default_value_t = 1024)]
         viewer_cache_mb: u64,
-        #[arg(long, env = "SEEK_VIEWER_IDLE_SECONDS", default_value_t = 600)]
+        /// A viewer's entry goes this long after its last query (or when Jetstream shows them
+        /// follow or unfollow). Half of mention sessions are a viewer back within two days, and
+        /// more than half of those come back after ten minutes, so the cache keeps them a day.
+        #[arg(long, env = "SEEK_VIEWER_IDLE_SECONDS", default_value_t = 86_400)]
         viewer_idle_seconds: u64,
         /// Follows first: `wall` (every follow ahead of every stranger) or a boost in nats.
         #[arg(long, env = "SEEK_FOLLOWS", default_value = "wall")]
@@ -124,6 +136,11 @@ enum Cmd {
         /// (logged-in queries are still filtered by blocks).
         #[arg(long, env = "SEEK_VIEWER_DEADLINE_MS", default_value_t = 2000)]
         viewer_deadline_ms: u64,
+        /// How far marco's follows may trail Jetstream's (marco applies 99% of events within 1.1 s
+        /// and trailed seek's Jetstream by at most 2.4 s in a day). A build whose marco read starts
+        /// within this of a follow event isn't cached, and the entry is dropped again at twice this.
+        #[arg(long, env = "SEEK_MARCO_LAG_MS", default_value_t = 5000)]
+        marco_lag_ms: u64,
         /// Read follow records too, so a viewer's follow or unfollow drops their cache entry.
         #[arg(long, env = "SEEK_FOLLOW_EVENTS", default_value_t = true, action = clap::ArgAction::Set)]
         follow_events: bool,
@@ -312,6 +329,7 @@ async fn run(cli: Cli) -> Result<()> {
             data,
             poll_seconds,
             marco,
+            marco_connections,
             marco_timeout_ms,
             max_follows,
             viewer_cache_mb,
@@ -320,6 +338,7 @@ async fn run(cli: Cli) -> Result<()> {
             replay_window_hours,
             max_lag_seconds,
             viewer_deadline_ms,
+            marco_lag_ms,
             follow_events,
             ingest,
             s3,
@@ -347,7 +366,7 @@ async fn run(cli: Cli) -> Result<()> {
                 }
             }
             let marco = marco
-                .map(|u| marco::Marco::new(&u, Duration::from_millis(marco_timeout_ms), max_follows))
+                .map(|u| marco::Marco::new(&u, marco_connections, Duration::from_millis(marco_timeout_ms), max_follows))
                 .transpose()?;
             let cfg = serve::Config {
                 params: seek_core::query::Params { policy: follows_policy(&follows)?, ..Default::default() },
@@ -357,6 +376,7 @@ async fn run(cli: Cli) -> Result<()> {
                 replay_keep: Duration::from_secs(6 * 3600),
                 max_lag: Duration::from_secs(max_lag_seconds),
                 viewer_deadline: Duration::from_millis(viewer_deadline_ms),
+                marco_lag: Duration::from_millis(marco_lag_ms),
             };
             let pod = serve::Pod::new(cfg, marco);
             let p = pod.clone();
