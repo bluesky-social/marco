@@ -739,12 +739,18 @@ impl Index {
 
     /// Calls `f(key, tier)` for each of the actor's keys.
     pub fn keys_of(&self, id: u32, mut f: impl FnMut(&[u8], u8)) {
-        let (foff, fwd, post) = (self.foff(), self.fwd(), self.post());
+        let post = self.post();
         let mut buf = [0u8; 256];
-        for &pos in &fwd[foff[id as usize] as usize..foff[id as usize + 1] as usize] {
+        for &pos in self.positions(id) {
             let l = self.key_at(pos as usize, &mut buf);
             f(&buf[..l], tier(post[pos as usize]));
         }
+    }
+
+    /// The posting positions of the actor's keys, in key order.
+    pub fn positions(&self, id: u32) -> &[u32] {
+        let foff = self.foff();
+        &self.fwd()[foff[id as usize] as usize..foff[id as usize + 1] as usize]
     }
 
     pub fn key_count(&self, id: u32) -> usize {
