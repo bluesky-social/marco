@@ -107,8 +107,8 @@ The same pages are served at `/docs` by every `marco serve`.
 
 The measured results are standalone pages in `docs/`: the whole-network build and reads
 (`p0-results.html`), throughput and latency (`perf.html`), durability (`p1-results.html`), lists
-(`lists-results.html`), a read mix from real app traffic (`read-mix.html`) and the Scylla rebuild
-(`scylla-results.html`).
+(`lists-results.html`), a read mix from real app traffic (`read-mix.html`), the Scylla rebuild
+(`scylla-results.html`) and what a list-block `via` costs (`via-results.html`).
 
 ## seek
 
@@ -138,7 +138,7 @@ has the rest.
 | `marco-proto` | The API, generated from `proto/` |
 | `marco-ingest` | The Jetstream and firehose consumers |
 | `marco-load` | The bulk loader: `build`, `scan-scylla`, `fill-scylla`, `diff`, benches |
-| `marco-harness` | Source captures, the kill test, ingest lag, Jetstream retention, perf runs |
+| `marco-harness` | Source captures, the kill test, ingest lag, Jetstream retention, perf runs, `via`'s cost (`via-synth`, `via-bench`) |
 | `marco-ops` | `/metrics`, pprof CPU and heap profiles, the tracing switch |
 | `seek-core` | seek's index: folding, keys, the artifact, the overlay, ranking |
 | `seek-api` | seek's API: the dataplane's `bsky.Service/SearchActorsTypeahead` |
