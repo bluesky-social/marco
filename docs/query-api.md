@@ -171,6 +171,15 @@ Every read that stops short counts in `marco_via_truncated_total{rpc, reason}`: 
 account with more records than the cap, and `"deletes"` for one with more recent deletes than a
 read passes.
 
+On a synthetic graph shaped like the network's lists, measured in the engine on an 8-vCPU laptop
+VM, 100 others × 2 relations take ~23 µs alone and ~37 µs with list blocks both ways and mute
+lists. A viewer with 200,000 subscriptions takes ~0.35 ms, since only its newest 1,000 are read. The
+cap sets the cost of one shape: `BlockPairs` with 1,000 pairs whose 2,000 accounts are all on lists
+and hold 1,000 subscriptions or more reads two million records, ~26 ms at the default cap and
+~3.6 ms at 100 ([Via, measured](via-results.html)). Reads are open, so if your API listener takes
+requests from callers you don't control, a lower `--via-max-records` bounds that request.
+`marco-harness via-synth` and `via-bench` measure the same on any snapshot with these relations.
+
 ## BlockPairs
 
 Per pair of up to 1,000, whether `a` has a record naming `b` (`aBlocksB`), the reverse

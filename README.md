@@ -107,8 +107,8 @@ The same pages are served at `/docs` by every `marco serve`.
 
 The measured results are standalone pages in `docs/`: the whole-network build and reads
 (`p0-results.html`), throughput and latency (`perf.html`), durability (`p1-results.html`), lists
-(`lists-results.html`), a read mix from real app traffic (`read-mix.html`) and the Scylla rebuild
-(`scylla-results.html`).
+(`lists-results.html`), a read mix from real app traffic (`read-mix.html`), the Scylla rebuild
+(`scylla-results.html`) and what a list-block `via` costs (`via-results.html`).
 
 ## seek
 
