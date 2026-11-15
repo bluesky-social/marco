@@ -327,6 +327,11 @@ message FilterDrop {
   // Set instead of rel and dir: drops the actors in this side, whoever the
   // viewer is (a list's members: listitem, DIR_OUT, the list's URI).
   ListSide member_of = 3;
+  // Set instead of rel and dir: drops the actors this via answers for the
+  // viewer, as Relationships' via with the viewer as its actor. DIR_OUT
+  // drops those on the viewer's lists, DIR_IN those whose lists hold the
+  // viewer. At most 10 a request.
+  Via via = 4;
 }
 
 message FilterRequest {
@@ -340,13 +345,20 @@ message FilterResponse {
   // The actors kept, in the request's order.
   repeated string actors = 1;
   repeated Dropped dropped = 2;
+  // Kept actors a via rule may have missed, in the request's order: its
+  // answer was empty, but the read of the subscriber's lists stopped short,
+  // as in a ViaAnswer's truncated.
+  repeated string via_truncated = 3;
 }
 
 message Dropped {
   string actor = 1;
-  // The first rule that dropped it, or "status" for an actor taken down or deleted.
+  // The first rule that dropped it, or "status" for an actor taken down or
+  // deleted. A via rule is its rel, or for lists its members.
   string rel = 2;
   Dir dir = 3;
+  // A via rule's: the list that matched.
+  string list = 4;
 }
 
 message EdgesAmongRequest {

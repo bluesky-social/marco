@@ -5425,6 +5425,17 @@ pub struct FilterDrop {
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_unset_message_field"
     )]
     pub member_of: ::buffa::MessageField<ListSide, ::buffa::Inline<ListSide>>,
+    /// Set instead of rel and dir: drops the actors this via answers for the
+    /// viewer, as Relationships' via with the viewer as its actor. DIR_OUT
+    /// drops those on the viewer's lists, DIR_IN those whose lists hold the
+    /// viewer. At most 10 a request.
+    ///
+    /// Field 4: `via`
+    #[serde(
+        rename = "via",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_unset_message_field"
+    )]
+    pub via: ::buffa::MessageField<Via, ::buffa::Inline<Via>>,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -5435,6 +5446,7 @@ impl ::core::fmt::Debug for FilterDrop {
             .field("rel", &self.rel)
             .field("dir", &self.dir)
             .field("member_of", &self.member_of)
+            .field("via", &self.via)
             .finish()
     }
 }
@@ -5482,6 +5494,14 @@ impl ::buffa::Message for FilterDrop {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        if self.via.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.via.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
+                    + inner_size as u64;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u64;
         ::buffa::saturate_size(size)
     }
@@ -5508,6 +5528,14 @@ impl ::buffa::Message for FilterDrop {
                 buf,
             );
             self.member_of.write_to(__cache, buf);
+        }
+        if self.via.is_set() {
+            ::buffa::types::put_len_delimited_header(
+                4u32,
+                u64::from(__cache.consume_next()),
+                buf,
+            );
+            self.via.write_to(__cache, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -5547,6 +5575,17 @@ impl ::buffa::Message for FilterDrop {
                     ctx,
                 )?;
             }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::Message::merge_length_delimited(
+                    self.via.get_or_insert_default(),
+                    buf,
+                    ctx,
+                )?;
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -5558,6 +5597,7 @@ impl ::buffa::Message for FilterDrop {
         self.rel.clear();
         self.dir = ::buffa::EnumValue::from(0);
         self.member_of = ::buffa::MessageField::none();
+        self.via = ::buffa::MessageField::none();
         self.__buffa_unknown_fields.clear();
     }
 }
@@ -5801,6 +5841,18 @@ pub struct FilterResponse {
         deserialize_with = "::buffa::json_helpers::null_as_default"
     )]
     pub dropped: ::buffa::alloc::vec::Vec<Dropped>,
+    /// Kept actors a via rule may have missed, in the request's order: its
+    /// answer was empty, but the read of the subscriber's lists stopped short,
+    /// as in a ViaAnswer's truncated.
+    ///
+    /// Field 3: `via_truncated`
+    #[serde(
+        rename = "viaTruncated",
+        alias = "via_truncated",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_vec",
+        deserialize_with = "::buffa::json_helpers::null_as_default"
+    )]
+    pub via_truncated: ::buffa::alloc::vec::Vec<::buffa::alloc::string::String>,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -5810,6 +5862,7 @@ impl ::core::fmt::Debug for FilterResponse {
         f.debug_struct("FilterResponse")
             .field("actors", &self.actors)
             .field("dropped", &self.dropped)
+            .field("via_truncated", &self.via_truncated)
             .finish()
     }
 }
@@ -5851,6 +5904,9 @@ impl ::buffa::Message for FilterResponse {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        for v in &self.via_truncated {
+            size += 1u64 + ::buffa::types::string_encoded_len(v) as u64;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u64;
         ::buffa::saturate_size(size)
     }
@@ -5871,6 +5927,9 @@ impl ::buffa::Message for FilterResponse {
                 buf,
             );
             v.write_to(__cache, buf);
+        }
+        for v in &self.via_truncated {
+            ::buffa::types::put_string_field(3u32, v, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -5908,6 +5967,17 @@ impl ::buffa::Message for FilterResponse {
                 ::buffa::Message::merge_length_delimited(&mut elem, buf, ctx)?;
                 self.dropped.push(elem);
             }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __elem = ::buffa::types::decode_string(buf)?;
+                ctx.register_element_memory(
+                    ::buffa::__private::element_footprint(&__elem),
+                )?;
+                self.via_truncated.push(__elem);
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -5918,6 +5988,7 @@ impl ::buffa::Message for FilterResponse {
     fn clear(&mut self) {
         self.actors.clear();
         self.dropped.clear();
+        self.via_truncated.clear();
         self.__buffa_unknown_fields.clear();
     }
 }
@@ -5961,7 +6032,8 @@ pub struct Dropped {
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_str"
     )]
     pub actor: ::buffa::alloc::string::String,
-    /// The first rule that dropped it, or "status" for an actor taken down or deleted.
+    /// The first rule that dropped it, or "status" for an actor taken down or
+    /// deleted. A via rule is its rel, or for lists its members.
     ///
     /// Field 2: `rel`
     #[serde(
@@ -5977,6 +6049,15 @@ pub struct Dropped {
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_default_enum_value"
     )]
     pub dir: ::buffa::EnumValue<Dir>,
+    /// A via rule's: the list that matched.
+    ///
+    /// Field 4: `list`
+    #[serde(
+        rename = "list",
+        with = "::buffa::json_helpers::proto_string",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_str"
+    )]
+    pub list: ::buffa::alloc::string::String,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -5987,6 +6068,7 @@ impl ::core::fmt::Debug for Dropped {
             .field("actor", &self.actor)
             .field("rel", &self.rel)
             .field("dir", &self.dir)
+            .field("list", &self.list)
             .finish()
     }
 }
@@ -6029,6 +6111,9 @@ impl ::buffa::Message for Dropped {
                 size += 1u64 + ::buffa::types::int32_encoded_len(val) as u64;
             }
         }
+        if !self.list.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.list) as u64;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u64;
         ::buffa::saturate_size(size)
     }
@@ -6050,6 +6135,9 @@ impl ::buffa::Message for Dropped {
             if val != 0 {
                 ::buffa::types::put_int32_field(3u32, val, buf);
             }
+        }
+        if !self.list.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.list, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -6085,6 +6173,13 @@ impl ::buffa::Message for Dropped {
                 )?;
                 self.dir = ::buffa::EnumValue::from(::buffa::types::decode_int32(buf)?);
             }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.list, buf)?;
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -6096,6 +6191,7 @@ impl ::buffa::Message for Dropped {
         self.actor.clear();
         self.rel.clear();
         self.dir = ::buffa::EnumValue::from(0);
+        self.list.clear();
         self.__buffa_unknown_fields.clear();
     }
 }

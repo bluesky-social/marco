@@ -159,8 +159,8 @@ struct Serve {
     /// The most actors one EdgesAmong request takes.
     #[arg(long, env = "MARCO_EDGES_AMONG_MAX_ACTORS", default_value_t = marco_server::graph_svc::EDGES_AMONG_MAX)]
     edges_among_max_actors: usize,
-    /// The most of a subscriber's newest records a via reads (Relationships and BlockPairs), whichever
-    /// call or side names it. An empty answer that a read this cap stopped says so.
+    /// The most of a subscriber's newest records a via reads (Relationships, BlockPairs and Filter),
+    /// whichever call or side names it. An empty answer that a read this cap stopped says so.
     #[arg(long, env = "MARCO_VIA_MAX_RECORDS", default_value_t = marco_core::graph::VIA_MAX_RECORDS)]
     via_max_records: usize,
     /// Caps the engine's frames below what --memory allows, skipping the minimum-budget check:

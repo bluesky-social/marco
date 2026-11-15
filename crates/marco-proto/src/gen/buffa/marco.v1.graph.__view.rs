@@ -8355,6 +8355,13 @@ pub struct FilterDropView<'a> {
     pub member_of: ::buffa::MessageFieldView<
         super::super::__buffa::view::ListSideView<'a>,
     >,
+    /// Set instead of rel and dir: drops the actors this via answers for the
+    /// viewer, as Relationships' via with the viewer as its actor. DIR_OUT
+    /// drops those on the viewer's lists, DIR_IN those whose lists hold the
+    /// viewer. At most 10 a request.
+    ///
+    /// Field 4: `via`
+    pub via: ::buffa::MessageFieldView<super::super::__buffa::view::ViaView<'a>>,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for FilterDropView<'a> {
@@ -8424,6 +8431,27 @@ impl<'a> ::buffa::MessageView<'a> for FilterDropView<'a> {
                     }
                 }
             }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __sub_ctx = ctx.descend()?;
+                let sub = ::buffa::types::borrow_bytes(&mut cur)?;
+                match view.via.as_mut() {
+                    Some(existing) => {
+                        ::buffa::MessageView::merge_into_view(existing, sub, __sub_ctx)?
+                    }
+                    None => {
+                        view.via = ::buffa::MessageFieldView::set(
+                            <super::super::__buffa::view::ViaView as ::buffa::MessageView>::decode_view_ctx(
+                                sub,
+                                __sub_ctx,
+                            )?,
+                        );
+                    }
+                }
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 let span_len = before_tag.len() - cur.len();
@@ -8457,6 +8485,15 @@ impl<'a> ::buffa::MessageView<'a> for FilterDropView<'a> {
                 }
                 None => ::buffa::MessageField::none(),
             },
+            via: match self.via.as_option() {
+                Some(v) => {
+                    ::buffa::MessageField::<
+                        super::super::Via,
+                        ::buffa::Inline<super::super::Via>,
+                    >::some(v.to_owned_from_source(__buffa_src)?)
+                }
+                None => ::buffa::MessageField::none(),
+            },
             __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
             ..::core::default::Default::default()
         })
@@ -8480,6 +8517,14 @@ impl<'a> ::buffa::ViewEncode<'a> for FilterDropView<'a> {
         if self.member_of.is_set() {
             let __slot = __cache.reserve();
             let inner_size = self.member_of.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
+                    + inner_size as u64;
+        }
+        if self.via.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.via.compute_size(__cache);
             __cache.set(__slot, inner_size);
             size
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
@@ -8513,6 +8558,14 @@ impl<'a> ::buffa::ViewEncode<'a> for FilterDropView<'a> {
             );
             self.member_of.write_to(__cache, buf);
         }
+        if self.via.is_set() {
+            ::buffa::types::put_len_delimited_header(
+                4u32,
+                u64::from(__cache.consume_next()),
+                buf,
+            );
+            self.via.write_to(__cache, buf);
+        }
         self.__buffa_unknown_fields.write_to(buf);
     }
 }
@@ -8543,6 +8596,11 @@ impl<'__a> ::serde::Serialize for FilterDropView<'__a> {
         {
             if let ::core::option::Option::Some(__v) = self.member_of.as_option() {
                 __map.serialize_entry("memberOf", __v)?;
+            }
+        }
+        {
+            if let ::core::option::Option::Some(__v) = self.via.as_option() {
+                __map.serialize_entry("via", __v)?;
             }
         }
         __map.end()
@@ -8658,6 +8716,18 @@ impl FilterDropOwnedView {
         &self,
     ) -> &::buffa::MessageFieldView<super::super::__buffa::view::ListSideView<'_>> {
         &self.0.reborrow().member_of
+    }
+    /// Set instead of rel and dir: drops the actors this via answers for the
+    /// viewer, as Relationships' via with the viewer as its actor. DIR_OUT
+    /// drops those on the viewer's lists, DIR_IN those whose lists hold the
+    /// viewer. At most 10 a request.
+    ///
+    /// Field 4: `via`
+    #[must_use]
+    pub fn via(
+        &self,
+    ) -> &::buffa::MessageFieldView<super::super::__buffa::view::ViaView<'_>> {
+        &self.0.reborrow().via
     }
 }
 impl ::core::convert::From<::buffa::OwnedView<FilterDropView<'static>>>
@@ -9026,6 +9096,12 @@ pub struct FilterResponseView<'a> {
     pub actors: ::buffa::RepeatedView<'a, &'a str>,
     /// Field 2: `dropped`
     pub dropped: ::buffa::RepeatedView<'a, super::super::__buffa::view::DroppedView<'a>>,
+    /// Kept actors a via rule may have missed, in the request's order: its
+    /// answer was empty, but the read of the subscriber's lists stopped short,
+    /// as in a ViaAnswer's truncated.
+    ///
+    /// Field 3: `via_truncated`
+    pub via_truncated: ::buffa::RepeatedView<'a, &'a str>,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for FilterResponseView<'a> {
@@ -9087,6 +9163,17 @@ impl<'a> ::buffa::MessageView<'a> for FilterResponseView<'a> {
                         )?,
                     );
             }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __elem = ::buffa::types::borrow_str(&mut cur)?;
+                ctx.register_element_memory(
+                    ::buffa::__private::element_footprint(&__elem),
+                )?;
+                view.via_truncated.push(__elem);
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 let span_len = before_tag.len() - cur.len();
@@ -9115,6 +9202,7 @@ impl<'a> ::buffa::MessageView<'a> for FilterResponseView<'a> {
                 .iter()
                 .map(|v| v.to_owned_from_source(__buffa_src))
                 .collect::<::core::result::Result<_, ::buffa::DecodeError>>()?,
+            via_truncated: self.via_truncated.iter().map(|s| s.to_string()).collect(),
             __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
             ..::core::default::Default::default()
         })
@@ -9137,6 +9225,9 @@ impl<'a> ::buffa::ViewEncode<'a> for FilterResponseView<'a> {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        for v in &self.via_truncated {
+            size += 1u64 + ::buffa::types::string_encoded_len(v) as u64;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u64;
         ::buffa::saturate_size(size)
     }
@@ -9158,6 +9249,9 @@ impl<'a> ::buffa::ViewEncode<'a> for FilterResponseView<'a> {
                 buf,
             );
             v.write_to(__cache, buf);
+        }
+        for v in &self.via_truncated {
+            ::buffa::types::put_string_field(3u32, v, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -9185,6 +9279,9 @@ impl<'__a> ::serde::Serialize for FilterResponseView<'__a> {
         }
         if !self.dropped.is_empty() {
             __map.serialize_entry("dropped", &*self.dropped)?;
+        }
+        if !self.via_truncated.is_empty() {
+            __map.serialize_entry("viaTruncated", &*self.via_truncated)?;
         }
         __map.end()
     }
@@ -9293,6 +9390,15 @@ impl FilterResponseOwnedView {
     ) -> &::buffa::RepeatedView<'_, super::super::__buffa::view::DroppedView<'_>> {
         &self.0.reborrow().dropped
     }
+    /// Kept actors a via rule may have missed, in the request's order: its
+    /// answer was empty, but the read of the subscriber's lists stopped short,
+    /// as in a ViaAnswer's truncated.
+    ///
+    /// Field 3: `via_truncated`
+    #[must_use]
+    pub fn via_truncated(&self) -> &::buffa::RepeatedView<'_, &'_ str> {
+        &self.0.reborrow().via_truncated
+    }
 }
 impl ::core::convert::From<::buffa::OwnedView<FilterResponseView<'static>>>
 for FilterResponseOwnedView {
@@ -9328,12 +9434,17 @@ impl ::serde::Serialize for FilterResponseOwnedView {
 pub struct DroppedView<'a> {
     /// Field 1: `actor`
     pub actor: &'a str,
-    /// The first rule that dropped it, or "status" for an actor taken down or deleted.
+    /// The first rule that dropped it, or "status" for an actor taken down or
+    /// deleted. A via rule is its rel, or for lists its members.
     ///
     /// Field 2: `rel`
     pub rel: &'a str,
     /// Field 3: `dir`
     pub dir: ::buffa::EnumValue<super::super::Dir>,
+    /// A via rule's: the list that matched.
+    ///
+    /// Field 4: `list`
+    pub list: &'a str,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for DroppedView<'a> {
@@ -9389,6 +9500,13 @@ impl<'a> ::buffa::MessageView<'a> for DroppedView<'a> {
                     ::buffa::types::decode_int32(&mut cur)?,
                 );
             }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.list = ::buffa::types::borrow_str(&mut cur)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 let span_len = before_tag.len() - cur.len();
@@ -9414,6 +9532,7 @@ impl<'a> ::buffa::MessageView<'a> for DroppedView<'a> {
             actor: self.actor.to_string(),
             rel: self.rel.to_string(),
             dir: self.dir,
+            list: self.list.to_string(),
             __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
             ..::core::default::Default::default()
         })
@@ -9437,6 +9556,9 @@ impl<'a> ::buffa::ViewEncode<'a> for DroppedView<'a> {
                 size += 1u64 + ::buffa::types::int32_encoded_len(val) as u64;
             }
         }
+        if !self.list.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.list) as u64;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u64;
         ::buffa::saturate_size(size)
     }
@@ -9459,6 +9581,9 @@ impl<'a> ::buffa::ViewEncode<'a> for DroppedView<'a> {
             if val != 0 {
                 ::buffa::types::put_int32_field(3u32, val, buf);
             }
+        }
+        if !self.list.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.list, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -9489,6 +9614,9 @@ impl<'__a> ::serde::Serialize for DroppedView<'__a> {
         }
         if !::buffa::json_helpers::skip_if::is_default_enum_value(&self.dir) {
             __map.serialize_entry("dir", &self.dir)?;
+        }
+        if !::buffa::json_helpers::skip_if::is_empty_str(self.list) {
+            __map.serialize_entry("list", self.list)?;
         }
         __map.end()
     }
@@ -9584,7 +9712,8 @@ impl DroppedOwnedView {
     pub fn actor(&self) -> &'_ str {
         self.0.reborrow().actor
     }
-    /// The first rule that dropped it, or "status" for an actor taken down or deleted.
+    /// The first rule that dropped it, or "status" for an actor taken down or
+    /// deleted. A via rule is its rel, or for lists its members.
     ///
     /// Field 2: `rel`
     #[must_use]
@@ -9595,6 +9724,13 @@ impl DroppedOwnedView {
     #[must_use]
     pub fn dir(&self) -> ::buffa::EnumValue<super::super::Dir> {
         self.0.reborrow().dir
+    }
+    /// A via rule's: the list that matched.
+    ///
+    /// Field 4: `list`
+    #[must_use]
+    pub fn list(&self) -> &'_ str {
+        self.0.reborrow().list
     }
 }
 impl ::core::convert::From<::buffa::OwnedView<DroppedView<'static>>>
