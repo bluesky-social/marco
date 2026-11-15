@@ -114,9 +114,9 @@ gets one answer per entry, in order, in its `via`. The relations it reads are co
 ([Records as subjects](relations.md#records-as-subjects)): `listblock` for subscriptions to block
 lists, `listitem` for the members, and `modlist` to count mod lists only.
 
-The example uses the [Quickstart](quickstart.md)'s accounts: alice subscribes to carol's mod list,
-which holds dave, and the third entry passes alice's own list (which holds bob and dave) the way a
-caller passes a viewer's mute lists.
+The example is the [Quickstart's list blocks](quickstart.md#list-blocks): alice subscribes to
+carol's mod list, which holds dave, and the third entry passes alice's own list (which holds bob
+and dave) the way a caller passes a viewer's mute lists.
 
 ```json
 // Relationships {"actor":"did:plc:alice2222…","others":["did:plc:bob222…","did:plc:dave2222…"],
