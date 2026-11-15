@@ -159,7 +159,7 @@ A scraper that can't send the token reads the same text from `--ops-listen`, whi
 | `marco_ingest_connected` | `source` | 1 while the stream is open |
 | `marco_ingest_events_total` | `source`, `kind` | Events read |
 | `marco_ingest_ops_total` | `source`, `op` | Ops applied (`add`, `delete`, `status`) |
-| `marco_ingest_skipped_ops_total` | `source`, `reason` | Ops marco couldn't use (`bad_subject`, `bad_list`, `missing_block`…) |
+| `marco_ingest_skipped_ops_total` | `source`, `reason` | Ops marco couldn't use (`bad_subject`, `bad_list`, `missing_block`…), and records a relation's `when` doesn't keep (`unmatched`) |
 | `marco_ingest_decode_errors_total` | `source`, `reason` | Events that didn't decode |
 | `marco_ingest_reconnects_total` | `source`, `reason` | Streams dialled again |
 | `marco_ingest_apply_errors_total` | `source` | Sink writes that failed and were retried |
@@ -216,6 +216,20 @@ A lag of a few seconds is usually the source's. In the durability tests, two pub
 differed by up to 53 s while marco's own share of the lag stayed under 205 ms, so compare against
 another instance before blaming marco ([Durability and restarts, measured](p1-results.html)). marco doesn't ship a
 Grafana dashboard yet.
+
+## Snapshot formats
+
+A snapshot's manifest, directory and shard files are format 6. The one exception is the directory
+of a snapshot whose relations use `subject_collection`, `$self` or `when`: it's format 7, and it
+names those features in `requires` ([Relations](relations.md#where-it-lives)). marco checks both
+before it serves or writes anything. A format or feature newer than the build fails with
+`... is newer than this build reads ...` or `... which this build doesn't know: open it with a newer
+build of marco`, and an older format with `... rebuild the snapshot`.
+
+Builds of marco from before those relation keys read format 6 alone. They refuse a format 7
+snapshot at open with `snapshot format 7, this build reads 6: rebuild the snapshot`, and serve
+nothing from it. So to roll a server back to such a build, give it a snapshot built without those
+relations first. A snapshot without them is format 6, and builds on either side open it.
 
 ## Checkpoint export
 
