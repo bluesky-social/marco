@@ -30,6 +30,7 @@ use marco_core::{Dir, Graph, ListRef, RelId, SetOp, COUNT_EXACT};
 use marco_proto::connect::marco::v1::GraphClient;
 use marco_proto::v1::*;
 use marco_server::app::{App, Config};
+use marco_server::graph_svc;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
@@ -75,6 +76,12 @@ pub struct Inputs {
     /// List URIs, drawn about as often as they have members (empty without lists).
     #[serde(default)]
     pub lists: Vec<String>,
+    /// The DIDs on those lists, uniform over the DIDs on any list.
+    #[serde(default)]
+    pub listed: Vec<String>,
+    /// DIDs with a `listblock` record, uniform (empty without that relation).
+    #[serde(default)]
+    pub subscribers: Vec<String>,
     /// Weighted pools (`perf-inputs --viewer-weights/--subject-weights`): viewers
     /// and DIDs drawn with replacement in proportion to their weights.
     #[serde(default)]
@@ -218,6 +225,7 @@ pub fn make_inputs(snapshot: &Path, seed: u64, o: &InputOpts) -> Result<Inputs> 
         })
         .collect();
     let mut lists = Vec::new();
+    let mut listed = Vec::new();
     if let Some(li) = g.relations().by_name("listitem") {
         for _ in 0..tries {
             if lists.len() == 2000 {
@@ -230,6 +238,21 @@ pub fn make_inputs(snapshot: &Path, seed: u64, o: &InputOpts) -> Result<Inputs> 
             let on = g.read(|cx| g.in_page(cx, li, x, 1 << 20, None)).unwrap();
             if let Some(l) = g.did_of(on[r2.below(on.len() as u64) as usize]) {
                 lists.push(l);
+                listed.push(did(x));
+            }
+        }
+    }
+    // a generator of its own, so the draws above stay what they were
+    let mut r3 = Rng((seed ^ 0x6c69_7374_626c_6f63) | 1);
+    let mut subscribers = Vec::new();
+    if let Some(lb) = g.relations().by_name("listblock") {
+        for _ in 0..tries {
+            if subscribers.len() == o.pool_size {
+                break;
+            }
+            let x = r3.below(n as u64) as u32;
+            if g.read(|cx| g.out_count(cx, lb, x)).unwrap() > 0 {
+                subscribers.push(did(x));
             }
         }
     }
@@ -276,6 +299,8 @@ pub fn make_inputs(snapshot: &Path, seed: u64, o: &InputOpts) -> Result<Inputs> 
         viewers_heavy,
         popular,
         lists,
+        listed,
+        subscribers,
         viewers_skew,
         authors_skew,
         skew,
@@ -575,6 +600,17 @@ impl Engine {
         let dids = |ids: Vec<u32>| ids.into_iter().filter_map(|x| g.did_of(x)).count();
         match r {
             Req::Has(r) => g.read(|cx| g.has(cx, rel(&r.rel), &r.from, &r.to)).unwrap().is_some() as usize,
+            Req::Relationships(r) if !r.via.is_empty() => {
+                // the handler's read, vias and all, and its default relations
+                let rels: Vec<RelId> = if r.rels.is_empty() {
+                    g.relations().actor_rels()
+                } else {
+                    r.rels.iter().map(|n| rel(n)).collect()
+                };
+                let vias = graph_svc::vias_of(&g, &r.via).expect("the mix's vias are valid");
+                let cap = self.app.cfg.via_max_records;
+                g.read(|cx| graph_svc::relationships_(&g, cx, &rels, &vias, cap, r)).unwrap().0.relationships.len()
+            }
             Req::Relationships(r) => {
                 let rels: Vec<RelId> = r.rels.iter().map(|n| rel(n)).collect();
                 let o: Vec<&str> = r.others.iter().map(String::as_str).collect();
@@ -611,6 +647,14 @@ impl Engine {
                     }
                     _ => 0,
                 }
+            }
+            Req::BlockPairs(r) if r.via.is_set() || r.uris => {
+                // the handler's read, the via and the URIs too
+                let rels = graph_svc::block_pair_rels(&g, &r.rels).expect("the mix's relations are valid");
+                let via = r.via.as_option().map(|v| graph_svc::pair_via_of(&g, v).expect("a valid via"));
+                let cap = self.app.cfg.via_max_records;
+                let (res, _) = g.read(|cx| graph_svc::block_pairs_(&g, cx, &rels, via.as_ref(), cap, r)).unwrap();
+                res.blocked.iter().filter(|&&b| b).count()
             }
             Req::BlockPairs(r) => {
                 let rels: Vec<RelId> =
@@ -1832,6 +1876,72 @@ mod tests {
             }
             _ => panic!("mutes is a Filter"),
         }
+    }
+
+    /// perf-inputs on a snapshot with list subscriptions draws the listed and
+    /// subscribers pools, and the engine target runs vias as the handlers do.
+    #[test]
+    fn via_requests_run_on_the_engine() {
+        let dir = tempfile::tempdir().unwrap();
+        let snap = dir.path().join("via.marco");
+        let a = crate::via::SynthArgs {
+            out: snap.clone(),
+            actors: 2000,
+            heavy_subscriptions: 3000,
+            hot_member_lists: 300,
+            worst_subscribers: 10,
+            seed: 7,
+        };
+        crate::via::synth(&a).unwrap();
+        let inp = make_inputs(&snap, 42, &InputOpts { pool_size: 200, ..Default::default() }).unwrap();
+        assert!(!inp.listed.is_empty() && !inp.subscribers.is_empty() && !inp.lists.is_empty());
+        let e = Engine::new(read_only_app(&snap).unwrap()).unwrap();
+        let via = |rel: &str, lists: Vec<String>, dir: marco_proto::v1::Dir| Via {
+            source: Some(if lists.is_empty() {
+                marco_proto::v1::__buffa::oneof::via::Source::Rel(rel.into())
+            } else {
+                ViaLists { uris: lists, ..Default::default() }.into()
+            }),
+            members: "listitem".into(),
+            kind: "modlist".into(),
+            dir: dir.into(),
+            ..Default::default()
+        };
+        use marco_proto::v1::Dir as D;
+        let (mut answered, mut blocked) = (0, 0);
+        for i in 0..50 {
+            let others: Vec<String> = (0..100).map(|k| inp.listed[(i * 7 + k) % inp.listed.len()].clone()).collect();
+            let r = RelationshipsRequest {
+                actor: inp.subscribers[i % inp.subscribers.len()].clone(),
+                others: others.clone(),
+                rels: vec!["follow".into(), "block".into()],
+                via: vec![
+                    via("listblock", vec![], D::DIR_OUT),
+                    via("listblock", vec![], D::DIR_IN),
+                    via("", inp.lists[..3].to_vec(), D::DIR_OUT),
+                ],
+                ..Default::default()
+            };
+            answered += e.call_req(&Req::Relationships(r));
+            let pairs = others
+                .iter()
+                .map(|b| BlockPair {
+                    a: inp.subscribers[i % inp.subscribers.len()].clone(),
+                    b: b.clone(),
+                    ..Default::default()
+                })
+                .collect();
+            let pv = PairVia {
+                rel: "listblock".into(),
+                members: "listitem".into(),
+                kind: "modlist".into(),
+                ..Default::default()
+            };
+            let r = BlockPairsRequest { pairs, via: pv.into(), ..Default::default() };
+            blocked += e.call_req(&Req::BlockPairs(r));
+        }
+        assert_eq!(answered, 50 * 100, "every other answered");
+        assert!(blocked > 0, "subscribers to mod lists block some of the listed");
     }
 
     #[test]
