@@ -2,7 +2,7 @@
 title: Query API
 section: marco
 order: 4
-summary: "marco.v1.Graph: Has, Relationships, ListOut and ListIn, Counts, Intersect, Filter and EdgesAmong. JSON or protobuf over HTTP, gRPC and gRPC-Web, all on one port."
+summary: "marco.v1.Graph: Has, Relationships (with list blocks and mutes by via), BlockPairs, ListOut and ListIn, Counts, Intersect, Filter and EdgesAmong. JSON or protobuf over HTTP, gRPC and gRPC-Web, all on one port."
 ---
 
 ```hero
@@ -93,6 +93,84 @@ and `block` by default), which leaves out list relations and relations whose sub
 feed's hydration make. 50 others × 2 relations take ~30 µs in the engine and ~100 µs over HTTP/2
 ([Throughput and latency](perf.html)).
 
+## Via
+
+```diagram
+caption: "A list block is two hops that meet on the list's id. `via` reads the subscriber's lists, then probes the member's in set (the lists it's on) with them. The answer is the list's URI."
+nodes:
+  - { id: s, label: subscriber, sub: "the actor (DIR_OUT)", at: [0, 0], size: [9, 3], tone: blue }
+  - { id: l, label: list, sub: "AT URI node", at: [15, 0], size: [9, 3], tone: accent }
+  - { id: m, label: member, sub: "each other (DIR_OUT)", at: [30, 0], size: [9, 3], tone: cyan }
+  - { id: o, label: owner, sub: "mod list while it holds", at: [15, 5], size: [9, 3], tone: muted }
+edges:
+  - "s.r -> l.l: listblock"
+  - "l.r -> m.l: listitem"
+  - "o.t -> l.b: modlist"
+```
+
+A list block or a list mute is two hops. The viewer subscribes to a list, and the list holds the
+other. `via` asks that in the same `Relationships` call, one direction per entry, and each other
+gets one answer per entry, in order, in its `via`. The relations it reads are config
+([Records as subjects](relations.md#records-as-subjects)): `listblock` for subscriptions to block
+lists, `listitem` for the members, and `modlist` to count mod lists only.
+
+The example uses the [Quickstart](quickstart.md)'s accounts: alice subscribes to carol's mod list,
+which holds dave, and the third entry passes alice's own list (which holds bob and dave) the way a
+caller passes a viewer's mute lists.
+
+```json
+// Relationships {"actor":"did:plc:alice2222…","others":["did:plc:bob222…","did:plc:dave2222…"],
+//   "rels":["block"],
+//   "via":[{"rel":"listblock","members":"listitem","kind":"modlist","dir":"DIR_OUT"},
+//          {"rel":"listblock","members":"listitem","kind":"modlist","dir":"DIR_IN"},
+//          {"lists":{"uris":["at://did:plc:alice2222…/app.bsky.graph.list/3n…"]},"members":"listitem",
+//           "dir":"DIR_OUT"}]}
+{"relationships":[
+  {"other":"did:plc:bob222222222222222222222","rels":[{"rel":"block"}],
+   "via":[{},{},{"list":"at://did:plc:alice2222222222222222222/app.bsky.graph.list/3n…"}]},
+  {"other":"did:plc:dave22222222222222222222","rels":[{"rel":"block"}],
+   "via":[{"list":"at://did:plc:carol2222222222222222222/app.bsky.graph.list/3mzmods222222"},{},
+          {"list":"at://did:plc:alice2222222222222222222/app.bsky.graph.list/3n…"}]}]}
+```
+
+| Field | |
+|---|---|
+| `rel` | A relation whose subjects are records, such as `listblock` (it has a `subject_collection`). The subscriber's lists are the subjects of its newest records in it. |
+| `lists` | In place of `rel`, `{"uris":[…]}`: up to 1,000 list URIs the caller holds for the actor. Some subscriptions, such as list mutes, are private state rather than records in a repo, so marco doesn't have them and the caller passes them in. marco doesn't check that the lists are the actor's. `DIR_OUT` only. |
+| `members` | Required. The list relation whose members count (`listitem`). |
+| `kind` | Optional. A filter on which lists count: only a list that a live record of this relation names, one whose actor isn't taken down or deleted. With `modlist`, a list counts while it's a mod list. Left out, any list counts. |
+| `dir` | Required. `DIR_OUT` asks whether the actor's lists hold the other, and `DIR_IN` whether the other's lists hold the actor. |
+
+An answer's `list` is one matching list's URI, or left out when none matches. It's the same list
+from call to call while the lists and subscriptions don't change. A list whose owner is taken down
+or deleted never matches, with or without `kind`. A hidden or unknown actor or other gets an empty
+answer for every entry, so each `Relationship` carries exactly one answer per entry. A request
+without `via` gets no answers at all.
+
+### What a via reads
+
+Every subscriber's lists are its newest 1,000 records in `rel` (`--via-max-records`), whichever
+call, direction or pair names it. So `Relationships` from either side and `BlockPairs` agree about
+the same two accounts. When a read stops at the cap and the answer is empty, that answer's
+`truncated` is true: a list further back may still hold the other. An answer that found a list
+isn't truncated, and neither is one from `lists`, which takes at most 1,000 URIs or the request is
+`invalid_argument`.
+
+marco checks the member's list count first, one lookup, so a member on no list (most accounts)
+costs no read of the subscriber. Each subscriber is read once a call, however many others or pairs
+name it. Its lists, sorted, probe the member's in set (the lists it's on), which is never decoded.
+So a call costs at most one read of 1,000 records per distinct subscriber, whatever the accounts
+it names subscribe to.
+
+A read skips records that writes since the last checkpoint deleted or replaced, and stops after
+passing 10 of them per record of the cap (10,000 by default). An account that just dropped more
+subscriptions than that is read only in part until the next checkpoint folds the deletes, and its
+empty answers say they're truncated.
+
+Every read that stops short counts in `marco_via_truncated_total{rpc, reason}`: `"cap"` for an
+account with more records than the cap, and `"deletes"` for one with more recent deletes than a
+read passes.
+
 ## BlockPairs
 
 Per pair of up to 1,000, whether `a` has a record naming `b` (`aBlocksB`), the reverse
@@ -102,13 +180,25 @@ down or deleted blocks nobody and is blocked by nobody. This is how a thread dro
 viewer can't interact with.
 
 ```json
-// BlockPairs {"pairs":[{"a":"did:plc:dave2222…","b":"did:plc:carol2222…"}],"uris":true}
-{"aBlocksB":[false],"bBlocksA":[true],"blocked":[true],
- "aBlocksBUri":[""],"bBlocksAUri":["at://did:plc:carol…/app.bsky.graph.block/3mzjs7ys3v622"]}
+// BlockPairs {"pairs":[{"a":"did:plc:alice2222…","b":"did:plc:dave2222…"},
+//                      {"a":"did:plc:dave2222…","b":"did:plc:carol2222…"}],"uris":true,
+//   "via":{"rel":"listblock","members":"listitem","kind":"modlist"}}
+{"aBlocksB":[false,false],"bBlocksA":[false,true],"blocked":[true,true],
+ "aBlocksBUri":["",""],"bBlocksAUri":["","at://did:plc:carol2222222222222222222/app.bsky.graph.block/3n…"],
+ "aBlocksBList":["at://did:plc:carol2222222222222222222/app.bsky.graph.list/3mzmods222222",""],
+ "bBlocksAList":["",""],"aBlocksBTruncated":[false,false],"bBlocksATruncated":[false,false]}
 ```
 
 `uris` adds the URIs of the records behind `aBlocksB` and `bBlocksA` (`aBlocksBUri`,
 `bBlocksAUri`), the newest in any of `rels` if a side has several, one lookup per hit.
+
+`via` adds blocks by list in both directions. It takes a `rel`, `members` and `kind` as a
+[Via](#via) does, and no `dir`, since each pair is checked both ways. Each pair gets a list `a`
+subscribes to that holds `b` (`aBlocksBList`), one `b` subscribes to that holds `a`
+(`bBlocksAList`), and a truncation flag for each, as a via answer's `truncated`. `blocked` counts the lists
+too, and `aBlocksB` and `bBlocksA` stay the direct records. A side's lists are read as in
+[What a via reads](#what-a-via-reads): after its member's list count says it's on a list, and once
+a call however many pairs name it.
 
 ## ListOut and ListIn
 
@@ -275,7 +365,9 @@ curl -s localhost:7300/marco.v1.Graph/EdgesAmong -H 'content-type: application/j
 A subscription to a mod list (`listblock`) or a mod list itself (`modlist`) names a list, not an
 account. Covering them would join through the list: the edges from the set's members to lists,
 then each list's members (`listitem`) in the set, as "a blocks b through list L". That's a
-second kind of edge, with the list as its middle, so it would be a field of its own.
+second kind of edge, with the list as its middle, so it would be a field of its own. For one
+account against others, or pair by pair, `Relationships` and `BlockPairs` make that join with
+[`via`](#via).
 
 ### How it's answered
 
@@ -333,7 +425,7 @@ move a member past your cursor. The [Relations](relations.md#lists) page has how
 
 | Call | Limit |
 |---|---|
-| `Relationships` | 100 others |
+| `Relationships` | 100 others · 10 `via` entries · 1,000 `lists` an entry |
 | `BlockPairs` | 1,000 pairs |
 | `Counts` | 100 actors |
 | `ListOut`, `ListIn` | `limit` default 50, at most 1,000 |

@@ -21,7 +21,8 @@ pub mod varint;
 
 pub use graph::{
     Added, Among, AmongPlan, BaseSwap, CheckpointReport, CompactPolicy, Compacted, Dir, Garbage, Graph, Headroom,
-    ListRef, Relationship, Removed, SetOp, SharedSnapshot, Stored, COMPACTION_STOPPED, COUNT_EXACT,
+    ListRef, PairQuery, Relationship, Removed, SetOp, SharedSnapshot, Stored, ViaCuts, ViaHit, ViaLists, ViaQuery,
+    COMPACTION_STOPPED, COUNT_EXACT,
 };
 pub use relation::{RelId, Relation, Relations};
 pub use segment::{Op, Rec, Status};

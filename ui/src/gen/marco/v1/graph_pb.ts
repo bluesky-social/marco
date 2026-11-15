@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file marco/v1/graph.proto.
  */
 export const file_marco_v1_graph: GenFile = /*@__PURE__*/
-  fileDesc("ChRtYXJjby92MS9ncmFwaC5wcm90bxIIbWFyY28udjEiMwoKSGFzUmVxdWVzdBILCgNyZWwYASABKAkSDAoEZnJvbRgCIAEoCRIKCgJ0bxgDIAEoCSIaCgtIYXNSZXNwb25zZRILCgN1cmkYASABKAkiQwoUUmVsYXRpb25zaGlwc1JlcXVlc3QSDQoFYWN0b3IYASABKAkSDgoGb3RoZXJzGAIgAygJEgwKBHJlbHMYAyADKAkiRgoVUmVsYXRpb25zaGlwc1Jlc3BvbnNlEi0KDXJlbGF0aW9uc2hpcHMYASADKAsyFi5tYXJjby52MS5SZWxhdGlvbnNoaXAiRwoMUmVsYXRpb25zaGlwEg0KBW90aGVyGAEgASgJEigKBHJlbHMYAiADKAsyGi5tYXJjby52MS5SZWxhdGlvbnNoaXBFZGdlIkAKEFJlbGF0aW9uc2hpcEVkZ2USCwoDcmVsGAEgASgJEg8KB291dF91cmkYAiABKAkSDgoGaW5fdXJpGAMgASgJIiEKCUJsb2NrUGFpchIJCgFhGAEgASgJEgkKAWIYAiABKAkiUwoRQmxvY2tQYWlyc1JlcXVlc3QSIgoFcGFpcnMYASADKAsyEy5tYXJjby52MS5CbG9ja1BhaXISDAoEcmVscxgCIAMoCRIMCgR1cmlzGAQgASgIIn0KEkJsb2NrUGFpcnNSZXNwb25zZRISCgphX2Jsb2Nrc19iGAEgAygIEhIKCmJfYmxvY2tzX2EYAiADKAgSDwoHYmxvY2tlZBgDIAMoCBIWCg5hX2Jsb2Nrc19iX3VyaRgEIAMoCRIWCg5iX2Jsb2Nrc19hX3VyaRgFIAMoCSJdCg5MaXN0T3V0UmVxdWVzdBILCgNyZWwYASABKAkSDQoFYWN0b3IYAiABKAkSDQoFbGltaXQYAyABKA0SDgoGY3Vyc29yGAQgASgJEhAKCGRpc3RpbmN0GAUgASgIIkMKD0xpc3RPdXRSZXNwb25zZRIgCgVlZGdlcxgBIAMoCzIRLm1hcmNvLnYxLk91dEVkZ2USDgoGY3Vyc29yGAIgASgJIicKB091dEVkZ2USCwoDdXJpGAEgASgJEg8KB3N1YmplY3QYAiABKAkiTAoNTGlzdEluUmVxdWVzdBILCgNyZWwYASABKAkSDwoHc3ViamVjdBgCIAEoCRINCgVsaW1pdBgDIAEoDRIOCgZjdXJzb3IYBCABKAkiMAoOTGlzdEluUmVzcG9uc2USDgoGYWN0b3JzGAEgAygJEg4KBmN1cnNvchgCIAEoCSItCg1Db3VudHNSZXF1ZXN0Eg4KBmFjdG9ycxgBIAMoCRIMCgRyZWxzGAIgAygJIjcKDkNvdW50c1Jlc3BvbnNlEiUKBmNvdW50cxgBIAMoCzIVLm1hcmNvLnYxLkFjdG9yQ291bnRzIj8KC0FjdG9yQ291bnRzEg0KBWFjdG9yGAEgASgJEiEKBHJlbHMYAiADKAsyEy5tYXJjby52MS5SZWxDb3VudHMiVgoJUmVsQ291bnRzEgsKA3JlbBgBIAEoCRITCgtvdXRfcmVjb3JkcxgCIAEoBBIRCglpbl9hY3RvcnMYAyABKAQSFAoMb3V0X3N1YmplY3RzGAQgASgEIkIKCExpc3RTaWRlEgsKA3JlbBgBIAEoCRIaCgNkaXIYAiABKA4yDS5tYXJjby52MS5EaXISDQoFYWN0b3IYAyABKAkisAEKEEludGVyc2VjdFJlcXVlc3QSHQoBYRgBIAEoCzISLm1hcmNvLnYxLkxpc3RTaWRlEh0KAWIYAiABKAsyEi5tYXJjby52MS5MaXN0U2lkZRINCgVsaW1pdBgDIAEoDRIbCgJvcBgEIAEoDjIPLm1hcmNvLnYxLlNldE9wEg4KBmN1cnNvchgFIAEoCRINCgVjb3VudBgGIAEoCBITCgtjb3VudF9saW1pdBgHIAEoDSJ2ChFJbnRlcnNlY3RSZXNwb25zZRIOCgZhY3RvcnMYASADKAkSDQoFYV9sZW4YAiABKAQSDQoFYl9sZW4YAyABKAQSDgoGY3Vyc29yGAQgASgJEg0KBXRvdGFsGAUgASgEEhQKDHRvdGFsX2NhcHBlZBgGIAEoCCJcCgpGaWx0ZXJEcm9wEgsKA3JlbBgBIAEoCRIaCgNkaXIYAiABKA4yDS5tYXJjby52MS5EaXISJQoJbWVtYmVyX29mGAMgASgLMhIubWFyY28udjEuTGlzdFNpZGUiUwoNRmlsdGVyUmVxdWVzdBIOCgZ2aWV3ZXIYASABKAkSDgoGYWN0b3JzGAIgAygJEiIKBGRyb3AYAyADKAsyFC5tYXJjby52MS5GaWx0ZXJEcm9wIkQKDkZpbHRlclJlc3BvbnNlEg4KBmFjdG9ycxgBIAMoCRIiCgdkcm9wcGVkGAIgAygLMhEubWFyY28udjEuRHJvcHBlZCJBCgdEcm9wcGVkEg0KBWFjdG9yGAEgASgJEgsKA3JlbBgCIAEoCRIaCgNkaXIYAyABKA4yDS5tYXJjby52MS5EaXIiQAoRRWRnZXNBbW9uZ1JlcXVlc3QSDgoGYWN0b3JzGAEgAygJEgwKBHJlbHMYAiADKAkSDQoFbGltaXQYAyABKA0iggEKEkVkZ2VzQW1vbmdSZXNwb25zZRIiCgVlZGdlcxgBIAMoCzITLm1hcmNvLnYxLkFtb25nRWRnZRIkCgZjb3VudHMYAiADKAsyFC5tYXJjby52MS5BbW9uZ0NvdW50Eg8KB3Vua25vd24YAyADKAkSEQoJdHJ1bmNhdGVkGAQgASgIIj8KCUFtb25nRWRnZRIMCgRmcm9tGAEgASgJEgsKA3JlbBgCIAEoCRIKCgJ0bxgDIAEoCRILCgN1cmkYBCABKAkiKAoKQW1vbmdDb3VudBILCgNyZWwYASABKAkSDQoFZWRnZXMYAiABKAQiVQoHV3JpdGVPcBIeCgNhZGQYASABKAsyDy5tYXJjby52MS5BZGRPcEgAEiQKBmRlbGV0ZRgCIAEoCzISLm1hcmNvLnYxLkRlbGV0ZU9wSABCBAoCb3AiRAoFQWRkT3ASCwoDdXJpGAEgASgJEg8KB3N1YmplY3QYAiABKAkSDAoEbGlzdBgEIAEoCRIPCgd0aW1lX3VzGAMgASgDIigKCERlbGV0ZU9wEgsKA3VyaRgBIAEoCRIPCgd0aW1lX3VzGAIgASgDIocBCgtXcml0ZVJlc3VsdBIPCgVhZGRlZBgBIAEoCEgAEhAKBmV4aXN0cxgCIAEoCEgAEhEKB2RlbGV0ZWQYAyABKAhIABIRCgdyZW1vdmVkGAQgASgJSAASEwoJbm90X2ZvdW5kGAUgASgISAASDwoFZXJyb3IYBiABKAlIAEIJCgdvdXRjb21lIj4KDFdyaXRlUmVxdWVzdBIeCgNvcHMYASADKAsyES5tYXJjby52MS5Xcml0ZU9wEg4KBmN1cnNvchgCIAEoCSJHCg1Xcml0ZVJlc3BvbnNlEiYKB3Jlc3VsdHMYASADKAsyFS5tYXJjby52MS5Xcml0ZVJlc3VsdBIOCgZjdXJzb3IYAiABKAkiQwoRV3JpdGVCYXRjaFJlcXVlc3QSHgoDb3BzGAEgAygLMhEubWFyY28udjEuV3JpdGVPcBIOCgZjdXJzb3IYAiABKAkiTAoSV3JpdGVCYXRjaFJlc3BvbnNlEiYKB3Jlc3VsdHMYASADKAsyFS5tYXJjby52MS5Xcml0ZVJlc3VsdBIOCgZjdXJzb3IYAiABKAkqMwoDRGlyEhMKD0RJUl9VTlNQRUNJRklFRBAAEgsKB0RJUl9PVVQQARIKCgZESVJfSU4QAipDCgVTZXRPcBIWChJTRVRfT1BfVU5TUEVDSUZJRUQQABIOCgpTRVRfT1BfQU5EEAESEgoOU0VUX09QX0FORF9OT1QQAjKOBgoFR3JhcGgSNwoDSGFzEhQubWFyY28udjEuSGFzUmVxdWVzdBoVLm1hcmNvLnYxLkhhc1Jlc3BvbnNlIgOQAgESVQoNUmVsYXRpb25zaGlwcxIeLm1hcmNvLnYxLlJlbGF0aW9uc2hpcHNSZXF1ZXN0Gh8ubWFyY28udjEuUmVsYXRpb25zaGlwc1Jlc3BvbnNlIgOQAgESTAoKQmxvY2tQYWlycxIbLm1hcmNvLnYxLkJsb2NrUGFpcnNSZXF1ZXN0GhwubWFyY28udjEuQmxvY2tQYWlyc1Jlc3BvbnNlIgOQAgESQwoHTGlzdE91dBIYLm1hcmNvLnYxLkxpc3RPdXRSZXF1ZXN0GhkubWFyY28udjEuTGlzdE91dFJlc3BvbnNlIgOQAgESQAoGTGlzdEluEhcubWFyY28udjEuTGlzdEluUmVxdWVzdBoYLm1hcmNvLnYxLkxpc3RJblJlc3BvbnNlIgOQAgESQAoGQ291bnRzEhcubWFyY28udjEuQ291bnRzUmVxdWVzdBoYLm1hcmNvLnYxLkNvdW50c1Jlc3BvbnNlIgOQAgESSQoJSW50ZXJzZWN0EhoubWFyY28udjEuSW50ZXJzZWN0UmVxdWVzdBobLm1hcmNvLnYxLkludGVyc2VjdFJlc3BvbnNlIgOQAgESQAoGRmlsdGVyEhcubWFyY28udjEuRmlsdGVyUmVxdWVzdBoYLm1hcmNvLnYxLkZpbHRlclJlc3BvbnNlIgOQAgESTAoKRWRnZXNBbW9uZxIbLm1hcmNvLnYxLkVkZ2VzQW1vbmdSZXF1ZXN0GhwubWFyY28udjEuRWRnZXNBbW9uZ1Jlc3BvbnNlIgOQAgESOgoFV3JpdGUSFi5tYXJjby52MS5Xcml0ZVJlcXVlc3QaFy5tYXJjby52MS5Xcml0ZVJlc3BvbnNlKAESRwoKV3JpdGVCYXRjaBIbLm1hcmNvLnYxLldyaXRlQmF0Y2hSZXF1ZXN0GhwubWFyY28udjEuV3JpdGVCYXRjaFJlc3BvbnNlYgZwcm90bzM");
+  fileDesc("ChRtYXJjby92MS9ncmFwaC5wcm90bxIIbWFyY28udjEiMwoKSGFzUmVxdWVzdBILCgNyZWwYASABKAkSDAoEZnJvbRgCIAEoCRIKCgJ0bxgDIAEoCSIaCgtIYXNSZXNwb25zZRILCgN1cmkYASABKAkifgoDVmlhEg0KA3JlbBgBIAEoCUgAEiMKBWxpc3RzGAIgASgLMhIubWFyY28udjEuVmlhTGlzdHNIABIPCgdtZW1iZXJzGAMgASgJEgwKBGtpbmQYBCABKAkSGgoDZGlyGAUgASgOMg0ubWFyY28udjEuRGlyQggKBnNvdXJjZSIYCghWaWFMaXN0cxIMCgR1cmlzGAEgAygJIjUKB1BhaXJWaWESCwoDcmVsGAEgASgJEg8KB21lbWJlcnMYAiABKAkSDAoEa2luZBgDIAEoCSJfChRSZWxhdGlvbnNoaXBzUmVxdWVzdBINCgVhY3RvchgBIAEoCRIOCgZvdGhlcnMYAiADKAkSDAoEcmVscxgDIAMoCRIaCgN2aWEYBCADKAsyDS5tYXJjby52MS5WaWEiRgoVUmVsYXRpb25zaGlwc1Jlc3BvbnNlEi0KDXJlbGF0aW9uc2hpcHMYASADKAsyFi5tYXJjby52MS5SZWxhdGlvbnNoaXAiaQoMUmVsYXRpb25zaGlwEg0KBW90aGVyGAEgASgJEigKBHJlbHMYAiADKAsyGi5tYXJjby52MS5SZWxhdGlvbnNoaXBFZGdlEiAKA3ZpYRgDIAMoCzITLm1hcmNvLnYxLlZpYUFuc3dlciIsCglWaWFBbnN3ZXISDAoEbGlzdBgBIAEoCRIRCgl0cnVuY2F0ZWQYAiABKAgiQAoQUmVsYXRpb25zaGlwRWRnZRILCgNyZWwYASABKAkSDwoHb3V0X3VyaRgCIAEoCRIOCgZpbl91cmkYAyABKAkiIQoJQmxvY2tQYWlyEgkKAWEYASABKAkSCQoBYhgCIAEoCSJzChFCbG9ja1BhaXJzUmVxdWVzdBIiCgVwYWlycxgBIAMoCzITLm1hcmNvLnYxLkJsb2NrUGFpchIMCgRyZWxzGAIgAygJEh4KA3ZpYRgDIAEoCzIRLm1hcmNvLnYxLlBhaXJWaWESDAoEdXJpcxgEIAEoCCLrAQoSQmxvY2tQYWlyc1Jlc3BvbnNlEhIKCmFfYmxvY2tzX2IYASADKAgSEgoKYl9ibG9ja3NfYRgCIAMoCBIPCgdibG9ja2VkGAMgAygIEhYKDmFfYmxvY2tzX2JfdXJpGAQgAygJEhYKDmJfYmxvY2tzX2FfdXJpGAUgAygJEhcKD2FfYmxvY2tzX2JfbGlzdBgGIAMoCRIXCg9iX2Jsb2Nrc19hX2xpc3QYByADKAkSHAoUYV9ibG9ja3NfYl90cnVuY2F0ZWQYCCADKAgSHAoUYl9ibG9ja3NfYV90cnVuY2F0ZWQYCSADKAgiXQoOTGlzdE91dFJlcXVlc3QSCwoDcmVsGAEgASgJEg0KBWFjdG9yGAIgASgJEg0KBWxpbWl0GAMgASgNEg4KBmN1cnNvchgEIAEoCRIQCghkaXN0aW5jdBgFIAEoCCJDCg9MaXN0T3V0UmVzcG9uc2USIAoFZWRnZXMYASADKAsyES5tYXJjby52MS5PdXRFZGdlEg4KBmN1cnNvchgCIAEoCSInCgdPdXRFZGdlEgsKA3VyaRgBIAEoCRIPCgdzdWJqZWN0GAIgASgJIkwKDUxpc3RJblJlcXVlc3QSCwoDcmVsGAEgASgJEg8KB3N1YmplY3QYAiABKAkSDQoFbGltaXQYAyABKA0SDgoGY3Vyc29yGAQgASgJIjAKDkxpc3RJblJlc3BvbnNlEg4KBmFjdG9ycxgBIAMoCRIOCgZjdXJzb3IYAiABKAkiLQoNQ291bnRzUmVxdWVzdBIOCgZhY3RvcnMYASADKAkSDAoEcmVscxgCIAMoCSI3Cg5Db3VudHNSZXNwb25zZRIlCgZjb3VudHMYASADKAsyFS5tYXJjby52MS5BY3RvckNvdW50cyI/CgtBY3RvckNvdW50cxINCgVhY3RvchgBIAEoCRIhCgRyZWxzGAIgAygLMhMubWFyY28udjEuUmVsQ291bnRzIlYKCVJlbENvdW50cxILCgNyZWwYASABKAkSEwoLb3V0X3JlY29yZHMYAiABKAQSEQoJaW5fYWN0b3JzGAMgASgEEhQKDG91dF9zdWJqZWN0cxgEIAEoBCJCCghMaXN0U2lkZRILCgNyZWwYASABKAkSGgoDZGlyGAIgASgOMg0ubWFyY28udjEuRGlyEg0KBWFjdG9yGAMgASgJIrABChBJbnRlcnNlY3RSZXF1ZXN0Eh0KAWEYASABKAsyEi5tYXJjby52MS5MaXN0U2lkZRIdCgFiGAIgASgLMhIubWFyY28udjEuTGlzdFNpZGUSDQoFbGltaXQYAyABKA0SGwoCb3AYBCABKA4yDy5tYXJjby52MS5TZXRPcBIOCgZjdXJzb3IYBSABKAkSDQoFY291bnQYBiABKAgSEwoLY291bnRfbGltaXQYByABKA0idgoRSW50ZXJzZWN0UmVzcG9uc2USDgoGYWN0b3JzGAEgAygJEg0KBWFfbGVuGAIgASgEEg0KBWJfbGVuGAMgASgEEg4KBmN1cnNvchgEIAEoCRINCgV0b3RhbBgFIAEoBBIUCgx0b3RhbF9jYXBwZWQYBiABKAgiXAoKRmlsdGVyRHJvcBILCgNyZWwYASABKAkSGgoDZGlyGAIgASgOMg0ubWFyY28udjEuRGlyEiUKCW1lbWJlcl9vZhgDIAEoCzISLm1hcmNvLnYxLkxpc3RTaWRlIlMKDUZpbHRlclJlcXVlc3QSDgoGdmlld2VyGAEgASgJEg4KBmFjdG9ycxgCIAMoCRIiCgRkcm9wGAMgAygLMhQubWFyY28udjEuRmlsdGVyRHJvcCJECg5GaWx0ZXJSZXNwb25zZRIOCgZhY3RvcnMYASADKAkSIgoHZHJvcHBlZBgCIAMoCzIRLm1hcmNvLnYxLkRyb3BwZWQiQQoHRHJvcHBlZBINCgVhY3RvchgBIAEoCRILCgNyZWwYAiABKAkSGgoDZGlyGAMgASgOMg0ubWFyY28udjEuRGlyIkAKEUVkZ2VzQW1vbmdSZXF1ZXN0Eg4KBmFjdG9ycxgBIAMoCRIMCgRyZWxzGAIgAygJEg0KBWxpbWl0GAMgASgNIoIBChJFZGdlc0Ftb25nUmVzcG9uc2USIgoFZWRnZXMYASADKAsyEy5tYXJjby52MS5BbW9uZ0VkZ2USJAoGY291bnRzGAIgAygLMhQubWFyY28udjEuQW1vbmdDb3VudBIPCgd1bmtub3duGAMgAygJEhEKCXRydW5jYXRlZBgEIAEoCCI/CglBbW9uZ0VkZ2USDAoEZnJvbRgBIAEoCRILCgNyZWwYAiABKAkSCgoCdG8YAyABKAkSCwoDdXJpGAQgASgJIigKCkFtb25nQ291bnQSCwoDcmVsGAEgASgJEg0KBWVkZ2VzGAIgASgEIlUKB1dyaXRlT3ASHgoDYWRkGAEgASgLMg8ubWFyY28udjEuQWRkT3BIABIkCgZkZWxldGUYAiABKAsyEi5tYXJjby52MS5EZWxldGVPcEgAQgQKAm9wIkQKBUFkZE9wEgsKA3VyaRgBIAEoCRIPCgdzdWJqZWN0GAIgASgJEgwKBGxpc3QYBCABKAkSDwoHdGltZV91cxgDIAEoAyIoCghEZWxldGVPcBILCgN1cmkYASABKAkSDwoHdGltZV91cxgCIAEoAyKHAQoLV3JpdGVSZXN1bHQSDwoFYWRkZWQYASABKAhIABIQCgZleGlzdHMYAiABKAhIABIRCgdkZWxldGVkGAMgASgISAASEQoHcmVtb3ZlZBgEIAEoCUgAEhMKCW5vdF9mb3VuZBgFIAEoCEgAEg8KBWVycm9yGAYgASgJSABCCQoHb3V0Y29tZSI+CgxXcml0ZVJlcXVlc3QSHgoDb3BzGAEgAygLMhEubWFyY28udjEuV3JpdGVPcBIOCgZjdXJzb3IYAiABKAkiRwoNV3JpdGVSZXNwb25zZRImCgdyZXN1bHRzGAEgAygLMhUubWFyY28udjEuV3JpdGVSZXN1bHQSDgoGY3Vyc29yGAIgASgJIkMKEVdyaXRlQmF0Y2hSZXF1ZXN0Eh4KA29wcxgBIAMoCzIRLm1hcmNvLnYxLldyaXRlT3ASDgoGY3Vyc29yGAIgASgJIkwKEldyaXRlQmF0Y2hSZXNwb25zZRImCgdyZXN1bHRzGAEgAygLMhUubWFyY28udjEuV3JpdGVSZXN1bHQSDgoGY3Vyc29yGAIgASgJKjMKA0RpchITCg9ESVJfVU5TUEVDSUZJRUQQABILCgdESVJfT1VUEAESCgoGRElSX0lOEAIqQwoFU2V0T3ASFgoSU0VUX09QX1VOU1BFQ0lGSUVEEAASDgoKU0VUX09QX0FORBABEhIKDlNFVF9PUF9BTkRfTk9UEAIyjgYKBUdyYXBoEjcKA0hhcxIULm1hcmNvLnYxLkhhc1JlcXVlc3QaFS5tYXJjby52MS5IYXNSZXNwb25zZSIDkAIBElUKDVJlbGF0aW9uc2hpcHMSHi5tYXJjby52MS5SZWxhdGlvbnNoaXBzUmVxdWVzdBofLm1hcmNvLnYxLlJlbGF0aW9uc2hpcHNSZXNwb25zZSIDkAIBEkwKCkJsb2NrUGFpcnMSGy5tYXJjby52MS5CbG9ja1BhaXJzUmVxdWVzdBocLm1hcmNvLnYxLkJsb2NrUGFpcnNSZXNwb25zZSIDkAIBEkMKB0xpc3RPdXQSGC5tYXJjby52MS5MaXN0T3V0UmVxdWVzdBoZLm1hcmNvLnYxLkxpc3RPdXRSZXNwb25zZSIDkAIBEkAKBkxpc3RJbhIXLm1hcmNvLnYxLkxpc3RJblJlcXVlc3QaGC5tYXJjby52MS5MaXN0SW5SZXNwb25zZSIDkAIBEkAKBkNvdW50cxIXLm1hcmNvLnYxLkNvdW50c1JlcXVlc3QaGC5tYXJjby52MS5Db3VudHNSZXNwb25zZSIDkAIBEkkKCUludGVyc2VjdBIaLm1hcmNvLnYxLkludGVyc2VjdFJlcXVlc3QaGy5tYXJjby52MS5JbnRlcnNlY3RSZXNwb25zZSIDkAIBEkAKBkZpbHRlchIXLm1hcmNvLnYxLkZpbHRlclJlcXVlc3QaGC5tYXJjby52MS5GaWx0ZXJSZXNwb25zZSIDkAIBEkwKCkVkZ2VzQW1vbmcSGy5tYXJjby52MS5FZGdlc0Ftb25nUmVxdWVzdBocLm1hcmNvLnYxLkVkZ2VzQW1vbmdSZXNwb25zZSIDkAIBEjoKBVdyaXRlEhYubWFyY28udjEuV3JpdGVSZXF1ZXN0GhcubWFyY28udjEuV3JpdGVSZXNwb25zZSgBEkcKCldyaXRlQmF0Y2gSGy5tYXJjby52MS5Xcml0ZUJhdGNoUmVxdWVzdBocLm1hcmNvLnYxLldyaXRlQmF0Y2hSZXNwb25zZWIGcHJvdG8z");
 
 /**
  * @generated from message marco.v1.HasRequest
@@ -57,6 +57,128 @@ export const HasResponseSchema: GenMessage<HasResponse> = /*@__PURE__*/
   messageDesc(file_marco_v1_graph, 1);
 
 /**
+ * Two hops in one direction: a subscriber's lists, and whether one of them
+ * holds a member. For DIR_OUT the subscriber is the request's actor and the
+ * member each other; DIR_IN is the reverse. The answer is one matching
+ * list's URI (the same one from call to call while the lists and
+ * subscriptions don't change), or empty. A list whose owner is taken down or
+ * deleted never matches.
+ *
+ * @generated from message marco.v1.Via
+ */
+export type Via = Message<"marco.v1.Via"> & {
+  /**
+   * Required: where the subscriber's lists come from.
+   *
+   * @generated from oneof marco.v1.Via.source
+   */
+  source: {
+    /**
+     * A relation whose subjects are lists (it has a subject_collection, as
+     * listblock does): the subjects of the subscriber's newest records in
+     * it, up to the server's --via-max-records.
+     *
+     * @generated from field: string rel = 1;
+     */
+    value: string;
+    case: "rel";
+  } | {
+    /**
+     * The request actor's own lists, such as its mute lists: at most 1,000
+     * AT URIs. DIR_OUT only.
+     *
+     * @generated from field: marco.v1.ViaLists lists = 2;
+     */
+    value: ViaLists;
+    case: "lists";
+  } | { case: undefined; value?: undefined };
+
+  /**
+   * Required: the list relation whose members count (listitem).
+   *
+   * @generated from field: string members = 3;
+   */
+  members: string;
+
+  /**
+   * Optional, a filter on which lists count: only a list that a live
+   * record of this relation names (modlist: the list's own record, while
+   * it's a mod list). A relation whose subjects are records. Empty: any list.
+   *
+   * @generated from field: string kind = 4;
+   */
+  kind: string;
+
+  /**
+   * Required: DIR_OUT or DIR_IN.
+   *
+   * @generated from field: marco.v1.Dir dir = 5;
+   */
+  dir: Dir;
+};
+
+/**
+ * Describes the message marco.v1.Via.
+ * Use `create(ViaSchema)` to create a new message.
+ */
+export const ViaSchema: GenMessage<Via> = /*@__PURE__*/
+  messageDesc(file_marco_v1_graph, 2);
+
+/**
+ * @generated from message marco.v1.ViaLists
+ */
+export type ViaLists = Message<"marco.v1.ViaLists"> & {
+  /**
+   * @generated from field: repeated string uris = 1;
+   */
+  uris: string[];
+};
+
+/**
+ * Describes the message marco.v1.ViaLists.
+ * Use `create(ViaListsSchema)` to create a new message.
+ */
+export const ViaListsSchema: GenMessage<ViaLists> = /*@__PURE__*/
+  messageDesc(file_marco_v1_graph, 3);
+
+/**
+ * Lists on BlockPairs: both directions of every pair, from one relation.
+ * A side's lists are the subjects of its newest records in rel, up to the
+ * server's --via-max-records, as in a Via.
+ *
+ * @generated from message marco.v1.PairVia
+ */
+export type PairVia = Message<"marco.v1.PairVia"> & {
+  /**
+   * Required: a relation whose subjects are lists (listblock).
+   *
+   * @generated from field: string rel = 1;
+   */
+  rel: string;
+
+  /**
+   * Required: the list relation whose members count (listitem).
+   *
+   * @generated from field: string members = 2;
+   */
+  members: string;
+
+  /**
+   * Optional, a filter on which lists count, as in a Via.
+   *
+   * @generated from field: string kind = 3;
+   */
+  kind: string;
+};
+
+/**
+ * Describes the message marco.v1.PairVia.
+ * Use `create(PairViaSchema)` to create a new message.
+ */
+export const PairViaSchema: GenMessage<PairVia> = /*@__PURE__*/
+  messageDesc(file_marco_v1_graph, 4);
+
+/**
  * @generated from message marco.v1.RelationshipsRequest
  */
 export type RelationshipsRequest = Message<"marco.v1.RelationshipsRequest"> & {
@@ -74,6 +196,13 @@ export type RelationshipsRequest = Message<"marco.v1.RelationshipsRequest"> & {
    * @generated from field: repeated string rels = 3;
    */
   rels: string[];
+
+  /**
+   * At most 10. Each other gets one answer per via, in order.
+   *
+   * @generated from field: repeated marco.v1.Via via = 4;
+   */
+  via: Via[];
 };
 
 /**
@@ -81,7 +210,7 @@ export type RelationshipsRequest = Message<"marco.v1.RelationshipsRequest"> & {
  * Use `create(RelationshipsRequestSchema)` to create a new message.
  */
 export const RelationshipsRequestSchema: GenMessage<RelationshipsRequest> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 2);
+  messageDesc(file_marco_v1_graph, 5);
 
 /**
  * @generated from message marco.v1.RelationshipsResponse
@@ -100,7 +229,7 @@ export type RelationshipsResponse = Message<"marco.v1.RelationshipsResponse"> & 
  * Use `create(RelationshipsResponseSchema)` to create a new message.
  */
 export const RelationshipsResponseSchema: GenMessage<RelationshipsResponse> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 3);
+  messageDesc(file_marco_v1_graph, 6);
 
 /**
  * @generated from message marco.v1.Relationship
@@ -115,6 +244,13 @@ export type Relationship = Message<"marco.v1.Relationship"> & {
    * @generated from field: repeated marco.v1.RelationshipEdge rels = 2;
    */
   rels: RelationshipEdge[];
+
+  /**
+   * One per request via, in the request's order.
+   *
+   * @generated from field: repeated marco.v1.ViaAnswer via = 3;
+   */
+  via: ViaAnswer[];
 };
 
 /**
@@ -122,7 +258,37 @@ export type Relationship = Message<"marco.v1.Relationship"> & {
  * Use `create(RelationshipSchema)` to create a new message.
  */
 export const RelationshipSchema: GenMessage<Relationship> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 4);
+  messageDesc(file_marco_v1_graph, 7);
+
+/**
+ * A via's answer for one other.
+ *
+ * @generated from message marco.v1.ViaAnswer
+ */
+export type ViaAnswer = Message<"marco.v1.ViaAnswer"> & {
+  /**
+   * A matching list's AT URI, or empty.
+   *
+   * @generated from field: string list = 1;
+   */
+  list: string;
+
+  /**
+   * The list is empty, but the read of the subscriber's lists stopped short
+   * (past the server's --via-max-records, or past the deletes since the last
+   * checkpoint that a read passes), so a list it didn't reach may still match.
+   *
+   * @generated from field: bool truncated = 2;
+   */
+  truncated: boolean;
+};
+
+/**
+ * Describes the message marco.v1.ViaAnswer.
+ * Use `create(ViaAnswerSchema)` to create a new message.
+ */
+export const ViaAnswerSchema: GenMessage<ViaAnswer> = /*@__PURE__*/
+  messageDesc(file_marco_v1_graph, 8);
 
 /**
  * @generated from message marco.v1.RelationshipEdge
@@ -153,7 +319,7 @@ export type RelationshipEdge = Message<"marco.v1.RelationshipEdge"> & {
  * Use `create(RelationshipEdgeSchema)` to create a new message.
  */
 export const RelationshipEdgeSchema: GenMessage<RelationshipEdge> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 5);
+  messageDesc(file_marco_v1_graph, 9);
 
 /**
  * @generated from message marco.v1.BlockPair
@@ -175,7 +341,7 @@ export type BlockPair = Message<"marco.v1.BlockPair"> & {
  * Use `create(BlockPairSchema)` to create a new message.
  */
 export const BlockPairSchema: GenMessage<BlockPair> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 6);
+  messageDesc(file_marco_v1_graph, 10);
 
 /**
  * @generated from message marco.v1.BlockPairsRequest
@@ -198,6 +364,14 @@ export type BlockPairsRequest = Message<"marco.v1.BlockPairsRequest"> & {
   rels: string[];
 
   /**
+   * Also blocks by list, both ways: a list a subscribes to that holds b,
+   * and the reverse.
+   *
+   * @generated from field: marco.v1.PairVia via = 3;
+   */
+  via?: PairVia | undefined;
+
+  /**
    * Also the URIs of the records behind a_blocks_b and b_blocks_a.
    *
    * @generated from field: bool uris = 4;
@@ -210,7 +384,7 @@ export type BlockPairsRequest = Message<"marco.v1.BlockPairsRequest"> & {
  * Use `create(BlockPairsRequestSchema)` to create a new message.
  */
 export const BlockPairsRequestSchema: GenMessage<BlockPairsRequest> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 7);
+  messageDesc(file_marco_v1_graph, 11);
 
 /**
  * @generated from message marco.v1.BlockPairsResponse
@@ -231,7 +405,7 @@ export type BlockPairsResponse = Message<"marco.v1.BlockPairsResponse"> & {
   bBlocksA: boolean[];
 
   /**
-   * Either way: the two can't interact.
+   * Either way: the two can't interact. With via, a list counts too.
    *
    * @generated from field: repeated bool blocked = 3;
    */
@@ -249,6 +423,33 @@ export type BlockPairsResponse = Message<"marco.v1.BlockPairsResponse"> & {
    * @generated from field: repeated string b_blocks_a_uri = 5;
    */
   bBlocksAUri: string[];
+
+  /**
+   * Only with via, one each per pair: a list a subscribes to that holds b,
+   * and one b subscribes to that holds a, or empty.
+   *
+   * @generated from field: repeated string a_blocks_b_list = 6;
+   */
+  aBlocksBList: string[];
+
+  /**
+   * @generated from field: repeated string b_blocks_a_list = 7;
+   */
+  bBlocksAList: string[];
+
+  /**
+   * Only with via, one each per pair: a_blocks_b_list (b_blocks_a_list) is
+   * empty, but the read of a's (b's) lists stopped short, as in
+   * a ViaAnswer's truncated, so a list it didn't reach may still hold the other.
+   *
+   * @generated from field: repeated bool a_blocks_b_truncated = 8;
+   */
+  aBlocksBTruncated: boolean[];
+
+  /**
+   * @generated from field: repeated bool b_blocks_a_truncated = 9;
+   */
+  bBlocksATruncated: boolean[];
 };
 
 /**
@@ -256,7 +457,7 @@ export type BlockPairsResponse = Message<"marco.v1.BlockPairsResponse"> & {
  * Use `create(BlockPairsResponseSchema)` to create a new message.
  */
 export const BlockPairsResponseSchema: GenMessage<BlockPairsResponse> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 8);
+  messageDesc(file_marco_v1_graph, 12);
 
 /**
  * @generated from message marco.v1.ListOutRequest
@@ -300,7 +501,7 @@ export type ListOutRequest = Message<"marco.v1.ListOutRequest"> & {
  * Use `create(ListOutRequestSchema)` to create a new message.
  */
 export const ListOutRequestSchema: GenMessage<ListOutRequest> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 9);
+  messageDesc(file_marco_v1_graph, 13);
 
 /**
  * @generated from message marco.v1.ListOutResponse
@@ -325,7 +526,7 @@ export type ListOutResponse = Message<"marco.v1.ListOutResponse"> & {
  * Use `create(ListOutResponseSchema)` to create a new message.
  */
 export const ListOutResponseSchema: GenMessage<ListOutResponse> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 10);
+  messageDesc(file_marco_v1_graph, 14);
 
 /**
  * @generated from message marco.v1.OutEdge
@@ -347,7 +548,7 @@ export type OutEdge = Message<"marco.v1.OutEdge"> & {
  * Use `create(OutEdgeSchema)` to create a new message.
  */
 export const OutEdgeSchema: GenMessage<OutEdge> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 11);
+  messageDesc(file_marco_v1_graph, 15);
 
 /**
  * @generated from message marco.v1.ListInRequest
@@ -381,7 +582,7 @@ export type ListInRequest = Message<"marco.v1.ListInRequest"> & {
  * Use `create(ListInRequestSchema)` to create a new message.
  */
 export const ListInRequestSchema: GenMessage<ListInRequest> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 12);
+  messageDesc(file_marco_v1_graph, 16);
 
 /**
  * @generated from message marco.v1.ListInResponse
@@ -406,7 +607,7 @@ export type ListInResponse = Message<"marco.v1.ListInResponse"> & {
  * Use `create(ListInResponseSchema)` to create a new message.
  */
 export const ListInResponseSchema: GenMessage<ListInResponse> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 13);
+  messageDesc(file_marco_v1_graph, 17);
 
 /**
  * @generated from message marco.v1.CountsRequest
@@ -428,7 +629,7 @@ export type CountsRequest = Message<"marco.v1.CountsRequest"> & {
  * Use `create(CountsRequestSchema)` to create a new message.
  */
 export const CountsRequestSchema: GenMessage<CountsRequest> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 14);
+  messageDesc(file_marco_v1_graph, 18);
 
 /**
  * @generated from message marco.v1.CountsResponse
@@ -445,7 +646,7 @@ export type CountsResponse = Message<"marco.v1.CountsResponse"> & {
  * Use `create(CountsResponseSchema)` to create a new message.
  */
 export const CountsResponseSchema: GenMessage<CountsResponse> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 15);
+  messageDesc(file_marco_v1_graph, 19);
 
 /**
  * @generated from message marco.v1.ActorCounts
@@ -467,7 +668,7 @@ export type ActorCounts = Message<"marco.v1.ActorCounts"> & {
  * Use `create(ActorCountsSchema)` to create a new message.
  */
 export const ActorCountsSchema: GenMessage<ActorCounts> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 16);
+  messageDesc(file_marco_v1_graph, 20);
 
 /**
  * @generated from message marco.v1.RelCounts
@@ -505,7 +706,7 @@ export type RelCounts = Message<"marco.v1.RelCounts"> & {
  * Use `create(RelCountsSchema)` to create a new message.
  */
 export const RelCountsSchema: GenMessage<RelCounts> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 17);
+  messageDesc(file_marco_v1_graph, 21);
 
 /**
  * @generated from message marco.v1.ListSide
@@ -534,7 +735,7 @@ export type ListSide = Message<"marco.v1.ListSide"> & {
  * Use `create(ListSideSchema)` to create a new message.
  */
 export const ListSideSchema: GenMessage<ListSide> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 18);
+  messageDesc(file_marco_v1_graph, 22);
 
 /**
  * @generated from message marco.v1.IntersectRequest
@@ -591,7 +792,7 @@ export type IntersectRequest = Message<"marco.v1.IntersectRequest"> & {
  * Use `create(IntersectRequestSchema)` to create a new message.
  */
 export const IntersectRequestSchema: GenMessage<IntersectRequest> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 19);
+  messageDesc(file_marco_v1_graph, 23);
 
 /**
  * @generated from message marco.v1.IntersectResponse
@@ -646,7 +847,7 @@ export type IntersectResponse = Message<"marco.v1.IntersectResponse"> & {
  * Use `create(IntersectResponseSchema)` to create a new message.
  */
 export const IntersectResponseSchema: GenMessage<IntersectResponse> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 20);
+  messageDesc(file_marco_v1_graph, 24);
 
 /**
  * @generated from message marco.v1.FilterDrop
@@ -679,7 +880,7 @@ export type FilterDrop = Message<"marco.v1.FilterDrop"> & {
  * Use `create(FilterDropSchema)` to create a new message.
  */
 export const FilterDropSchema: GenMessage<FilterDrop> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 21);
+  messageDesc(file_marco_v1_graph, 25);
 
 /**
  * @generated from message marco.v1.FilterRequest
@@ -708,7 +909,7 @@ export type FilterRequest = Message<"marco.v1.FilterRequest"> & {
  * Use `create(FilterRequestSchema)` to create a new message.
  */
 export const FilterRequestSchema: GenMessage<FilterRequest> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 22);
+  messageDesc(file_marco_v1_graph, 26);
 
 /**
  * @generated from message marco.v1.FilterResponse
@@ -732,7 +933,7 @@ export type FilterResponse = Message<"marco.v1.FilterResponse"> & {
  * Use `create(FilterResponseSchema)` to create a new message.
  */
 export const FilterResponseSchema: GenMessage<FilterResponse> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 23);
+  messageDesc(file_marco_v1_graph, 27);
 
 /**
  * @generated from message marco.v1.Dropped
@@ -761,7 +962,7 @@ export type Dropped = Message<"marco.v1.Dropped"> & {
  * Use `create(DroppedSchema)` to create a new message.
  */
 export const DroppedSchema: GenMessage<Dropped> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 24);
+  messageDesc(file_marco_v1_graph, 28);
 
 /**
  * @generated from message marco.v1.EdgesAmongRequest
@@ -797,7 +998,7 @@ export type EdgesAmongRequest = Message<"marco.v1.EdgesAmongRequest"> & {
  * Use `create(EdgesAmongRequestSchema)` to create a new message.
  */
 export const EdgesAmongRequestSchema: GenMessage<EdgesAmongRequest> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 25);
+  messageDesc(file_marco_v1_graph, 29);
 
 /**
  * @generated from message marco.v1.EdgesAmongResponse
@@ -838,7 +1039,7 @@ export type EdgesAmongResponse = Message<"marco.v1.EdgesAmongResponse"> & {
  * Use `create(EdgesAmongResponseSchema)` to create a new message.
  */
 export const EdgesAmongResponseSchema: GenMessage<EdgesAmongResponse> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 26);
+  messageDesc(file_marco_v1_graph, 30);
 
 /**
  * @generated from message marco.v1.AmongEdge
@@ -872,7 +1073,7 @@ export type AmongEdge = Message<"marco.v1.AmongEdge"> & {
  * Use `create(AmongEdgeSchema)` to create a new message.
  */
 export const AmongEdgeSchema: GenMessage<AmongEdge> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 27);
+  messageDesc(file_marco_v1_graph, 31);
 
 /**
  * @generated from message marco.v1.AmongCount
@@ -896,7 +1097,7 @@ export type AmongCount = Message<"marco.v1.AmongCount"> & {
  * Use `create(AmongCountSchema)` to create a new message.
  */
 export const AmongCountSchema: GenMessage<AmongCount> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 28);
+  messageDesc(file_marco_v1_graph, 32);
 
 /**
  * @generated from message marco.v1.WriteOp
@@ -925,7 +1126,7 @@ export type WriteOp = Message<"marco.v1.WriteOp"> & {
  * Use `create(WriteOpSchema)` to create a new message.
  */
 export const WriteOpSchema: GenMessage<WriteOp> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 29);
+  messageDesc(file_marco_v1_graph, 33);
 
 /**
  * @generated from message marco.v1.AddOp
@@ -963,7 +1164,7 @@ export type AddOp = Message<"marco.v1.AddOp"> & {
  * Use `create(AddOpSchema)` to create a new message.
  */
 export const AddOpSchema: GenMessage<AddOp> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 30);
+  messageDesc(file_marco_v1_graph, 34);
 
 /**
  * @generated from message marco.v1.DeleteOp
@@ -987,7 +1188,7 @@ export type DeleteOp = Message<"marco.v1.DeleteOp"> & {
  * Use `create(DeleteOpSchema)` to create a new message.
  */
 export const DeleteOpSchema: GenMessage<DeleteOp> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 31);
+  messageDesc(file_marco_v1_graph, 35);
 
 /**
  * @generated from message marco.v1.WriteResult
@@ -1052,7 +1253,7 @@ export type WriteResult = Message<"marco.v1.WriteResult"> & {
  * Use `create(WriteResultSchema)` to create a new message.
  */
 export const WriteResultSchema: GenMessage<WriteResult> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 32);
+  messageDesc(file_marco_v1_graph, 36);
 
 /**
  * @generated from message marco.v1.WriteRequest
@@ -1078,7 +1279,7 @@ export type WriteRequest = Message<"marco.v1.WriteRequest"> & {
  * Use `create(WriteRequestSchema)` to create a new message.
  */
 export const WriteRequestSchema: GenMessage<WriteRequest> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 33);
+  messageDesc(file_marco_v1_graph, 37);
 
 /**
  * @generated from message marco.v1.WriteResponse
@@ -1104,7 +1305,7 @@ export type WriteResponse = Message<"marco.v1.WriteResponse"> & {
  * Use `create(WriteResponseSchema)` to create a new message.
  */
 export const WriteResponseSchema: GenMessage<WriteResponse> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 34);
+  messageDesc(file_marco_v1_graph, 38);
 
 /**
  * @generated from message marco.v1.WriteBatchRequest
@@ -1128,7 +1329,7 @@ export type WriteBatchRequest = Message<"marco.v1.WriteBatchRequest"> & {
  * Use `create(WriteBatchRequestSchema)` to create a new message.
  */
 export const WriteBatchRequestSchema: GenMessage<WriteBatchRequest> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 35);
+  messageDesc(file_marco_v1_graph, 39);
 
 /**
  * @generated from message marco.v1.WriteBatchResponse
@@ -1150,7 +1351,7 @@ export type WriteBatchResponse = Message<"marco.v1.WriteBatchResponse"> & {
  * Use `create(WriteBatchResponseSchema)` to create a new message.
  */
 export const WriteBatchResponseSchema: GenMessage<WriteBatchResponse> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 36);
+  messageDesc(file_marco_v1_graph, 40);
 
 /**
  * @generated from enum marco.v1.Dir
@@ -1243,7 +1444,9 @@ export const Graph: GenService<{
   },
   /**
    * Per other and relation: the actor's record naming the other, and the
-   * other's naming the actor (getRelationships). At most 100 others.
+   * other's naming the actor (getRelationships). At most 100 others. With
+   * via, also per other and via a list one side subscribes to that holds the
+   * other side.
    *
    * @generated from rpc marco.v1.Graph.Relationships
    */
@@ -1255,7 +1458,8 @@ export const Graph: GenService<{
   /**
    * Per (a, b) pair: whether a blocks b and whether b blocks a
    * (getBlockExistence over a response's author pairs). At most 1000 pairs.
-   * With uris, also the block records' URIs.
+   * With uris, also the block records' URIs. With via, also a list either
+   * side subscribes to that holds the other.
    *
    * @generated from rpc marco.v1.Graph.BlockPairs
    */

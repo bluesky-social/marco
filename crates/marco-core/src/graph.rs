@@ -52,9 +52,13 @@ use crate::varint::u32_at;
 
 mod among;
 mod checkpoint;
+mod via;
 pub use among::{Among, AmongEdge, AmongPlan, AMONG_PROBE_COST};
 pub use checkpoint::{
     BaseSwap, CheckpointReport, CompactPolicy, Compacted, Garbage, Headroom, COMPACTION_STOPPED, SPACE_FILL,
+};
+pub use via::{
+    PairQuery, ViaCut, ViaCuts, ViaHit, ViaLists, ViaQuery, VIA_MASKED_PER_RECORD, VIA_MAX_LISTS, VIA_MAX_RECORDS,
 };
 
 /// Out logs at least this long get a by-subject index in a snapshot.
@@ -910,23 +914,52 @@ impl Graph {
         limit: usize,
         before: Option<u64>,
     ) -> R<Vec<(u64, u32)>> {
+        Ok(self.out_page_masked(cx, rel, actor, limit, before, usize::MAX)?.0)
+    }
+
+    /// `out_page`, passing at most `masked` base records that writes since
+    /// the checkpoint deleted or replaced: past that it stops with the newest
+    /// records down to where it stopped, and says so. A mass delete costs its
+    /// size until the next checkpoint folds it; this is the read that can't
+    /// afford that.
+    pub fn out_page_masked(
+        &self,
+        cx: &ReadCx<'_>,
+        rel: RelId,
+        actor: u32,
+        limit: usize,
+        before: Option<u64>,
+        masked: usize,
+    ) -> R<(Vec<(u64, u32)>, bool)> {
         let d = self.state[rel as usize].out.get(&actor);
         let hi = before.map_or(Bound::Unbounded, Bound::Excluded);
-        let adds: Vec<(u64, u32)> = d
+        let mut adds: Vec<(u64, u32)> = d
             .map(|d| d.adds.range((Bound::Unbounded, hi)).rev().take(limit).map(|(&k, &s)| (k, s)).collect())
             .unwrap_or_default();
         let mut base = Vec::with_capacity(limit.min(1024));
+        let (mut passed, mut stopped_at) = (0usize, None);
         if let Some(l) = self.base_out(cx, rel, actor)? {
             // base records the delta masks don't count toward the page
-            let want = limit.saturating_add(d.map_or(0, |d| d.dels.len() + d.adds.len()));
+            let want = limit.saturating_add(d.map_or(0, |d| (d.dels.len() + d.adds.len()).min(masked)));
             l.for_each_desc(cx, before, want, |k, s| {
-                if !d.is_some_and(|d| d.dels.contains_key(&k) || d.adds.contains_key(&k)) {
-                    base.push((k, s));
+                if d.is_some_and(|d| d.dels.contains_key(&k) || d.adds.contains_key(&k)) {
+                    passed += 1;
+                    if passed > masked {
+                        stopped_at = Some(k);
+                        return false;
+                    }
+                    return true;
                 }
+                base.push((k, s));
                 base.len() < limit
             })?;
         }
-        Ok(merge_by(base, adds, limit, |a, b| a.0 > b.0))
+        // a read cut short knows the records down to where it stopped, and an
+        // older add might sit behind base records it never reached
+        if let Some(f) = stopped_at {
+            adds.retain(|a| a.0 >= f);
+        }
+        Ok((merge_by(base, adds, limit, |a, b| a.0 > b.0), stopped_at.is_some()))
     }
 
     /// Every live record of `actor`, by rkey.
