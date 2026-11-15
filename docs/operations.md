@@ -262,6 +262,28 @@ checks each fetched file against its own section checksums at local disk speed, 
 fails is deleted and the sync fails, so the next run fetches it again), links them into `DIR/snap-<checkpoint>` and points `DIR/current` at it, then drops files no snapshot
 names. The first sync copies the whole snapshot, and later ones copy what the checkpoints since wrote.
 
+A replica seeded from its peer serves whatever relations the peer's checkpoint holds, since
+`marco serve` takes them from the snapshot. With `--relations FILE` the mirror refuses a checkpoint
+whose relations aren't FILE's. It fetches the directory file first, which holds them, and compares
+the names, their order and every key of each relation (companions included). A key this
+`marco-load` doesn't know counts as a difference. If they differ, it ends the lease and exits with
+code 3 before it fetches any other file, leaving `DIR/current` as it was. Any other failure exits 1
+(a usage error 2), so a script can tell "build this snapshot yourself" from "try the peer again":
+
+```bash local
+marco-load mirror --url http://peer:7301 --token-file export-token --dir /data/mirror \
+  --relations /etc/marco/relations.toml
+case $? in
+  0) ;;   # /data/mirror/current holds a checkpoint with these relations
+  3) ;;   # the peer serves other relations: build the snapshot from the source instead
+  *) ;;   # anything else: try the peer again later
+esac
+```
+
+Without `--relations` the mirror takes the checkpoint whatever its relations. The mirror only
+replaces its own `DIR/snap-*`: other snapshot directories beside it, such as an older snapshot,
+are the caller's to remove.
+
 ## Profiling and tracing
 
 | Route (admin listener) | |
