@@ -1459,6 +1459,41 @@ async fn vias() {
     assert_eq!(r.blocked, [false, false, true, true, false, false]);
     assert!(r.a_blocks_b_list.is_empty() && r.a_blocks_b_truncated.is_empty());
 
+    // Filter: the same vias as drop rules, after a block rule
+    let filter = |drop: Vec<FilterDrop>| FilterRequest {
+        viewer: v.clone(),
+        actors: vec![t.clone(), x.clone(), w.clone(), y.clone(), unknown.clone()],
+        drop,
+        ..Default::default()
+    };
+    let by_via = |v_: &Via| FilterDrop { via: v_.clone().into(), ..Default::default() };
+    let blocks = FilterDrop { rel: "block".into(), dir: Dir::DIR_OUT.into(), ..Default::default() };
+    let rules = vec![blocks.clone(), by_via(&vias[0]), by_via(&vias[1]), by_via(&vias[2])];
+    let r = g.filter(filter(rules)).await.unwrap().into_owned();
+    assert_eq!(r.actors, std::slice::from_ref(&unknown));
+    let why: Vec<(&str, &str, Option<Dir>, &str)> =
+        r.dropped.iter().map(|d| (d.actor.as_str(), d.rel.as_str(), d.dir.as_known(), d.list.as_str())).collect();
+    assert_eq!(
+        why,
+        [
+            (t.as_str(), "listblock", Some(Dir::DIR_OUT), ml.as_str()),
+            (x.as_str(), "listitem", Some(Dir::DIR_OUT), mute.as_str()),
+            (w.as_str(), "block", Some(Dir::DIR_OUT), ""),
+            (y.as_str(), "listblock", Some(Dir::DIR_OUT), ml.as_str()),
+        ],
+        "a via rule names its rel (or members, for lists) and the list"
+    );
+    assert!(r.via_truncated.is_empty());
+    for (drop, why) in [
+        (FilterDrop { rel: "block".into(), ..by_via(&vias[0]) }, "via beside rel"),
+        (FilterDrop { member_of: side("listitem", Dir::DIR_OUT, &ml).into(), ..by_via(&vias[0]) }, "and member_of"),
+        (by_via(&rel_via("follow", "", Dir::DIR_OUT)), "a bad via"),
+    ] {
+        assert_eq!(g.filter(filter(vec![drop])).await.unwrap_err().code, ErrorCode::InvalidArgument, "{why}");
+    }
+    let many = vec![by_via(&vias[0]); 11];
+    assert_eq!(g.filter(filter(many)).await.unwrap_err().code, ErrorCode::InvalidArgument, "at most 10 vias");
+
     // a hidden member, then a hidden list owner
     s.app.status_from("test", "1", &y, Some(marco_core::Status::Takendown), 1).await.unwrap();
     let rs = g.relationships(rel_req(&v)).await.unwrap().into_owned();
@@ -1511,7 +1546,7 @@ async fn vias() {
 
     // V subscribes to VIA_CAP more lists: ml and cur fall past its newest
     let cut = |rpc: &str, reason: &str| marco_server::metrics::VIA_TRUNCATED.with_label_values(&[rpc, reason]).get();
-    let before = (cut("Graph/Relationships", "cap"), cut("Graph/BlockPairs", "cap"));
+    let before = (cut("Graph/Relationships", "cap"), cut("Graph/BlockPairs", "cap"), cut("Graph/Filter", "cap"));
     let ops = (0..VIA_CAP as u32).map(|i| lb(&v, &key(), &list_uri(&did(100 + i), 0))).collect();
     g.write_batch(w_(ops)).await.unwrap();
     let rs = g.relationships(rel_req(&v)).await.unwrap().into_owned();
@@ -1521,9 +1556,12 @@ async fn vias() {
     let r = g.block_pairs(bp("modlist", false)).await.unwrap().into_owned();
     assert_eq!((r.a_blocks_b_list[0].as_str(), r.a_blocks_b_truncated[0]), ("", true), "the same cap");
     assert_eq!((r.b_blocks_a_list[0].as_str(), r.b_blocks_a_truncated[0]), (back.as_str(), false));
+    let r = g.filter(filter(vec![by_via(&vias[0])])).await.unwrap().into_owned();
+    assert_eq!(r.actors, [t.clone(), x.clone(), w.clone(), unknown.clone()], "Y is taken down");
+    assert_eq!(r.via_truncated, [t.clone(), x.clone()], "on lists past V's newest; W is on none");
     assert_eq!(
-        (cut("Graph/Relationships", "cap"), cut("Graph/BlockPairs", "cap")),
-        (before.0 + 1, before.1 + 1),
+        (cut("Graph/Relationships", "cap"), cut("Graph/BlockPairs", "cap"), cut("Graph/Filter", "cap")),
+        (before.0 + 1, before.1 + 1, before.2 + 1),
         "one cut read each: V's, once a call"
     );
 }

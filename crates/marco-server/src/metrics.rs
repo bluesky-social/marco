@@ -214,7 +214,7 @@ pub fn init(version: &str, commit: &str) {
     LazyLock::force(&BUSY);
     LazyLock::force(&RPC_ERRORS);
     // every series at 0 from the start, so a rate over it never misses its first cut
-    for rpc in ["Graph/Relationships", "Graph/BlockPairs"] {
+    for rpc in ["Graph/Relationships", "Graph/BlockPairs", "Graph/Filter"] {
         for reason in ["cap", "deletes"] {
             VIA_TRUNCATED.with_label_values(&[rpc, reason]);
         }

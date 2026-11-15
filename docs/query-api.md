@@ -303,11 +303,21 @@ how a feed or thread drops blocked accounts and a list's members.
 | `{"rel":"block","dir":"DIR_OUT"}` | actors the viewer blocks |
 | `{"rel":"block","dir":"DIR_IN"}` | actors blocking the viewer |
 | `{"memberOf":{"rel":"listitem","dir":"DIR_OUT","actor":"<list URI>"}}` | the list's members, whoever the viewer is |
+| `{"via":{"rel":"listblock","members":"listitem","kind":"modlist","dir":"DIR_OUT"}}` | actors on a mod list the viewer subscribes to |
+| `{"via":{"rel":"listblock","members":"listitem","kind":"modlist","dir":"DIR_IN"}}` | actors subscribed to a mod list that holds the viewer |
+| `{"via":{"lists":{"uris":["<list URI>"]},"members":"listitem","dir":"DIR_OUT"}}` | actors on the viewer's own lists, such as its mute lists |
 
 `dropped` names the rule that hit each actor, or `"rel":"status"` for one that's taken down or
-deleted. When several rules hit, a `rel`/`dir` rule is reported before any `memberOf` rule,
-whatever order the request lists them in. Actors marco doesn't know are kept. A viewer marco doesn't know has no blocks, so only
-`memberOf` rules apply. An unknown or hidden list drops nobody.
+deleted. When several rules hit, a `rel`/`dir` rule is reported before any `memberOf` rule, and
+both before a `via` rule, whatever order the request lists them in. Actors marco doesn't know are
+kept. A viewer marco doesn't know has no blocks or subscriptions, so only `memberOf` rules apply.
+An unknown or hidden list drops nobody.
+
+A `via` rule is a [Via](#via) with the viewer as its actor, read the same way and with the same
+cap ([What a via reads](#what-a-via-reads)). Its drop names the via's `rel` (or `members`, for
+`lists`) and `dir`, and the list that matched in `list`. A kept actor that a via rule may have
+missed, because the subscriber's read stopped short, is also listed in `viaTruncated`. At most 10
+`via` rules a request.
 
 ## Lists
 
@@ -322,6 +332,7 @@ A list relation's actor is the list's AT URI, so every call above takes a list:
 | The owner's listitems | `ListOut {"rel":"listitem.owner","actor":"<owner DID>"}`: each item's URI, and its list as the subject |
 | Two lists, or a list and a relation | `Intersect` with a `listitem` side |
 | Drop a list's members | `Filter` with `memberOf` |
+| Drop the accounts on a viewer's block or mute lists | `Filter` with `via` |
 
 `distinct` keeps each member's oldest record, as the appview does, so a repeat added later can't
 move a member past your cursor. The [Relations](relations.md#lists) page has how lists are stored.
@@ -335,7 +346,7 @@ move a member past your cursor. The [Relations](relations.md#lists) page has how
 | `Counts` | 100 actors |
 | `ListOut`, `ListIn` | `limit` default 50, at most 1,000 |
 | `Intersect` | `limit` default 100, at most 10,000 |
-| `Filter` | 1,000 actors |
+| `Filter` | 1,000 actors · 10 `via` rules |
 | `Write`, `WriteBatch` | 1,000 ops a message |
 
 A request over a limit is `invalid_argument`, except `limit` itself, which is clamped. Errors use
