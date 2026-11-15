@@ -200,6 +200,12 @@ Named in `rels`, `Relationships` takes list URIs as `others`, so
 to each list. In the build input, the `subject` column holds the record's URI
 ([the input format](quickstart.md#the-input-format)).
 
+The two hops meet at read time on the list's id. `listblock`'s out log of a subscriber holds list
+ids, and `listitem`'s in set of a member holds the ids of the lists it's on. So `via` on
+`Relationships` and `BlockPairs` probes one with the other and answers "a mod list this actor
+subscribes to holds that one" with the list's URI ([Via](query-api.md#via)). Storing that as
+edges would cost a write per subscriber for every member a list gains.
+
 ## The owner rule
 
 Only items in the list owner's own repo count. A listitem whose `list` points into another repo

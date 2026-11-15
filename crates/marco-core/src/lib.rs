@@ -20,8 +20,9 @@ pub mod store;
 pub mod varint;
 
 pub use graph::{
-    Added, BaseSwap, CheckpointReport, CompactPolicy, Compacted, Dir, Garbage, Graph, Headroom, ListRef, Relationship,
-    Removed, SetOp, SharedSnapshot, Stored, COMPACTION_STOPPED, COUNT_EXACT,
+    Added, BaseSwap, CheckpointReport, CompactPolicy, Compacted, Dir, Garbage, Graph, Headroom, ListRef, PairQuery,
+    Relationship, Removed, SetOp, SharedSnapshot, Stored, ViaCuts, ViaHit, ViaLists, ViaQuery, COMPACTION_STOPPED,
+    COUNT_EXACT,
 };
 pub use relation::{RelId, Relation, Relations};
 pub use segment::{Op, Rec, Status};
