@@ -54,7 +54,8 @@ pub const SELF: &str = "$self";
 
 /// A `[[relation]]` table's keys: [`Relation`]'s fields. `owner_of` is a
 /// companion's, which a scan's relations.toml writes back.
-const RELATION_KEYS: [&str; 7] = ["name", "collection", "subject", "subject_collection", "list", "owner_of", "when"];
+pub const RELATION_KEYS: [&str; 7] =
+    ["name", "collection", "subject", "subject_collection", "list", "owner_of", "when"];
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Relation {
