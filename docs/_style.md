@@ -18,7 +18,7 @@ the site is too.
   `docs/_internal.txt` lists the pages the site leaves out. A published page can't link to one
   (the check fails with "it is internal").
 - The HTML pages in `docs/` (`lists-results.html`, `p0-results.html`, `p1-results.html`, `perf.html`,
-  `read-mix.html`, `scylla-results.html`) are standalone. The site serves them unchanged at
+  `read-mix.html`, `scylla-results.html`, `via-results.html`) are standalone. The site serves them unchanged at
   `/docs/<name>.html` and links them, labelled by what they measure
   (`[Durability and restarts, measured](p1-results.html)`), and the check fails on a link to one
   that doesn't exist. Don't convert them into pages. `design.html` is the design record and is
