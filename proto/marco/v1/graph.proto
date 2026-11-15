@@ -28,6 +28,7 @@ service Graph {
   }
   // Per (a, b) pair: whether a blocks b and whether b blocks a
   // (getBlockExistence over a response's author pairs). At most 1000 pairs.
+  // With uris, also the block records' URIs.
   rpc BlockPairs(BlockPairsRequest) returns (BlockPairsResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
@@ -113,6 +114,8 @@ message BlockPairsRequest {
   // The relations that count as a block: a record of any of them naming the
   // other side. Empty is "block".
   repeated string rels = 2;
+  // Also the URIs of the records behind a_blocks_b and b_blocks_a.
+  bool uris = 4;
 }
 
 message BlockPairsResponse {
@@ -122,6 +125,10 @@ message BlockPairsResponse {
   repeated bool b_blocks_a = 2;
   // Either way: the two can't interact.
   repeated bool blocked = 3;
+  // Only with uris, one each per pair: a's record naming b and b's naming a,
+  // the newest in any of rels, or empty.
+  repeated string a_blocks_b_uri = 4;
+  repeated string b_blocks_a_uri = 5;
 }
 
 message ListOutRequest {

@@ -248,6 +248,7 @@ pub fn relationships_(
     Ok(RelationshipsResponse { relationships, ..Default::default() })
 }
 
+/// BlockPairs, its names resolved. With `uris`, also each hit's record.
 pub fn block_pairs_(g: &Graph, cx: &ReadCx<'_>, rels: &[RelId], req: &BlockPairsRequest) -> R<BlockPairsResponse> {
     let pairs: Vec<(&str, &str)> = req.pairs.iter().map(|p| (p.a.as_str(), p.b.as_str())).collect();
     let mut res = g.block_pairs(cx, &pairs, rels)?;
@@ -258,12 +259,26 @@ pub fn block_pairs_(g: &Graph, cx: &ReadCx<'_>, rels: &[RelId], req: &BlockPairs
             }
         }
     }
-    Ok(BlockPairsResponse {
+    let mut resp = BlockPairsResponse {
         a_blocks_b: res.iter().map(|r| r.0).collect(),
         b_blocks_a: res.iter().map(|r| r.1).collect(),
         blocked: res.iter().map(|r| r.0 || r.1).collect(),
         ..Default::default()
-    })
+    };
+    if req.uris {
+        // a URI costs a lookup only on a hit, and a hit's DIDs are known
+        let mut pend = Ok(());
+        let mut uri = |hit: bool, from: &str, to: &str| match (hit, g.id_of(from), g.id_of(to)) {
+            (true, Some(f), Some(t)) => item(&mut pend, g.block_uri(cx, rels, f, t)).unwrap_or_default(),
+            _ => String::new(),
+        };
+        for (&(x, y), &(a, b)) in res.iter().zip(&pairs) {
+            resp.a_blocks_b_uri.push(uri(x, a, b));
+            resp.b_blocks_a_uri.push(uri(y, b, a));
+        }
+        pend?;
+    }
+    Ok(resp)
 }
 
 pub fn list_out_(g: &Graph, cx: &ReadCx<'_>, rel: RelId, req: &ListOutRequest) -> R<ListOutResponse> {

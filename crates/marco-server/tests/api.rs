@@ -1327,7 +1327,76 @@ when = { purpose = "app.bsky.graph.defs#modlist" }
     assert!(rl.config.contains("subject_collection = \"app.bsky.graph.list\""), "{}", rl.config);
 }
 
+/// BlockPairs with `uris`: each hit's record, newest first, and nothing for
+/// a miss or a hidden side. Without it the response is the flags alone.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn block_pair_uris() {
+    let s = start(false, false).await;
+    let g = graph(s.api, Some(TOKEN));
+    let (a, b, c) = (did(N + 1), did(N + 2), did(N + 3));
+    let (old, new, back) = (uri(&a, BLOCK, &tid(1, 0)), uri(&a, BLOCK, &tid(2, 0)), uri(&b, BLOCK, &tid(3, 0)));
+    let ops = vec![add(&old, &b), add(&new, &b), add(&back, &a), add(&uri(&c, BLOCK, &tid(4, 0)), &a)];
+    g.write_batch(WriteBatchRequest { ops, ..Default::default() }).await.unwrap();
+    let pairs: Vec<BlockPair> = [(&a, &b), (&b, &c), (&c, &a), (&a, &did(N + 9))]
+        .map(|(x, y)| BlockPair { a: x.clone(), b: y.clone(), ..Default::default() })
+        .into();
+    let req = |uris| BlockPairsRequest { pairs: pairs.clone(), uris, ..Default::default() };
+    let r = g.block_pairs(req(false)).await.unwrap().into_owned();
+    assert!(r.a_blocks_b_uri.is_empty() && r.b_blocks_a_uri.is_empty());
+    let e = String::new;
+    let r = g.block_pairs(req(true)).await.unwrap().into_owned();
+    assert_eq!((r.a_blocks_b, r.b_blocks_a), (vec![true, false, true, false], vec![true, false, false, false]));
+    assert_eq!(r.a_blocks_b_uri, [new.clone(), e(), uri(&c, BLOCK, &tid(4, 0)), e()], "the newest of a's two");
+    assert_eq!(r.b_blocks_a_uri, [back.clone(), e(), e(), e()]);
+    // with two relations, the newest record of either, in whichever order they're named
+    let follow = uri(&a, FOLLOW, &tid(9, 0));
+    g.write_batch(WriteBatchRequest { ops: vec![add(&follow, &b)], ..Default::default() }).await.unwrap();
+    for rels in [["block", "follow"], ["follow", "block"]] {
+        let req = BlockPairsRequest {
+            pairs: pairs[..1].to_vec(),
+            rels: rels.map(Into::into).into(),
+            uris: true,
+            ..Default::default()
+        };
+        let r = g.block_pairs(req).await.unwrap().into_owned();
+        assert_eq!(r.a_blocks_b_uri, std::slice::from_ref(&follow), "{rels:?}");
+    }
+    s.app.status_from("test", "1", &c, Some(marco_core::Status::Takendown), 1).await.unwrap();
+    let r = g.block_pairs(req(true)).await.unwrap().into_owned();
+    assert_eq!((r.a_blocks_b[2], r.a_blocks_b_uri[2].as_str()), (false, ""), "a hidden side blocks nobody");
+}
+
 async fn has(g: &GraphClient<HttpClient>, rel: &str, from: &str, to: &str) -> String {
     let req = HasRequest { rel: rel.into(), from: from.into(), to: to.into(), ..Default::default() };
     g.has(req).await.unwrap().into_owned().uri
+}
+
+/// Requests without the fields `uris` and `via` add: actor 0 blocks 209 and
+/// 40 blocks 136 in the synthetic graph, and N + 5 is unknown.
+fn plain_requests() -> [(&'static str, String); 2] {
+    let d = |i: u32| did(i);
+    let rel =
+        format!(r#"{{"actor":"{}","others":["{}","{}","{}","{}","{}"]}}"#, d(0), d(209), d(1), d(2), d(40), d(N + 5));
+    let pairs = [(0, 209), (209, 0), (40, 136), (1, 2), (0, N + 5)]
+        .map(|(a, b)| format!(r#"{{"a":"{}","b":"{}"}}"#, d(a), d(b)))
+        .join(",");
+    let bp = format!(r#"{{"pairs":[{pairs}],"rels":["block","follow"]}}"#);
+    [("/marco.v1.Graph/Relationships", rel), ("/marco.v1.Graph/BlockPairs", bp)]
+}
+
+/// What the server answered to [`plain_requests`] before those fields existed.
+const PLAIN_ANSWERS: [&str; 2] = [
+    r#"{"relationships":[{"other":"did:plc:wb2gmg6vtrmzejgwv6slrcgq","rels":[{"rel":"follow","outUri":"at://did:plc:zx6tjetzlumfsyq73xcr2c66/app.bsky.graph.follow/3khw6drtaw2ak"},{"rel":"block","outUri":"at://did:plc:zx6tjetzlumfsyq73xcr2c66/app.bsky.graph.block/3khwqpdjcm223"}]},{"other":"did:plc:nqtvloue7lpggxn7fyskac52","rels":[{"rel":"follow","outUri":"at://did:plc:zx6tjetzlumfsyq73xcr2c66/app.bsky.graph.follow/3khwqpcks2225"},{"rel":"block"}]},{"other":"did:plc:5yapebenk3hiavcizqvwyldo","rels":[{"rel":"follow","outUri":"at://did:plc:zx6tjetzlumfsyq73xcr2c66/app.bsky.graph.follow/3khuwrsp2i223"},{"rel":"block"}]},{"other":"did:plc:ixuvzzxog622i7lqul3fnt5j","rels":[{"rel":"follow","outUri":"at://did:plc:zx6tjetzlumfsyq73xcr2c66/app.bsky.graph.follow/3khv5nm26w23b"},{"rel":"block"}]},{"other":"did:plc:bfdoamt3s3ozbmjgsp2dp7tj","rels":[{"rel":"follow"},{"rel":"block"}]}]}"#,
+    r#"{"aBlocksB":[true,false,true,false,false],"bBlocksA":[false,true,false,true,false],"blocked":[true,true,true,true,false]}"#,
+];
+
+/// A request without the new fields gets the answer it got before they
+/// existed, byte for byte: no `viaLists`, and no block URIs or lists.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn plain_requests_answer_as_before() {
+    let s = start(false, false).await;
+    for ((path, body), want) in plain_requests().into_iter().zip(PLAIN_ANSWERS) {
+        let (st, out) = http(s.api, "POST", path, &body, &[("content-type", "application/json")]);
+        assert_eq!((st, out.as_str()), (200, want), "{path}");
+    }
 }

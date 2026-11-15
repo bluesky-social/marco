@@ -1556,6 +1556,20 @@ impl Graph {
         pend.map(|()| r)
     }
 
+    /// The URI of `from`'s newest record naming `to` in any of `rels`: a
+    /// block pair's hit as a record, whatever order `rels` is in.
+    pub fn block_uri(&self, cx: &ReadCx<'_>, rels: &[RelId], from: u32, to: u32) -> R<Option<String>> {
+        let mut newest: Option<(u64, RelId)> = None;
+        for &r in rels {
+            if let Some(k) = self.has_id(cx, r, from, to)? {
+                if newest.is_none_or(|(n, _)| k > n) {
+                    newest = Some((k, r));
+                }
+            }
+        }
+        Ok(newest.and_then(|(k, r)| self.uri(r, from, k)))
+    }
+
     /// `actors` without those any of `drop` hits: (rel, Out) drops the
     /// viewer's subjects, (rel, In) drops those naming the viewer.
     pub fn filter_id(&self, cx: &ReadCx<'_>, viewer: u32, actors: &[u32], drop: &[(RelId, Dir)]) -> R<Vec<u32>> {
