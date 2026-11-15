@@ -2029,6 +2029,10 @@ pub struct BlockPairsRequestView<'a> {
     ///
     /// Field 2: `rels`
     pub rels: ::buffa::RepeatedView<'a, &'a str>,
+    /// Also the URIs of the records behind a_blocks_b and b_blocks_a.
+    ///
+    /// Field 4: `uris`
+    pub uris: bool,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for BlockPairsRequestView<'a> {
@@ -2061,6 +2065,13 @@ impl<'a> ::buffa::MessageView<'a> for BlockPairsRequestView<'a> {
         let view = self;
         let mut cur = cur;
         match tag.field_number() {
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.uris = ::buffa::types::decode_bool(&mut cur)?;
+            }
             1u32 => {
                 ::buffa::encoding::check_wire_type(
                     tag,
@@ -2118,6 +2129,7 @@ impl<'a> ::buffa::MessageView<'a> for BlockPairsRequestView<'a> {
                 .map(|v| v.to_owned_from_source(__buffa_src))
                 .collect::<::core::result::Result<_, ::buffa::DecodeError>>()?,
             rels: self.rels.iter().map(|s| s.to_string()).collect(),
+            uris: self.uris,
             __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
             ..::core::default::Default::default()
         })
@@ -2140,6 +2152,9 @@ impl<'a> ::buffa::ViewEncode<'a> for BlockPairsRequestView<'a> {
         for v in &self.rels {
             size += 1u64 + ::buffa::types::string_encoded_len(v) as u64;
         }
+        if self.uris {
+            size += 1u64 + ::buffa::types::BOOL_ENCODED_LEN as u64;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u64;
         ::buffa::saturate_size(size)
     }
@@ -2161,6 +2176,9 @@ impl<'a> ::buffa::ViewEncode<'a> for BlockPairsRequestView<'a> {
         }
         for v in &self.rels {
             ::buffa::types::put_string_field(2u32, v, buf);
+        }
+        if self.uris {
+            ::buffa::types::put_bool_field(4u32, self.uris, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -2188,6 +2206,9 @@ impl<'__a> ::serde::Serialize for BlockPairsRequestView<'__a> {
         }
         if !self.rels.is_empty() {
             __map.serialize_entry("rels", &*self.rels)?;
+        }
+        if self.uris {
+            __map.serialize_entry("uris", &self.uris)?;
         }
         __map.end()
     }
@@ -2302,6 +2323,13 @@ impl BlockPairsRequestOwnedView {
     pub fn rels(&self) -> &::buffa::RepeatedView<'_, &'_ str> {
         &self.0.reborrow().rels
     }
+    /// Also the URIs of the records behind a_blocks_b and b_blocks_a.
+    ///
+    /// Field 4: `uris`
+    #[must_use]
+    pub fn uris(&self) -> bool {
+        self.0.reborrow().uris
+    }
 }
 impl ::core::convert::From<::buffa::OwnedView<BlockPairsRequestView<'static>>>
 for BlockPairsRequestOwnedView {
@@ -2347,6 +2375,13 @@ pub struct BlockPairsResponseView<'a> {
     ///
     /// Field 3: `blocked`
     pub blocked: ::buffa::RepeatedView<'a, bool>,
+    /// Only with uris, one each per pair: a's record naming b and b's naming a,
+    /// the newest in any of rels, or empty.
+    ///
+    /// Field 4: `a_blocks_b_uri`
+    pub a_blocks_b_uri: ::buffa::RepeatedView<'a, &'a str>,
+    /// Field 5: `b_blocks_a_uri`
+    pub b_blocks_a_uri: ::buffa::RepeatedView<'a, &'a str>,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for BlockPairsResponseView<'a> {
@@ -2436,6 +2471,28 @@ impl<'a> ::buffa::MessageView<'a> for BlockPairsResponseView<'a> {
                     );
                 }
             }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __elem = ::buffa::types::borrow_str(&mut cur)?;
+                ctx.register_element_memory(
+                    ::buffa::__private::element_footprint(&__elem),
+                )?;
+                view.a_blocks_b_uri.push(__elem);
+            }
+            5u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __elem = ::buffa::types::borrow_str(&mut cur)?;
+                ctx.register_element_memory(
+                    ::buffa::__private::element_footprint(&__elem),
+                )?;
+                view.b_blocks_a_uri.push(__elem);
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 let span_len = before_tag.len() - cur.len();
@@ -2461,6 +2518,8 @@ impl<'a> ::buffa::MessageView<'a> for BlockPairsResponseView<'a> {
             a_blocks_b: self.a_blocks_b.to_vec(),
             b_blocks_a: self.b_blocks_a.to_vec(),
             blocked: self.blocked.to_vec(),
+            a_blocks_b_uri: self.a_blocks_b_uri.iter().map(|s| s.to_string()).collect(),
+            b_blocks_a_uri: self.b_blocks_a_uri.iter().map(|s| s.to_string()).collect(),
             __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
             ..::core::default::Default::default()
         })
@@ -2486,6 +2545,12 @@ impl<'a> ::buffa::ViewEncode<'a> for BlockPairsResponseView<'a> {
             let payload: u64 = self.blocked.len() as u64
                 * ::buffa::types::BOOL_ENCODED_LEN as u64;
             size += 1u64 + ::buffa::encoding::varint_len(payload) as u64 + payload;
+        }
+        for v in &self.a_blocks_b_uri {
+            size += 1u64 + ::buffa::types::string_encoded_len(v) as u64;
+        }
+        for v in &self.b_blocks_a_uri {
+            size += 1u64 + ::buffa::types::string_encoded_len(v) as u64;
         }
         size += self.__buffa_unknown_fields.encoded_len() as u64;
         ::buffa::saturate_size(size)
@@ -2522,6 +2587,12 @@ impl<'a> ::buffa::ViewEncode<'a> for BlockPairsResponseView<'a> {
                 ::buffa::types::encode_bool(v, buf);
             }
         }
+        for v in &self.a_blocks_b_uri {
+            ::buffa::types::put_string_field(4u32, v, buf);
+        }
+        for v in &self.b_blocks_a_uri {
+            ::buffa::types::put_string_field(5u32, v, buf);
+        }
         self.__buffa_unknown_fields.write_to(buf);
     }
 }
@@ -2551,6 +2622,12 @@ impl<'__a> ::serde::Serialize for BlockPairsResponseView<'__a> {
         }
         if !self.blocked.is_empty() {
             __map.serialize_entry("blocked", &*self.blocked)?;
+        }
+        if !self.a_blocks_b_uri.is_empty() {
+            __map.serialize_entry("aBlocksBUri", &*self.a_blocks_b_uri)?;
+        }
+        if !self.b_blocks_a_uri.is_empty() {
+            __map.serialize_entry("bBlocksAUri", &*self.b_blocks_a_uri)?;
         }
         __map.end()
     }
@@ -2667,6 +2744,19 @@ impl BlockPairsResponseOwnedView {
     #[must_use]
     pub fn blocked(&self) -> &::buffa::RepeatedView<'_, bool> {
         &self.0.reborrow().blocked
+    }
+    /// Only with uris, one each per pair: a's record naming b and b's naming a,
+    /// the newest in any of rels, or empty.
+    ///
+    /// Field 4: `a_blocks_b_uri`
+    #[must_use]
+    pub fn a_blocks_b_uri(&self) -> &::buffa::RepeatedView<'_, &'_ str> {
+        &self.0.reborrow().a_blocks_b_uri
+    }
+    /// Field 5: `b_blocks_a_uri`
+    #[must_use]
+    pub fn b_blocks_a_uri(&self) -> &::buffa::RepeatedView<'_, &'_ str> {
+        &self.0.reborrow().b_blocks_a_uri
     }
 }
 impl ::core::convert::From<::buffa::OwnedView<BlockPairsResponseView<'static>>>

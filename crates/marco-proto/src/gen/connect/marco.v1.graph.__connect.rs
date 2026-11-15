@@ -638,6 +638,7 @@ pub trait Graph: Send + Sync + 'static {
     > + Send;
     /// Per (a, b) pair: whether a blocks b and whether b blocks a
     /// (getBlockExistence over a response's author pairs). At most 1000 pairs.
+    /// With uris, also the block records' URIs.
     ///
     /// `'a` lets the response body borrow from `&self` (e.g. server-resident state).
     ///

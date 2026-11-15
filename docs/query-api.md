@@ -93,6 +93,23 @@ and `block` by default), which leaves out list relations and relations whose sub
 feed's hydration make. 50 others × 2 relations take ~30 µs in the engine and ~100 µs over HTTP/2
 ([Throughput and latency](perf.html)).
 
+## BlockPairs
+
+Per pair of up to 1,000, whether `a` has a record naming `b` (`aBlocksB`), the reverse
+(`bBlocksA`), and either (`blocked`). `rels` names the relations that count, `block` by default,
+and refuses list relations and relations whose subjects are records. A DID that's unknown, taken
+down or deleted blocks nobody and is blocked by nobody. This is how a thread drops the replies its
+viewer can't interact with.
+
+```json
+// BlockPairs {"pairs":[{"a":"did:plc:dave2222…","b":"did:plc:carol2222…"}],"uris":true}
+{"aBlocksB":[false],"bBlocksA":[true],"blocked":[true],
+ "aBlocksBUri":[""],"bBlocksAUri":["at://did:plc:carol…/app.bsky.graph.block/3mzjs7ys3v622"]}
+```
+
+`uris` adds the URIs of the records behind `aBlocksB` and `bBlocksA` (`aBlocksBUri`,
+`bBlocksAUri`), the newest in any of `rels` if a side has several, one lookup per hit.
+
 ## ListOut and ListIn
 
 ```json
@@ -317,6 +334,7 @@ move a member past your cursor. The [Relations](relations.md#lists) page has how
 | Call | Limit |
 |---|---|
 | `Relationships` | 100 others |
+| `BlockPairs` | 1,000 pairs |
 | `Counts` | 100 actors |
 | `ListOut`, `ListIn` | `limit` default 50, at most 1,000 |
 | `Intersect` | `limit` default 100, at most 10,000 |
