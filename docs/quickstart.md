@@ -204,6 +204,123 @@ g ListOut '{"rel":"listitem","actor":"'$list'","distinct":true}'      # the list
 The console is on the admin listener at `http://127.0.0.1:7301/admin/` (sign in with the token),
 and these docs are at `/docs` on either port. [Query API](query-api.md) has every call.
 
+## List blocks
+
+A block list is three records in the public lexicons: an `app.bsky.graph.list` whose `purpose` is
+`app.bsky.graph.defs#modlist`, an `app.bsky.graph.listitem` for each account on it, and an
+`app.bsky.graph.listblock` for each account that subscribes to it. marco holds the subscription and
+the list's purpose as two more relations ([Records as subjects](relations.md#records-as-subjects)),
+and a relation has to be in the snapshot before anything can write it. So stop the server and
+rebuild the example with a relations config that adds them after the defaults:
+
+```bash
+cat > relations.toml <<'EOF'
+[[relation]]
+name = "follow"
+collection = "app.bsky.graph.follow"
+subject = "subject"
+
+[[relation]]
+name = "block"
+collection = "app.bsky.graph.block"
+subject = "subject"
+
+[[relation]]
+name = "listitem"
+collection = "app.bsky.graph.listitem"
+subject = "subject"
+list = "list"
+
+[[relation]]
+name = "listblock"
+collection = "app.bsky.graph.listblock"
+subject = "subject"
+subject_collection = "app.bsky.graph.list"
+
+[[relation]]
+name = "modlist"
+collection = "app.bsky.graph.list"
+subject = "$self"
+when = { purpose = "app.bsky.graph.defs#modlist" }
+EOF
+mkdir input/listblock input/modlist     # empty: the writes below fill them
+target/release/marco-load build --input input --out snap-lists --relations relations.toml
+target/release/marco serve --snapshot snap-lists --memory 3GiB --admin-token-file token \
+  --jetstream wss://jetstream2.us-east.bsky.network
+```
+
+With these relations, Jetstream sends the network's lists and subscriptions too. For the example,
+write carol's mod list, dave on it, and alice's subscription to it through the write API, as your
+own pipeline would ([Writing and ingest](ingest.md)). An op carries no record, so marco can't check
+`when` here. Send the list's add only while its `purpose` is a mod list, and a delete once it isn't.
+
+```bash local
+carol=did:plc:carol2222222222222222222
+blocklist=at://$carol/app.bsky.graph.list/3mzmods222222
+w() { curl -s localhost:7300/marco.v1.Graph/WriteBatch -H 'content-type: application/json' \
+  -H "authorization: Bearer $(cat token)" -d "$1"; echo; }
+
+w '{"ops":[
+  {"add":{"uri":"'$blocklist'","subject":"'$blocklist'"}},
+  {"add":{"uri":"at://'$carol'/app.bsky.graph.listitem/3mzitem222222","subject":"'$dave'","list":"'$blocklist'"}},
+  {"add":{"uri":"at://'$alice'/app.bsky.graph.listblock/3mzsubs222222","subject":"'$blocklist'"}}]}'
+```
+
+```json
+{"results":[{"added":true},{"added":true},{"added":true}]}
+```
+
+One `Relationships` call answers alice's list blocks in both directions, beside her follows and
+blocks. Each `via` entry is one direction: `DIR_OUT` asks whether alice's lists hold the other, and
+`DIR_IN` whether the other's lists hold alice. `kind` is a filter on which lists count, here only
+mod lists.
+
+```bash
+g Relationships '{"actor":"'$alice'","others":["'$bob'","'$dave'"],"rels":["follow","block"],"via":[
+  {"rel":"listblock","members":"listitem","kind":"modlist","dir":"DIR_OUT"},
+  {"rel":"listblock","members":"listitem","kind":"modlist","dir":"DIR_IN"}]}'
+```
+
+```json
+{"relationships":[
+  {"other":"did:plc:bob222222222222222222222","rels":[…],"via":[{},{}]},
+  {"other":"did:plc:dave22222222222222222222","rels":[…],
+   "via":[{"list":"at://did:plc:carol2222222222222222222/app.bsky.graph.list/3mzmods222222"},{}]}]}
+```
+
+Each other gets one answer per entry, in order: the matching list's URI, or `{}` when no list
+matches. alice subscribes to a mod list that holds dave, and nobody here subscribes to one that
+holds alice. `BlockPairs` checks both directions of every pair:
+
+```bash
+g BlockPairs '{"pairs":[{"a":"'$alice'","b":"'$dave'"},{"a":"'$dave'","b":"'$alice'"}],
+  "via":{"rel":"listblock","members":"listitem","kind":"modlist"}}'
+```
+
+```json
+{"aBlocksB":[false,false],"bBlocksA":[false,false],"blocked":[true,true],
+ "aBlocksBList":["at://did:plc:carol2222222222222222222/app.bsky.graph.list/3mzmods222222",""],
+ "bBlocksAList":["","at://did:plc:carol2222222222222222222/app.bsky.graph.list/3mzmods222222"],
+ "aBlocksBTruncated":[false,false],"bBlocksATruncated":[false,false]}
+```
+
+When carol makes it a curation list, her list record stops matching `when` and its `modlist` edge
+goes (Jetstream sends that update, and an update that isn't an edge empties its key). The list
+still holds dave, but only mod lists count:
+
+```bash
+w '{"ops":[{"delete":{"uri":"'$blocklist'"}}]}'
+g Relationships '{"actor":"'$alice'","others":["'$dave'"],"rels":["block"],"via":[
+  {"rel":"listblock","members":"listitem","kind":"modlist","dir":"DIR_OUT"}]}'
+```
+
+```json
+{"results":[{"removed":"at://did:plc:carol2222222222222222222/app.bsky.graph.list/3mzmods222222"}]}
+{"relationships":[{"other":"did:plc:dave22222222222222222222","rels":[{"rel":"block"}],"via":[{}]}]}
+```
+
+[Query API](query-api.md#via) has the rest of `via`, mute lists the caller passes in, and the caps.
+
 ## Next
 
 - Rebuild from your own data: from an archive export in the format above, or from Scylla tables

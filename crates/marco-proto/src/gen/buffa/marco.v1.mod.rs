@@ -36,9 +36,13 @@ pub mod __buffa {
     pub fn register_types(reg: &mut ::buffa::type_registry::TypeRegistry) {
         reg.register_json_any(super::__HAS_REQUEST_JSON_ANY);
         reg.register_json_any(super::__HAS_RESPONSE_JSON_ANY);
+        reg.register_json_any(super::__VIA_JSON_ANY);
+        reg.register_json_any(super::__VIA_LISTS_JSON_ANY);
+        reg.register_json_any(super::__PAIR_VIA_JSON_ANY);
         reg.register_json_any(super::__RELATIONSHIPS_REQUEST_JSON_ANY);
         reg.register_json_any(super::__RELATIONSHIPS_RESPONSE_JSON_ANY);
         reg.register_json_any(super::__RELATIONSHIP_JSON_ANY);
+        reg.register_json_any(super::__VIA_ANSWER_JSON_ANY);
         reg.register_json_any(super::__RELATIONSHIP_EDGE_JSON_ANY);
         reg.register_json_any(super::__BLOCK_PAIR_JSON_ANY);
         reg.register_json_any(super::__BLOCK_PAIRS_REQUEST_JSON_ANY);
@@ -133,6 +137,18 @@ pub use self::__buffa::view::HasResponseView;
 #[doc(inline)]
 pub use self::__buffa::view::HasResponseOwnedView;
 #[doc(inline)]
+pub use self::__buffa::view::ViaView;
+#[doc(inline)]
+pub use self::__buffa::view::ViaOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::ViaListsView;
+#[doc(inline)]
+pub use self::__buffa::view::ViaListsOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::PairViaView;
+#[doc(inline)]
+pub use self::__buffa::view::PairViaOwnedView;
+#[doc(inline)]
 pub use self::__buffa::view::RelationshipsRequestView;
 #[doc(inline)]
 pub use self::__buffa::view::RelationshipsRequestOwnedView;
@@ -144,6 +160,10 @@ pub use self::__buffa::view::RelationshipsResponseOwnedView;
 pub use self::__buffa::view::RelationshipView;
 #[doc(inline)]
 pub use self::__buffa::view::RelationshipOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::ViaAnswerView;
+#[doc(inline)]
+pub use self::__buffa::view::ViaAnswerOwnedView;
 #[doc(inline)]
 pub use self::__buffa::view::RelationshipEdgeView;
 #[doc(inline)]
