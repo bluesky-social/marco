@@ -109,8 +109,8 @@ fewest postings (its top list when it's heavy, else its range), and the 64 best 
 against their keys, so two common words find the best-ranked accounts with both, not every one. A
 dot or hyphen is a word break, not a space: `jane.fos` doesn't find `janefoster.bsky.social`.
 
-Blocks are marco's `block` records both ways. Moderation-list blocks (`listblock`) aren't covered:
-marco has no listblock relation, so the AppView still filters those at hydration.
+Blocks are marco's `block` records both ways. Moderation-list blocks (`listblock`) aren't covered.
+seek doesn't ask marco about list subscriptions, so the AppView still filters those at hydration.
 
 ## Flags
 
