@@ -7,6 +7,7 @@ use std::path::Path;
 use std::sync::OnceLock;
 
 use anyhow::{bail, Context, Result};
+use marco_proto::v1::__buffa::oneof::via;
 use marco_proto::v1::*;
 use serde::Deserialize;
 
@@ -36,7 +37,8 @@ pub enum Call {
 /// `heavy`, `heaviest` (the most-following actor alone), which carry their
 /// follows), a DID pool (`popular`, `uniform`, `hot_in`) or `lists` (list URIs).
 /// `viewer_skew` (viewers) and `author_skew` (DIDs) are drawn in proportion to
-/// the weight files `perf-inputs` was given.
+/// the weight files `perf-inputs` was given. `listed` (DIDs on a list) and
+/// `subscribers` (DIDs with a `listblock` record) need those relations.
 #[derive(Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum Pool {
@@ -50,6 +52,31 @@ pub enum Pool {
     HotIn,
     AuthorSkew,
     Lists,
+    Listed,
+    Subscribers,
+}
+
+/// A via on relationships or block_pairs: `rel` (a subscription relation) or
+/// `lists` ((count, weight): that many URIs from the `lists` pool, the
+/// viewer's own; a draw of 0 leaves the via out, as a caller with none
+/// would), `members`, `kind`, and `dir` ("out" or "in"). block_pairs takes
+/// one, a `rel` with no `lists` or `dir`.
+#[derive(Deserialize, Clone, Debug)]
+pub struct ViaSpec {
+    #[serde(default)]
+    pub rel: String,
+    #[serde(default)]
+    pub lists: Vec<(u32, f64)>,
+    #[serde(default = "listitem")]
+    pub members: String,
+    #[serde(default)]
+    pub kind: String,
+    #[serde(default)]
+    pub dir: String,
+}
+
+fn listitem() -> String {
+    "listitem".into()
 }
 
 /// Subjects for a viewer: a share drawn from the viewer's follows, the rest
@@ -110,6 +137,12 @@ pub struct FileShape {
     /// filter: (lists, weight), each a `member_of` rule on a list from `lists`.
     #[serde(default)]
     pub member_of: Vec<(u32, f64)>,
+    /// relationships: its vias, in order; block_pairs: one, without a dir.
+    #[serde(default)]
+    pub via: Vec<ViaSpec>,
+    /// block_pairs: ask for the block records' URIs too.
+    #[serde(default)]
+    pub uris: bool,
 }
 
 /// Requests drawn per shape unless a run gives a total; request i of a shape
@@ -167,6 +200,47 @@ fn draw<'a>(inp: &'a Inputs, rng: &mut Rng, p: Pool) -> (&'a str, &'a [String]) 
         Pool::Uniform => (inp.misses[rng.below(inp.misses.len() as u64) as usize].1.as_str(), &[]),
         Pool::HotIn => (inp.hot_in[rng.below(inp.hot_in.len() as u64) as usize].0.as_str(), &[]),
         Pool::Lists => (pick(&inp.lists, rng), &[]),
+        Pool::Listed => (pick(&inp.listed, rng), &[]),
+        Pool::Subscribers => (pick(&inp.subscribers, rng), &[]),
+    }
+}
+
+/// A shape's vias, drawn: a lists via that draws none is left out.
+fn vias(inp: &Inputs, rng: &mut Rng, s: &FileShape) -> Result<Vec<Via>> {
+    let mut out = Vec::new();
+    for v in &s.via {
+        let source = if v.lists.is_empty() {
+            via::Source::Rel(v.rel.clone())
+        } else {
+            let k = pick_weighted(rng, &v.lists);
+            if k == 0 {
+                continue;
+            }
+            let uris = (0..k).map(|_| draw(inp, rng, Pool::Lists).0.to_string()).collect();
+            ViaLists { uris, ..Default::default() }.into()
+        };
+        out.push(Via {
+            source: Some(source),
+            members: v.members.clone(),
+            kind: v.kind.clone(),
+            dir: dir_pb(&v.dir)?.into(),
+            ..Default::default()
+        });
+    }
+    Ok(out)
+}
+
+/// A block_pairs shape's via: one `rel`, no `lists` or `dir`.
+fn pair_via(s: &FileShape) -> Result<Option<PairVia>> {
+    match &s.via[..] {
+        [] => Ok(None),
+        [v] if v.lists.is_empty() && v.dir.is_empty() => Ok(Some(PairVia {
+            rel: v.rel.clone(),
+            members: v.members.clone(),
+            kind: v.kind.clone(),
+            ..Default::default()
+        })),
+        _ => bail!("{}: block_pairs takes one via, a rel with no lists or dir", s.name),
     }
 }
 
@@ -201,10 +275,12 @@ fn make(inp: &Inputs, s: &FileShape, rng: &mut Rng) -> Result<Req> {
         }
         Call::Relationships => {
             let n = pick_weighted(rng, &s.batch);
+            let others = subjects(inp, rng, &subj()?, follows, n);
             Req::Relationships(RelationshipsRequest {
                 actor: actor.into(),
-                others: subjects(inp, rng, &subj()?, follows, n),
+                others,
                 rels: s.rels.clone(),
+                via: vias(inp, rng, s)?,
                 ..Default::default()
             })
         }
@@ -247,7 +323,14 @@ fn make(inp: &Inputs, s: &FileShape, rng: &mut Rng) -> Result<Req> {
                 let b = subjects(inp, rng, &sub, &[], 1).remove(0);
                 pairs.push(BlockPair { a: a.into(), b, ..Default::default() });
             }
-            Req::BlockPairs(BlockPairsRequest { pairs, rels: s.rels.clone(), ..Default::default() })
+            let via = pair_via(s)?;
+            Req::BlockPairs(BlockPairsRequest {
+                pairs,
+                rels: s.rels.clone(),
+                via: via.into(),
+                uris: s.uris,
+                ..Default::default()
+            })
         }
         Call::Filter => {
             let n = pick_weighted(rng, &s.batch);
@@ -280,7 +363,7 @@ fn make(inp: &Inputs, s: &FileShape, rng: &mut Rng) -> Result<Req> {
 fn pools_of(s: &FileShape) -> Vec<Pool> {
     let mut v = vec![s.actor];
     v.extend(s.subjects.map(|x| x.pool));
-    if s.member_of.iter().any(|x| x.0 > 0) {
+    if s.member_of.iter().any(|x| x.0 > 0) || s.via.iter().any(|x| x.lists.iter().any(|l| l.0 > 0)) {
         v.push(Pool::Lists);
     }
     v
@@ -294,6 +377,8 @@ fn pool_empty(inp: &Inputs, p: Pool) -> bool {
         Pool::Uniform => inp.misses.is_empty(),
         Pool::HotIn => inp.hot_in.is_empty(),
         Pool::Lists => inp.lists.is_empty(),
+        Pool::Listed => inp.listed.is_empty(),
+        Pool::Subscribers => inp.subscribers.is_empty(),
     }
 }
 
@@ -424,5 +509,54 @@ mod tests {
     fn draws_split_by_rate() {
         assert_eq!(draws_for(1_000_000, 0.25, 1.0), 250_000);
         assert_eq!(draws_for(1_000_000, 0.000_001, 1.0), 1024, "a rare shape still cycles");
+    }
+
+    /// A viewer's list blocks both ways and its mute lists, when it has any,
+    /// in one Relationships call, and a BlockPairs with its via.
+    #[test]
+    fn via_specs_draw_vias() {
+        let inp: Inputs = serde_json::from_value(serde_json::json!({
+            "actors": [], "hits": [], "misses": [["did:plc:a", "did:plc:u"]], "others": [], "hot_in": [], "hot_out": [],
+            "hot_others": [], "hot_hits": [], "cursors": [], "filter_pages": [],
+            "lists": ["at://did:plc:o/app.bsky.graph.list/l1", "at://did:plc:o/app.bsky.graph.list/l2"],
+            "listed": ["did:plc:m1", "did:plc:m2"], "subscribers": ["did:plc:s1"],
+        }))
+        .unwrap();
+        let shape: FileShape = serde_json::from_value(serde_json::json!({
+            "name": "viewer", "call": "relationships", "rate": 1, "actor": "subscribers", "rels": ["follow", "block"],
+            "subjects": {"pool": "listed"}, "batch": [[3, 1]],
+            "via": [{"rel": "listblock", "kind": "modlist", "dir": "out"},
+                    {"rel": "listblock", "kind": "modlist", "dir": "in"},
+                    {"lists": [[0, 1], [2, 1]], "kind": "modlist", "dir": "out"}],
+        }))
+        .unwrap();
+        assert_eq!(pools_of(&shape), [Pool::Subscribers, Pool::Listed, Pool::Lists]);
+        let mut rng = Rng(5);
+        let mut seen = std::collections::BTreeSet::new();
+        for _ in 0..50 {
+            let Req::Relationships(r) = make(&inp, &shape, &mut rng).unwrap() else { panic!("a Relationships") };
+            assert_eq!((r.actor.as_str(), r.others.len()), ("did:plc:s1", 3));
+            let rel = |v: &Via| matches!(&v.source, Some(via::Source::Rel(r)) if r == "listblock");
+            assert!(r.via[..2].iter().all(|v| rel(v) && v.members == "listitem"));
+            assert_eq!(r.via[1].dir.as_known(), Some(marco_proto::v1::Dir::DIR_IN));
+            if let Some(m) = r.via.get(2) {
+                assert!(matches!(&m.source, Some(via::Source::Lists(l)) if l.uris.len() == 2));
+            }
+            seen.insert(r.via.len());
+        }
+        assert_eq!(seen.into_iter().collect::<Vec<_>>(), [2, 3], "a viewer with no mute lists sends two");
+        let mut pairs: FileShape = serde_json::from_value(serde_json::json!({
+            "name": "pairs", "call": "block_pairs", "rate": 1, "actor": "subscribers", "subjects": {"pool": "listed"},
+            "batch": [[4, 1]], "via": [{"rel": "listblock", "kind": "modlist"}],
+        }))
+        .unwrap();
+        let Req::BlockPairs(r) = make(&inp, &pairs, &mut rng).unwrap() else { panic!("a BlockPairs") };
+        assert_eq!(r.pairs.len(), 4);
+        assert_eq!(r.via.as_option().map(|v| v.rel.as_str()), Some("listblock"));
+        pairs.via.push(pairs.via[0].clone());
+        assert!(make(&inp, &pairs, &mut rng).is_err(), "one via");
+        pairs.via.pop();
+        pairs.via[0].dir = "out".into();
+        assert!(make(&inp, &pairs, &mut rng).is_err(), "no dir on block_pairs");
     }
 }
