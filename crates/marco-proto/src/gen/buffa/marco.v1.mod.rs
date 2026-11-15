@@ -36,6 +36,7 @@ pub mod __buffa {
     pub fn register_types(reg: &mut ::buffa::type_registry::TypeRegistry) {
         reg.register_json_any(super::__HAS_REQUEST_JSON_ANY);
         reg.register_json_any(super::__HAS_RESPONSE_JSON_ANY);
+        reg.register_json_any(super::__VIA_JSON_ANY);
         reg.register_json_any(super::__RELATIONSHIPS_REQUEST_JSON_ANY);
         reg.register_json_any(super::__RELATIONSHIPS_RESPONSE_JSON_ANY);
         reg.register_json_any(super::__RELATIONSHIP_JSON_ANY);
@@ -132,6 +133,10 @@ pub use self::__buffa::view::HasRequestOwnedView;
 pub use self::__buffa::view::HasResponseView;
 #[doc(inline)]
 pub use self::__buffa::view::HasResponseOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::ViaView;
+#[doc(inline)]
+pub use self::__buffa::view::ViaOwnedView;
 #[doc(inline)]
 pub use self::__buffa::view::RelationshipsRequestView;
 #[doc(inline)]

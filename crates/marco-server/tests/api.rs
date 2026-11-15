@@ -1206,13 +1206,9 @@ async fn lists() {
     assert_eq!(m.edges.len(), 1);
 }
 
-/// `listblock` takes a list's URI as the subject and `modlist` a list
-/// record's own URI. The write API refuses any other subject, and reads
-/// between actors leave both out.
-#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn list_subjects() {
-    let rels = marco_core::Relations::parse_toml(
-        r#"
+/// The defaults, then a list subscription (`listblock`) and a list's
+/// purpose (`modlist`).
+const LIST_RELATIONS: &str = r#"
 [[relation]]
 name = "follow"
 collection = "app.bsky.graph.follow"
@@ -1240,9 +1236,14 @@ name = "modlist"
 collection = "app.bsky.graph.list"
 subject = "$self"
 when = { purpose = "app.bsky.graph.defs#modlist" }
-"#,
-    )
-    .unwrap();
+"#;
+
+/// `listblock` takes a list's URI as the subject and `modlist` a list
+/// record's own URI. The write API refuses any other subject, and reads
+/// between actors leave both out.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn list_subjects() {
+    let rels = marco_core::Relations::parse_toml(LIST_RELATIONS).unwrap();
     let s = start_rels(rels).await;
     let g = graph(s.api, Some(TOKEN));
     let (o, v, t) = (did(1), did(2), did(3));
@@ -1315,9 +1316,216 @@ when = { purpose = "app.bsky.graph.defs#modlist" }
     let r = g.write_batch(w(vec![del(&l)])).await.unwrap().into_owned();
     assert_eq!(outcome(&r.results[0]), format!("removed {l}"), "a list that stopped being a mod list");
     assert_eq!(has(&g, "modlist", &o, &l).await, "");
+
+    // ListRelations gives the new keys as fields, beside the TOML
+    let rl = admin(s.admin, Some(TOKEN)).list_relations(ListRelationsRequest::default()).await.unwrap().into_owned();
+    let by = |n: &str| rl.relations.iter().find(|r| r.name == n).unwrap().clone();
+    assert_eq!(by("listblock").subject_collection, "app.bsky.graph.list");
+    let ml = by("modlist");
+    assert_eq!((ml.subject.as_str(), ml.subject_collection.as_str()), ("$self", ""));
+    assert_eq!(ml.when.get("purpose").map(String::as_str), Some("app.bsky.graph.defs#modlist"));
+    assert!(by("follow").when.is_empty() && by("follow").subject_collection.is_empty());
+    assert!(rl.config.contains("subject_collection = \"app.bsky.graph.list\""), "{}", rl.config);
+}
+
+fn via(rel: &str, lists: &[&str], kind: &str, dir: Dir) -> Via {
+    Via {
+        rel: rel.into(),
+        lists: lists.iter().map(|l| l.to_string()).collect(),
+        members: "listitem".into(),
+        kind: kind.into(),
+        dir: dir.into(),
+        ..Default::default()
+    }
+}
+
+/// Via over a server: a viewer's list blocks both ways and its mute lists in
+/// one Relationships call, list blocks both ways with the direct blocks'
+/// URIs in BlockPairs, an answer per via whatever the actor or other, the
+/// refusals, and the truncation counter.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn lists_via() {
+    let s = start_rels(marco_core::Relations::parse_toml(LIST_RELATIONS).unwrap()).await;
+    let g = graph(s.api, Some(TOKEN));
+    let (o, v, t, x, w, y) = (did(1), did(2), did(3), did(4), did(5), did(6));
+    let (ml, cur, back, mute) = (list_uri(&o, 1), list_uri(&o, 2), list_uri(&t, 1), list_uri(&v, 5));
+    let mut k = 0u64;
+    let mut key = || {
+        k += 1;
+        tid(k, 0)
+    };
+    let item = |owner: &str, rkey: &str, m: &str, l: &str| add_item(&uri(owner, LISTITEM, rkey), m, l);
+    let lb = |a: &str, rkey: &str, l: &str| add(&uri(a, "app.bsky.graph.listblock", rkey), l);
+    let w_ = |ops: Vec<WriteOp>| WriteBatchRequest { ops, ..Default::default() };
+    let block_uri = uri(&v, BLOCK, &tid(500, 0));
+    let ops = vec![
+        item(&o, &key(), &t, &ml),
+        item(&o, &key(), &y, &ml),
+        add(&ml, &ml),
+        item(&o, &key(), &t, &cur),
+        item(&o, &key(), &x, &cur),
+        item(&t, &key(), &v, &back),
+        add(&back, &back),
+        item(&v, &key(), &x, &mute),
+        add(&mute, &mute),
+        lb(&v, &key(), &cur),
+        lb(&v, &key(), &ml),
+        lb(&t, &key(), &back),
+        add(&block_uri, &w),
+    ];
+    let r = g.write_batch(w_(ops)).await.unwrap().into_owned();
+    assert!(r.results.iter().all(|x| outcome(x) == "added"), "{:?}", r.results);
+
+    let vias = vec![
+        via("listblock", &[], "modlist", Dir::DIR_OUT),
+        via("listblock", &[], "modlist", Dir::DIR_IN),
+        via("", &[&mute, &list_uri(&v, 99)], "modlist", Dir::DIR_OUT),
+    ];
+    let unknown = did(9_999);
+    let rel_req = |actor: &str| RelationshipsRequest {
+        actor: actor.into(),
+        others: vec![t.clone(), x.clone(), w.clone(), y.clone(), unknown.clone()],
+        rels: vec!["follow".into(), "block".into()],
+        via: vias.clone(),
+        ..Default::default()
+    };
+    let lists = |r: &RelationshipsResponse| -> Vec<Vec<String>> {
+        r.relationships.iter().map(|x| x.via_lists.clone()).collect()
+    };
+    let rs = g.relationships(rel_req(&v)).await.unwrap().into_owned();
+    let e = String::new;
+    assert_eq!(
+        lists(&rs),
+        [
+            vec![ml.clone(), back.clone(), e()],
+            vec![e(), e(), mute.clone()],
+            vec![e(), e(), e()],
+            vec![ml.clone(), e(), e()],
+            vec![e(), e(), e()],
+        ],
+        "T both ways, X on the curation list and V's mute list, W on none, an unknown DID"
+    );
+    assert_eq!(rs.relationships[2].rels[1].out_uri, block_uri, "rels answer as before beside vias");
+    let rs = g.relationships(rel_req(&unknown)).await.unwrap().into_owned();
+    assert!(lists(&rs).iter().all(|l| *l == [e(), e(), e()]), "an unknown actor: one empty answer per via");
+
+    let bp = |kind: &str| BlockPairsRequest {
+        pairs: [(&v, &t), (&t, &v), (&v, &w), (&w, &v), (&v, &x), (&y, &v)]
+            .map(|(a, b)| BlockPair { a: a.clone(), b: b.clone(), ..Default::default() })
+            .into(),
+        via: via("listblock", &[], kind, Dir::DIR_UNSPECIFIED).into(),
+        ..Default::default()
+    };
+    let r = g.block_pairs(bp("modlist")).await.unwrap().into_owned();
+    assert_eq!(r.a_blocks_b, [false, false, true, false, false, false]);
+    assert_eq!(r.b_blocks_a, [false, false, false, true, false, false]);
+    assert_eq!(r.a_blocks_b_uri, [e(), e(), block_uri.clone(), e(), e(), e()]);
+    assert_eq!(r.b_blocks_a_uri, [e(), e(), e(), block_uri.clone(), e(), e()]);
+    assert_eq!(r.a_blocks_b_list, [ml.clone(), back.clone(), e(), e(), e(), e()]);
+    assert_eq!(r.b_blocks_a_list, [back.clone(), ml.clone(), e(), e(), e(), ml.clone()]);
+    assert_eq!(r.blocked, [true, true, true, true, false, true]);
+    let r = g.block_pairs(bp("")).await.unwrap().into_owned();
+    assert_eq!(r.a_blocks_b_list[4], cur, "with no kind a curation list counts, the lowest id first");
+
+    // a hidden member, then a hidden list owner
+    s.app.status_from("test", "1", &y, Some(marco_core::Status::Takendown), 1).await.unwrap();
+    let rs = g.relationships(rel_req(&v)).await.unwrap().into_owned();
+    assert_eq!(lists(&rs)[3], [e(), e(), e()], "a hidden other");
+    let r = g.block_pairs(bp("modlist")).await.unwrap().into_owned();
+    assert_eq!((r.b_blocks_a_list[5].as_str(), r.blocked[5]), ("", false), "a hidden pair");
+    s.app.status_from("test", "2", &o, Some(marco_core::Status::Takendown), 2).await.unwrap();
+    let rs = g.relationships(rel_req(&v)).await.unwrap().into_owned();
+    assert_eq!(lists(&rs)[0], [e(), back.clone(), e()], "ml's owner is taken down");
+    s.app.status_from("test", "3", &o, None, 3).await.unwrap();
+
+    // refusals
+    let bad_rel = |vias: Vec<Via>| RelationshipsRequest {
+        actor: v.clone(),
+        others: vec![t.clone()],
+        via: vias,
+        ..Default::default()
+    };
+    let many: Vec<String> = (0..1001).map(|i| list_uri(&o, 1000 + i)).collect();
+    let many: Vec<&str> = many.iter().map(String::as_str).collect();
+    let mut no_members = via("listblock", &[], "", Dir::DIR_OUT);
+    no_members.members.clear();
+    let mut members_not_list = via("listblock", &[], "", Dir::DIR_OUT);
+    members_not_list.members = "follow".into();
+    for (vias, why) in [
+        (vec![no_members], "members is required"),
+        (vec![members_not_list], "members must be a list relation"),
+        (vec![via("listblock", &[], "follow", Dir::DIR_OUT)], "a kind's subjects are records"),
+        (vec![via("listblock", &[], "nope", Dir::DIR_OUT)], "an unknown kind"),
+        (vec![via("follow", &[], "", Dir::DIR_OUT)], "rel needs a subject_collection"),
+        (vec![via("modlist", &[], "", Dir::DIR_OUT)], "a $self relation's subjects are its own records"),
+        (vec![via("", &[], "", Dir::DIR_OUT)], "rel or lists"),
+        (vec![via("listblock", &[&mute], "", Dir::DIR_OUT)], "rel and lists"),
+        (vec![via("", &[&mute], "", Dir::DIR_IN)], "lists are DIR_OUT only"),
+        (vec![via("", &["did:plc:notalist"], "", Dir::DIR_OUT)], "a list is a record URI"),
+        (vec![via("", &many, "", Dir::DIR_OUT)], "at most 1,000 lists"),
+        (vec![via("listblock", &[], "", Dir::DIR_UNSPECIFIED)], "a dir"),
+        (vec![via("listblock", &[], "", Dir::DIR_OUT); 11], "at most 10 vias"),
+    ] {
+        let err = g.relationships(bad_rel(vias)).await.unwrap_err();
+        assert_eq!(err.code, ErrorCode::InvalidArgument, "{why}");
+    }
+    for (v_, why) in [
+        (via("listblock", &[], "", Dir::DIR_OUT), "no dir on BlockPairs"),
+        (via("", &[&mute], "", Dir::DIR_UNSPECIFIED), "no lists on BlockPairs"),
+    ] {
+        let req = BlockPairsRequest { pairs: bp("").pairs, via: v_.into(), ..Default::default() };
+        assert_eq!(g.block_pairs(req).await.unwrap_err().code, ErrorCode::InvalidArgument, "{why}");
+    }
+
+    // V subscribes to 1,000 more lists: ml and cur fall out of its newest 1,000
+    let cut = |rpc: &str, dir: &str| marco_server::metrics::VIA_TRUNCATED.with_label_values(&[rpc, dir]).get();
+    let before = (cut("Graph/Relationships", "out"), cut("Graph/BlockPairs", "out"));
+    for chunk in (0..1000u32).collect::<Vec<_>>().chunks(500) {
+        let ops = chunk.iter().map(|&i| lb(&v, &key(), &list_uri(&did(100 + i), 0))).collect();
+        g.write_batch(w_(ops)).await.unwrap();
+    }
+    let rs = g.relationships(rel_req(&v)).await.unwrap().into_owned();
+    assert_eq!(lists(&rs)[0], [e(), back.clone(), e()], "past V's newest 1,000");
+    let r = g.block_pairs(bp("modlist")).await.unwrap().into_owned();
+    assert_eq!(r.a_blocks_b_list[0], "", "past V's newest 100");
+    assert_eq!(
+        (cut("Graph/Relationships", "out"), cut("Graph/BlockPairs", "out")),
+        (before.0 + 1, before.1 + 1),
+        "one cut read each: V's, once a call"
+    );
 }
 
 async fn has(g: &GraphClient<HttpClient>, rel: &str, from: &str, to: &str) -> String {
     let req = HasRequest { rel: rel.into(), from: from.into(), to: to.into(), ..Default::default() };
     g.has(req).await.unwrap().into_owned().uri
+}
+
+/// The requests without `via` that the old-request check replays: actor 0
+/// blocks 209 and 40 blocks 136 in the synthetic graph, and N + 5 is unknown.
+fn no_via_requests() -> [(&'static str, String); 2] {
+    let d = |i: u32| did(i);
+    let rel =
+        format!(r#"{{"actor":"{}","others":["{}","{}","{}","{}","{}"]}}"#, d(0), d(209), d(1), d(2), d(40), d(N + 5));
+    let pairs = [(0, 209), (209, 0), (40, 136), (1, 2), (0, N + 5)]
+        .map(|(a, b)| format!(r#"{{"a":"{}","b":"{}"}}"#, d(a), d(b)))
+        .join(",");
+    let bp = format!(r#"{{"pairs":[{pairs}],"rels":["block","follow"]}}"#);
+    [("/marco.v1.Graph/Relationships", rel), ("/marco.v1.Graph/BlockPairs", bp)]
+}
+
+/// What the server answered to [`no_via_requests`] before `via` existed.
+const NO_VIA_ANSWERS: [&str; 2] = [
+    r#"{"relationships":[{"other":"did:plc:wb2gmg6vtrmzejgwv6slrcgq","rels":[{"rel":"follow","outUri":"at://did:plc:zx6tjetzlumfsyq73xcr2c66/app.bsky.graph.follow/3khw6drtaw2ak"},{"rel":"block","outUri":"at://did:plc:zx6tjetzlumfsyq73xcr2c66/app.bsky.graph.block/3khwqpdjcm223"}]},{"other":"did:plc:nqtvloue7lpggxn7fyskac52","rels":[{"rel":"follow","outUri":"at://did:plc:zx6tjetzlumfsyq73xcr2c66/app.bsky.graph.follow/3khwqpcks2225"},{"rel":"block"}]},{"other":"did:plc:5yapebenk3hiavcizqvwyldo","rels":[{"rel":"follow","outUri":"at://did:plc:zx6tjetzlumfsyq73xcr2c66/app.bsky.graph.follow/3khuwrsp2i223"},{"rel":"block"}]},{"other":"did:plc:ixuvzzxog622i7lqul3fnt5j","rels":[{"rel":"follow","outUri":"at://did:plc:zx6tjetzlumfsyq73xcr2c66/app.bsky.graph.follow/3khv5nm26w23b"},{"rel":"block"}]},{"other":"did:plc:bfdoamt3s3ozbmjgsp2dp7tj","rels":[{"rel":"follow"},{"rel":"block"}]}]}"#,
+    r#"{"aBlocksB":[true,false,true,false,false],"bBlocksA":[false,true,false,true,false],"blocked":[true,true,true,true,false]}"#,
+];
+
+/// A request without `via` gets the answer it got before `via` existed,
+/// byte for byte: no `viaLists`, and no block URIs or lists.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn requests_without_via_answer_as_before() {
+    let s = start(false, false).await;
+    for ((path, body), want) in no_via_requests().into_iter().zip(NO_VIA_ANSWERS) {
+        let (st, out) = http(s.api, "POST", path, &body, &[("content-type", "application/json")]);
+        assert_eq!((st, out.as_str()), (200, want), "{path}");
+    }
 }

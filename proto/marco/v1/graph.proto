@@ -22,12 +22,15 @@ service Graph {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
   // Per other and relation: the actor's record naming the other, and the
-  // other's naming the actor (getRelationships). At most 100 others.
+  // other's naming the actor (getRelationships). At most 100 others. With
+  // via, also per other a list on either side that holds the other side.
   rpc Relationships(RelationshipsRequest) returns (RelationshipsResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
   // Per (a, b) pair: whether a blocks b and whether b blocks a
   // (getBlockExistence over a response's author pairs). At most 1000 pairs.
+  // With via, also the block records' URIs and a list either side
+  // subscribes to that holds the other.
   rpc BlockPairs(BlockPairsRequest) returns (BlockPairsResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
@@ -77,10 +80,35 @@ message HasResponse {
   string uri = 1;
 }
 
+// Two hops in one direction: the lists a subscriber is connected to, and
+// whether one of them holds a member. For DIR_OUT the subscriber is the
+// request's actor and the member each other; DIR_IN is the reverse. The
+// answer is the lowest-id such list's URI, or empty. A list whose owner is
+// taken down or deleted never answers.
+message Via {
+  // The subscriber's lists are the subjects of its records in this relation
+  // (listblock), which needs a subject_collection: the newest 1,000 of the
+  // request's actor's, the newest 100 of any other actor's.
+  string rel = 1;
+  // Or the caller's own lists, in place of rel: at most 1,000 AT URIs, the
+  // request actor's (DIR_OUT only).
+  repeated string lists = 2;
+  // Required: the list relation whose members count (listitem).
+  string members = 3;
+  // Optional: only lists that a live record in this relation names
+  // (modlist, the list's own record while it's a mod list). A relation whose
+  // subjects are records. Empty: any list.
+  string kind = 4;
+  // Required on Relationships; unset on BlockPairs, which checks both ways.
+  Dir dir = 5;
+}
+
 message RelationshipsRequest {
   string actor = 1;
   repeated string others = 2;
   repeated string rels = 3;
+  // At most 10. Each other gets one answer per via, in order.
+  repeated Via via = 4;
 }
 
 message RelationshipsResponse {
@@ -91,6 +119,8 @@ message RelationshipsResponse {
 message Relationship {
   string other = 1;
   repeated RelationshipEdge rels = 2;
+  // One per request via, in order: a list's AT URI, or empty.
+  repeated string via_lists = 3;
 }
 
 message RelationshipEdge {
@@ -113,6 +143,9 @@ message BlockPairsRequest {
   // The relations that count as a block: a record of any of them naming the
   // other side. Empty is "block".
   repeated string rels = 2;
+  // Also blocks by list, both ways: a list a subscribes to that holds b, and
+  // the reverse. rel only, no lists or dir; each side's newest 100.
+  Via via = 3;
 }
 
 message BlockPairsResponse {
@@ -120,8 +153,15 @@ message BlockPairsResponse {
   repeated bool a_blocks_b = 1;
   // b's record names a.
   repeated bool b_blocks_a = 2;
-  // Either way: the two can't interact.
+  // Either way: the two can't interact. With via, a list counts too.
   repeated bool blocked = 3;
+  // Only with via, one each per pair: a's record naming b and b's naming a,
+  // as URIs, or empty.
+  repeated string a_blocks_b_uri = 4;
+  repeated string b_blocks_a_uri = 5;
+  // Only with via: a list a subscribes to that holds b, and the reverse.
+  repeated string a_blocks_b_list = 6;
+  repeated string b_blocks_a_list = 7;
 }
 
 message ListOutRequest {

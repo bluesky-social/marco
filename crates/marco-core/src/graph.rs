@@ -52,9 +52,11 @@ use crate::store::{Manifest, ShardFile, Store, DEFAULT_SHARDS};
 use crate::varint::u32_at;
 
 mod checkpoint;
+mod via;
 pub use checkpoint::{
     BaseSwap, CheckpointReport, CompactPolicy, Compacted, Garbage, Headroom, COMPACTION_STOPPED, SPACE_FILL,
 };
+pub use via::{ViaLists, ViaQuery, ViaTruncated, VIA_ACTOR_CAP, VIA_MASKED_PER_RECORD, VIA_MAX_LISTS, VIA_OTHER_CAP};
 
 /// Out logs at least this long get a by-subject index in a snapshot.
 pub const DEFAULT_SUBJ_INDEX: usize = 4096;
@@ -909,23 +911,43 @@ impl Graph {
         limit: usize,
         before: Option<u64>,
     ) -> R<Vec<(u64, u32)>> {
+        Ok(self.out_page_masked(cx, rel, actor, limit, before, usize::MAX)?.0)
+    }
+
+    /// `out_page`, passing at most `masked` base records that writes since
+    /// the checkpoint deleted or replaced: past that it stops with what it
+    /// has, and says so. A mass delete costs its size until the next
+    /// checkpoint folds it; this is the read that can't afford that.
+    pub fn out_page_masked(
+        &self,
+        cx: &ReadCx<'_>,
+        rel: RelId,
+        actor: u32,
+        limit: usize,
+        before: Option<u64>,
+        masked: usize,
+    ) -> R<(Vec<(u64, u32)>, bool)> {
         let d = self.state[rel as usize].out.get(&actor);
         let hi = before.map_or(Bound::Unbounded, Bound::Excluded);
         let adds: Vec<(u64, u32)> = d
             .map(|d| d.adds.range((Bound::Unbounded, hi)).rev().take(limit).map(|(&k, &s)| (k, s)).collect())
             .unwrap_or_default();
         let mut base = Vec::with_capacity(limit.min(1024));
+        let (mut passed, mut stopped) = (0usize, false);
         if let Some(l) = self.base_out(cx, rel, actor)? {
             // base records the delta masks don't count toward the page
-            let want = limit.saturating_add(d.map_or(0, |d| d.dels.len() + d.adds.len()));
+            let want = limit.saturating_add(d.map_or(0, |d| (d.dels.len() + d.adds.len()).min(masked)));
             l.for_each_desc(cx, before, want, |k, s| {
-                if !d.is_some_and(|d| d.dels.contains_key(&k) || d.adds.contains_key(&k)) {
-                    base.push((k, s));
+                if d.is_some_and(|d| d.dels.contains_key(&k) || d.adds.contains_key(&k)) {
+                    passed += 1;
+                    stopped = passed > masked;
+                    return !stopped;
                 }
+                base.push((k, s));
                 base.len() < limit
             })?;
         }
-        Ok(merge_by(base, adds, limit, |a, b| a.0 > b.0))
+        Ok((merge_by(base, adds, limit, |a, b| a.0 > b.0), stopped))
     }
 
     /// Every live record of `actor`, by rkey.
@@ -1555,6 +1577,17 @@ impl Graph {
             |from: u32, to: u32| rels.iter().any(|&r| item(&mut pend, self.in_contains(cx, r, to, from)) == Some(true));
         let r = (named(a, b), named(b, a));
         pend.map(|()| r)
+    }
+
+    /// The URI of `from`'s newest record naming `to`, in the first of
+    /// `rels` that has one: a block pair's hit as a record.
+    pub fn block_uri(&self, cx: &ReadCx<'_>, rels: &[RelId], from: u32, to: u32) -> R<Option<String>> {
+        for &r in rels {
+            if let Some(k) = self.has_id(cx, r, from, to)? {
+                return Ok(self.uri(r, from, k));
+            }
+        }
+        Ok(None)
     }
 
     /// `actors` without those any of `drop` hits: (rel, Out) drops the

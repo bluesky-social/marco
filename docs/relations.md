@@ -61,7 +61,10 @@ That's the default, the one `marco-load build` uses without `--relations`.
 | `when` | optional | Dotted paths and the string each has to hold. A record is an edge only while every one of them does. |
 
 A relation with `list` gets a companion named `<name>.owner`, added for you and never configured.
-There can be 255 relations in all, companions included.
+There can be 255 relations in all, companions included. A key the table doesn't list is an error,
+so a typo like `subject_colection` fails the config instead of making a relation that refuses every
+record. marco reads a snapshot's own relations without that check, so an older marco still opens a
+snapshot written with newer keys.
 
 ## Where it lives
 
@@ -75,7 +78,8 @@ There can be 255 relations in all, companions included.
 ```
 
 The snapshot carries its relations, so `marco serve` has no relations flag. The console's
-Relations page and `Admin.ListRelations` show them as TOML.
+Relations page and `Admin.ListRelations` show them as TOML, and `Admin.ListRelations` gives each
+relation's keys as fields too (`subjectCollection` and `when` among them).
 
 ## Adding a relation
 
@@ -181,6 +185,12 @@ Named in `rels`, `Relationships` takes list URIs as `others`, so
 `{"actor":"<did>","others":["<list URI>"],"rels":["listblock"]}` gives the actor's subscription
 to each list. In the build input, the `subject` column holds the record's URI
 ([the input format](quickstart.md#the-input-format)).
+
+The two hops meet at read time on the list's id. `listblock`'s out log of a subscriber holds list
+ids, and `listitem`'s in set of a member holds the ids of the lists it's on. So `via` on
+`Relationships` and `BlockPairs` probes one with the other and answers "a mod list this actor
+subscribes to holds that one" with the list's URI ([Via](query-api.md#via)). Storing that as
+edges would cost a write per subscriber for every member a list gains.
 
 ## The owner rule
 

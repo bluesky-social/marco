@@ -565,7 +565,8 @@ pub trait Graph: Send + Sync + 'static {
         >,
     > + Send;
     /// Per other and relation: the actor's record naming the other, and the
-    /// other's naming the actor (getRelationships). At most 100 others.
+    /// other's naming the actor (getRelationships). At most 100 others. With
+    /// via, also per other a list on either side that holds the other side.
     ///
     /// `'a` lets the response body borrow from `&self` (e.g. server-resident state).
     ///
@@ -590,6 +591,8 @@ pub trait Graph: Send + Sync + 'static {
     > + Send;
     /// Per (a, b) pair: whether a blocks b and whether b blocks a
     /// (getBlockExistence over a response's author pairs). At most 1000 pairs.
+    /// With via, also the block records' URIs and a list either side
+    /// subscribes to that holds the other.
     ///
     /// `'a` lets the response body borrow from `&self` (e.g. server-resident state).
     ///

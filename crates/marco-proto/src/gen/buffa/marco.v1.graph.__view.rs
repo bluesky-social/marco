@@ -539,6 +539,387 @@ impl ::serde::Serialize for HasResponseOwnedView {
         ::serde::Serialize::serialize(&self.0, __s)
     }
 }
+/// Two hops in one direction: the lists a subscriber is connected to, and
+/// whether one of them holds a member. For DIR_OUT the subscriber is the
+/// request's actor and the member each other; DIR_IN is the reverse. The
+/// answer is the lowest-id such list's URI, or empty. A list whose owner is
+/// taken down or deleted never answers.
+#[derive(Clone, Debug, Default)]
+pub struct ViaView<'a> {
+    /// The subscriber's lists are the subjects of its records in this relation
+    /// (listblock), which needs a subject_collection: the newest 1,000 of the
+    /// request's actor's, the newest 100 of any other actor's.
+    ///
+    /// Field 1: `rel`
+    pub rel: &'a str,
+    /// Or the caller's own lists, in place of rel: at most 1,000 AT URIs, the
+    /// request actor's (DIR_OUT only).
+    ///
+    /// Field 2: `lists`
+    pub lists: ::buffa::RepeatedView<'a, &'a str>,
+    /// Required: the list relation whose members count (listitem).
+    ///
+    /// Field 3: `members`
+    pub members: &'a str,
+    /// Optional: only lists that a live record in this relation names
+    /// (modlist, the list's own record while it's a mod list). A relation whose
+    /// subjects are records. Empty: any list.
+    ///
+    /// Field 4: `kind`
+    pub kind: &'a str,
+    /// Required on Relationships; unset on BlockPairs, which checks both ways.
+    ///
+    /// Field 5: `dir`
+    pub dir: ::buffa::EnumValue<super::super::Dir>,
+    pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
+}
+impl<'a> ::buffa::MessageView<'a> for ViaView<'a> {
+    type Owned = super::super::Via;
+    fn decode_view(buf: &'a [u8]) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        let __limit = ::core::cell::Cell::new(::buffa::DEFAULT_UNKNOWN_FIELD_LIMIT);
+        let __elem = ::core::cell::Cell::new(::buffa::DEFAULT_ELEMENT_MEMORY_LIMIT);
+        <Self as ::buffa::MessageView>::decode_view_ctx(
+            buf,
+            ::buffa::DecodeContext::new(::buffa::RECURSION_LIMIT, &__limit)
+                .with_element_memory(&__elem),
+        )
+    }
+    fn decode_view_with_ctx(
+        buf: &'a [u8],
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        <Self as ::buffa::MessageView>::decode_view_ctx(buf, ctx)
+    }
+    #[inline]
+    fn merge_view_field(
+        &mut self,
+        tag: ::buffa::encoding::Tag,
+        cur: &'a [u8],
+        before_tag: &'a [u8],
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<&'a [u8], ::buffa::DecodeError> {
+        let _ = ctx;
+        #[allow(unused_variables)]
+        let view = self;
+        let mut cur = cur;
+        match tag.field_number() {
+            1u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.rel = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.members = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.kind = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            5u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.dir = ::buffa::EnumValue::from(
+                    ::buffa::types::decode_int32(&mut cur)?,
+                );
+            }
+            2u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __elem = ::buffa::types::borrow_str(&mut cur)?;
+                ctx.register_element_memory(
+                    ::buffa::__private::element_footprint(&__elem),
+                )?;
+                view.lists.push(__elem);
+            }
+            _ => {
+                ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
+                let span_len = before_tag.len() - cur.len();
+                view.__buffa_unknown_fields.push_record(before_tag, span_len, ctx)?;
+            }
+        }
+        ::core::result::Result::Ok(cur)
+    }
+    fn to_owned_message(
+        &self,
+    ) -> ::core::result::Result<super::super::Via, ::buffa::DecodeError> {
+        self.to_owned_from_source(None)
+    }
+    #[allow(clippy::useless_conversion, clippy::needless_update)]
+    fn to_owned_from_source(
+        &self,
+        __buffa_src: ::core::option::Option<&::buffa::bytes::Bytes>,
+    ) -> ::core::result::Result<super::super::Via, ::buffa::DecodeError> {
+        #[allow(unused_imports)]
+        use ::buffa::alloc::string::ToString as _;
+        let _ = __buffa_src;
+        ::core::result::Result::Ok(super::super::Via {
+            rel: self.rel.to_string(),
+            lists: self.lists.iter().map(|s| s.to_string()).collect(),
+            members: self.members.to_string(),
+            kind: self.kind.to_string(),
+            dir: self.dir,
+            __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
+            ..::core::default::Default::default()
+        })
+    }
+}
+impl<'a> ::buffa::ViewEncode<'a> for ViaView<'a> {
+    #[allow(clippy::needless_borrow, clippy::let_and_return)]
+    fn compute_size(&self, _cache: &mut ::buffa::SizeCache) -> u32 {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        let mut size = 0u64;
+        if !self.rel.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.rel) as u64;
+        }
+        for v in &self.lists {
+            size += 1u64 + ::buffa::types::string_encoded_len(v) as u64;
+        }
+        if !self.members.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.members) as u64;
+        }
+        if !self.kind.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.kind) as u64;
+        }
+        {
+            let val = self.dir.to_i32();
+            if val != 0 {
+                size += 1u64 + ::buffa::types::int32_encoded_len(val) as u64;
+            }
+        }
+        size += self.__buffa_unknown_fields.encoded_len() as u64;
+        ::buffa::saturate_size(size)
+    }
+    #[allow(clippy::needless_borrow)]
+    fn write_to(
+        &self,
+        _cache: &mut ::buffa::SizeCache,
+        buf: &mut impl ::buffa::EncodeSink,
+    ) {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        if !self.rel.is_empty() {
+            ::buffa::types::put_string_field(1u32, &self.rel, buf);
+        }
+        for v in &self.lists {
+            ::buffa::types::put_string_field(2u32, v, buf);
+        }
+        if !self.members.is_empty() {
+            ::buffa::types::put_string_field(3u32, &self.members, buf);
+        }
+        if !self.kind.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.kind, buf);
+        }
+        {
+            let val = self.dir.to_i32();
+            if val != 0 {
+                ::buffa::types::put_int32_field(5u32, val, buf);
+            }
+        }
+        self.__buffa_unknown_fields.write_to(buf);
+    }
+}
+/// Serializes this view as protobuf JSON.
+///
+/// Implicit-presence fields with default values are omitted, `required`
+/// fields are always emitted, explicit-presence (`optional`) fields are
+/// emitted only when set, bytes fields are base64-encoded, and enum
+/// values are their proto name strings.
+///
+/// This impl uses `serialize_map(None)` because the number of emitted
+/// fields depends on default-omission rules; serializers that require
+/// known map lengths (e.g. `bincode`) will return a runtime error.
+/// Use the owned message type for those formats.
+impl<'__a> ::serde::Serialize for ViaView<'__a> {
+    fn serialize<__S: ::serde::Serializer>(
+        &self,
+        __s: __S,
+    ) -> ::core::result::Result<__S::Ok, __S::Error> {
+        use ::serde::ser::SerializeMap as _;
+        let mut __map = __s.serialize_map(::core::option::Option::None)?;
+        if !::buffa::json_helpers::skip_if::is_empty_str(self.rel) {
+            __map.serialize_entry("rel", self.rel)?;
+        }
+        if !self.lists.is_empty() {
+            __map.serialize_entry("lists", &*self.lists)?;
+        }
+        if !::buffa::json_helpers::skip_if::is_empty_str(self.members) {
+            __map.serialize_entry("members", self.members)?;
+        }
+        if !::buffa::json_helpers::skip_if::is_empty_str(self.kind) {
+            __map.serialize_entry("kind", self.kind)?;
+        }
+        if !::buffa::json_helpers::skip_if::is_default_enum_value(&self.dir) {
+            __map.serialize_entry("dir", &self.dir)?;
+        }
+        __map.end()
+    }
+}
+impl<'a> ::buffa::MessageName for ViaView<'a> {
+    const PACKAGE: &'static str = "marco.v1";
+    const NAME: &'static str = "Via";
+    const FULL_NAME: &'static str = "marco.v1.Via";
+    const TYPE_URL: &'static str = "type.googleapis.com/marco.v1.Via";
+}
+::buffa::impl_default_view_instance!(ViaView);
+::buffa::impl_view_reborrow!(ViaView);
+/** Self-contained, `'static` owned view of a `Via` message.
+
+ Wraps [`::buffa::OwnedView`]`<`[`ViaView`]`<'static>>`: the decoded view and the [`::buffa::bytes::Bytes`] buffer it borrows from travel together, so the handle is `'static` and `Send + Sync` — suitable for async handlers, spawned tasks, and anywhere a `'static` bound is required.
+
+ Field accessors return borrows tied to `&self`. Use [`Self::view`] to get the full [`ViaView`] when you need struct patterns, iteration helpers, or to pass the view to lifetime-parameterised code.*/
+#[derive(Clone, Debug)]
+pub struct ViaOwnedView(::buffa::OwnedView<ViaView<'static>>);
+impl ViaOwnedView {
+    /// Decode an owned view from a [`::buffa::bytes::Bytes`] buffer.
+    ///
+    /// The view borrows directly from the buffer's data; the buffer is
+    /// retained inside the returned handle.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError`] if the buffer contains invalid
+    /// protobuf data.
+    pub fn decode(
+        bytes: ::buffa::bytes::Bytes,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(ViaOwnedView(::buffa::OwnedView::decode(bytes)?))
+    }
+    /// Decode with custom [`::buffa::DecodeOptions`] (recursion limit,
+    /// max message size).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError`] if the buffer is invalid or
+    /// exceeds the configured limits.
+    pub fn decode_with_options(
+        bytes: ::buffa::bytes::Bytes,
+        opts: &::buffa::DecodeOptions,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(
+            ViaOwnedView(::buffa::OwnedView::decode_with_options(bytes, opts)?),
+        )
+    }
+    /// Build from an owned message via an encode → decode round-trip.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError::MessageTooLarge`] if the
+    /// message's encoded size exceeds the 2 GiB protobuf limit, or
+    /// another [`::buffa::DecodeError`] if the re-encoded bytes are
+    /// somehow invalid (should not happen for well-formed messages).
+    pub fn from_owned(
+        msg: &super::super::Via,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(ViaOwnedView(::buffa::OwnedView::from_owned(msg)?))
+    }
+    /// Borrow the full [`ViaView`] with its lifetime tied to `&self`.
+    #[must_use]
+    pub fn view(&self) -> &ViaView<'_> {
+        self.0.reborrow()
+    }
+    /// Convert to the owned message type.
+    ///
+    /// Infallible: this type's constructors wire-decode their
+    /// buffer, and a view produced by wire decoding always
+    /// converts. Delegates to [`::buffa::OwnedView::to_owned_message`],
+    /// whose contract also governs handles converted from a raw
+    /// [`::buffa::OwnedView`].
+    #[must_use]
+    pub fn to_owned_message(&self) -> super::super::Via {
+        self.0.to_owned_message()
+    }
+    /// The underlying bytes buffer.
+    #[must_use]
+    pub fn bytes(&self) -> &::buffa::bytes::Bytes {
+        self.0.bytes()
+    }
+    /// Consume the handle, returning the underlying bytes buffer.
+    #[must_use]
+    pub fn into_bytes(self) -> ::buffa::bytes::Bytes {
+        self.0.into_bytes()
+    }
+    /// The subscriber's lists are the subjects of its records in this relation
+    /// (listblock), which needs a subject_collection: the newest 1,000 of the
+    /// request's actor's, the newest 100 of any other actor's.
+    ///
+    /// Field 1: `rel`
+    #[must_use]
+    pub fn rel(&self) -> &'_ str {
+        self.0.reborrow().rel
+    }
+    /// Or the caller's own lists, in place of rel: at most 1,000 AT URIs, the
+    /// request actor's (DIR_OUT only).
+    ///
+    /// Field 2: `lists`
+    #[must_use]
+    pub fn lists(&self) -> &::buffa::RepeatedView<'_, &'_ str> {
+        &self.0.reborrow().lists
+    }
+    /// Required: the list relation whose members count (listitem).
+    ///
+    /// Field 3: `members`
+    #[must_use]
+    pub fn members(&self) -> &'_ str {
+        self.0.reborrow().members
+    }
+    /// Optional: only lists that a live record in this relation names
+    /// (modlist, the list's own record while it's a mod list). A relation whose
+    /// subjects are records. Empty: any list.
+    ///
+    /// Field 4: `kind`
+    #[must_use]
+    pub fn kind(&self) -> &'_ str {
+        self.0.reborrow().kind
+    }
+    /// Required on Relationships; unset on BlockPairs, which checks both ways.
+    ///
+    /// Field 5: `dir`
+    #[must_use]
+    pub fn dir(&self) -> ::buffa::EnumValue<super::super::Dir> {
+        self.0.reborrow().dir
+    }
+}
+impl ::core::convert::From<::buffa::OwnedView<ViaView<'static>>> for ViaOwnedView {
+    fn from(inner: ::buffa::OwnedView<ViaView<'static>>) -> Self {
+        ViaOwnedView(inner)
+    }
+}
+impl ::core::convert::From<ViaOwnedView> for ::buffa::OwnedView<ViaView<'static>> {
+    fn from(wrapper: ViaOwnedView) -> Self {
+        wrapper.0
+    }
+}
+impl ::core::convert::AsRef<::buffa::OwnedView<ViaView<'static>>> for ViaOwnedView {
+    fn as_ref(&self) -> &::buffa::OwnedView<ViaView<'static>> {
+        &self.0
+    }
+}
+impl ::buffa::HasMessageView for super::super::Via {
+    type View<'a> = ViaView<'a>;
+    type ViewHandle = ViaOwnedView;
+}
+impl ::serde::Serialize for ViaOwnedView {
+    fn serialize<__S: ::serde::Serializer>(
+        &self,
+        __s: __S,
+    ) -> ::core::result::Result<__S::Ok, __S::Error> {
+        ::serde::Serialize::serialize(&self.0, __s)
+    }
+}
 #[derive(Clone, Debug, Default)]
 pub struct RelationshipsRequestView<'a> {
     /// Field 1: `actor`
@@ -547,6 +928,10 @@ pub struct RelationshipsRequestView<'a> {
     pub others: ::buffa::RepeatedView<'a, &'a str>,
     /// Field 3: `rels`
     pub rels: ::buffa::RepeatedView<'a, &'a str>,
+    /// At most 10. Each other gets one answer per via, in order.
+    ///
+    /// Field 4: `via`
+    pub via: ::buffa::RepeatedView<'a, super::super::__buffa::view::ViaView<'a>>,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for RelationshipsRequestView<'a> {
@@ -608,6 +993,24 @@ impl<'a> ::buffa::MessageView<'a> for RelationshipsRequestView<'a> {
                 )?;
                 view.rels.push(__elem);
             }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __sub_ctx = ctx.descend()?;
+                let sub = ::buffa::types::borrow_bytes(&mut cur)?;
+                ctx.register_element_memory(
+                    ::core::mem::size_of::<super::super::__buffa::view::ViaView>(),
+                )?;
+                view.via
+                    .push(
+                        <super::super::__buffa::view::ViaView as ::buffa::MessageView>::decode_view_ctx(
+                            sub,
+                            __sub_ctx,
+                        )?,
+                    );
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 let span_len = before_tag.len() - cur.len();
@@ -639,6 +1042,11 @@ impl<'a> ::buffa::MessageView<'a> for RelationshipsRequestView<'a> {
             actor: self.actor.to_string(),
             others: self.others.iter().map(|s| s.to_string()).collect(),
             rels: self.rels.iter().map(|s| s.to_string()).collect(),
+            via: self
+                .via
+                .iter()
+                .map(|v| v.to_owned_from_source(__buffa_src))
+                .collect::<::core::result::Result<_, ::buffa::DecodeError>>()?,
             __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
             ..::core::default::Default::default()
         })
@@ -646,7 +1054,7 @@ impl<'a> ::buffa::MessageView<'a> for RelationshipsRequestView<'a> {
 }
 impl<'a> ::buffa::ViewEncode<'a> for RelationshipsRequestView<'a> {
     #[allow(clippy::needless_borrow, clippy::let_and_return)]
-    fn compute_size(&self, _cache: &mut ::buffa::SizeCache) -> u32 {
+    fn compute_size(&self, __cache: &mut ::buffa::SizeCache) -> u32 {
         #[allow(unused_imports)]
         use ::buffa::Enumeration as _;
         let mut size = 0u64;
@@ -659,13 +1067,21 @@ impl<'a> ::buffa::ViewEncode<'a> for RelationshipsRequestView<'a> {
         for v in &self.rels {
             size += 1u64 + ::buffa::types::string_encoded_len(v) as u64;
         }
+        for v in &self.via {
+            let __slot = __cache.reserve();
+            let inner_size = v.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
+                    + inner_size as u64;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u64;
         ::buffa::saturate_size(size)
     }
     #[allow(clippy::needless_borrow)]
     fn write_to(
         &self,
-        _cache: &mut ::buffa::SizeCache,
+        __cache: &mut ::buffa::SizeCache,
         buf: &mut impl ::buffa::EncodeSink,
     ) {
         #[allow(unused_imports)]
@@ -678,6 +1094,14 @@ impl<'a> ::buffa::ViewEncode<'a> for RelationshipsRequestView<'a> {
         }
         for v in &self.rels {
             ::buffa::types::put_string_field(3u32, v, buf);
+        }
+        for v in &self.via {
+            ::buffa::types::put_len_delimited_header(
+                4u32,
+                u64::from(__cache.consume_next()),
+                buf,
+            );
+            v.write_to(__cache, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -708,6 +1132,9 @@ impl<'__a> ::serde::Serialize for RelationshipsRequestView<'__a> {
         }
         if !self.rels.is_empty() {
             __map.serialize_entry("rels", &*self.rels)?;
+        }
+        if !self.via.is_empty() {
+            __map.serialize_entry("via", &*self.via)?;
         }
         __map.end()
     }
@@ -818,6 +1245,15 @@ impl RelationshipsRequestOwnedView {
     #[must_use]
     pub fn rels(&self) -> &::buffa::RepeatedView<'_, &'_ str> {
         &self.0.reborrow().rels
+    }
+    /// At most 10. Each other gets one answer per via, in order.
+    ///
+    /// Field 4: `via`
+    #[must_use]
+    pub fn via(
+        &self,
+    ) -> &::buffa::RepeatedView<'_, super::super::__buffa::view::ViaView<'_>> {
+        &self.0.reborrow().via
     }
 }
 impl ::core::convert::From<::buffa::OwnedView<RelationshipsRequestView<'static>>>
@@ -1150,6 +1586,10 @@ pub struct RelationshipView<'a> {
         'a,
         super::super::__buffa::view::RelationshipEdgeView<'a>,
     >,
+    /// One per request via, in order: a list's AT URI, or empty.
+    ///
+    /// Field 3: `via_lists`
+    pub via_lists: ::buffa::RepeatedView<'a, &'a str>,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for RelationshipView<'a> {
@@ -1209,6 +1649,17 @@ impl<'a> ::buffa::MessageView<'a> for RelationshipView<'a> {
                         )?,
                     );
             }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __elem = ::buffa::types::borrow_str(&mut cur)?;
+                ctx.register_element_memory(
+                    ::buffa::__private::element_footprint(&__elem),
+                )?;
+                view.via_lists.push(__elem);
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 let span_len = before_tag.len() - cur.len();
@@ -1237,6 +1688,7 @@ impl<'a> ::buffa::MessageView<'a> for RelationshipView<'a> {
                 .iter()
                 .map(|v| v.to_owned_from_source(__buffa_src))
                 .collect::<::core::result::Result<_, ::buffa::DecodeError>>()?,
+            via_lists: self.via_lists.iter().map(|s| s.to_string()).collect(),
             __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
             ..::core::default::Default::default()
         })
@@ -1259,6 +1711,9 @@ impl<'a> ::buffa::ViewEncode<'a> for RelationshipView<'a> {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        for v in &self.via_lists {
+            size += 1u64 + ::buffa::types::string_encoded_len(v) as u64;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u64;
         ::buffa::saturate_size(size)
     }
@@ -1280,6 +1735,9 @@ impl<'a> ::buffa::ViewEncode<'a> for RelationshipView<'a> {
                 buf,
             );
             v.write_to(__cache, buf);
+        }
+        for v in &self.via_lists {
+            ::buffa::types::put_string_field(3u32, v, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -1307,6 +1765,9 @@ impl<'__a> ::serde::Serialize for RelationshipView<'__a> {
         }
         if !self.rels.is_empty() {
             __map.serialize_entry("rels", &*self.rels)?;
+        }
+        if !self.via_lists.is_empty() {
+            __map.serialize_entry("viaLists", &*self.via_lists)?;
         }
         __map.end()
     }
@@ -1413,6 +1874,13 @@ impl RelationshipOwnedView {
         super::super::__buffa::view::RelationshipEdgeView<'_>,
     > {
         &self.0.reborrow().rels
+    }
+    /// One per request via, in order: a list's AT URI, or empty.
+    ///
+    /// Field 3: `via_lists`
+    #[must_use]
+    pub fn via_lists(&self) -> &::buffa::RepeatedView<'_, &'_ str> {
+        &self.0.reborrow().via_lists
     }
 }
 impl ::core::convert::From<::buffa::OwnedView<RelationshipView<'static>>>
@@ -2029,6 +2497,11 @@ pub struct BlockPairsRequestView<'a> {
     ///
     /// Field 2: `rels`
     pub rels: ::buffa::RepeatedView<'a, &'a str>,
+    /// Also blocks by list, both ways: a list a subscribes to that holds b, and
+    /// the reverse. rel only, no lists or dir; each side's newest 100.
+    ///
+    /// Field 3: `via`
+    pub via: ::buffa::MessageFieldView<super::super::__buffa::view::ViaView<'a>>,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for BlockPairsRequestView<'a> {
@@ -2061,6 +2534,27 @@ impl<'a> ::buffa::MessageView<'a> for BlockPairsRequestView<'a> {
         let view = self;
         let mut cur = cur;
         match tag.field_number() {
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __sub_ctx = ctx.descend()?;
+                let sub = ::buffa::types::borrow_bytes(&mut cur)?;
+                match view.via.as_mut() {
+                    Some(existing) => {
+                        ::buffa::MessageView::merge_into_view(existing, sub, __sub_ctx)?
+                    }
+                    None => {
+                        view.via = ::buffa::MessageFieldView::set(
+                            <super::super::__buffa::view::ViaView as ::buffa::MessageView>::decode_view_ctx(
+                                sub,
+                                __sub_ctx,
+                            )?,
+                        );
+                    }
+                }
+            }
             1u32 => {
                 ::buffa::encoding::check_wire_type(
                     tag,
@@ -2118,6 +2612,15 @@ impl<'a> ::buffa::MessageView<'a> for BlockPairsRequestView<'a> {
                 .map(|v| v.to_owned_from_source(__buffa_src))
                 .collect::<::core::result::Result<_, ::buffa::DecodeError>>()?,
             rels: self.rels.iter().map(|s| s.to_string()).collect(),
+            via: match self.via.as_option() {
+                Some(v) => {
+                    ::buffa::MessageField::<
+                        super::super::Via,
+                        ::buffa::Inline<super::super::Via>,
+                    >::some(v.to_owned_from_source(__buffa_src)?)
+                }
+                None => ::buffa::MessageField::none(),
+            },
             __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
             ..::core::default::Default::default()
         })
@@ -2140,6 +2643,14 @@ impl<'a> ::buffa::ViewEncode<'a> for BlockPairsRequestView<'a> {
         for v in &self.rels {
             size += 1u64 + ::buffa::types::string_encoded_len(v) as u64;
         }
+        if self.via.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.via.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
+                    + inner_size as u64;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u64;
         ::buffa::saturate_size(size)
     }
@@ -2161,6 +2672,14 @@ impl<'a> ::buffa::ViewEncode<'a> for BlockPairsRequestView<'a> {
         }
         for v in &self.rels {
             ::buffa::types::put_string_field(2u32, v, buf);
+        }
+        if self.via.is_set() {
+            ::buffa::types::put_len_delimited_header(
+                3u32,
+                u64::from(__cache.consume_next()),
+                buf,
+            );
+            self.via.write_to(__cache, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -2188,6 +2707,11 @@ impl<'__a> ::serde::Serialize for BlockPairsRequestView<'__a> {
         }
         if !self.rels.is_empty() {
             __map.serialize_entry("rels", &*self.rels)?;
+        }
+        {
+            if let ::core::option::Option::Some(__v) = self.via.as_option() {
+                __map.serialize_entry("via", __v)?;
+            }
         }
         __map.end()
     }
@@ -2302,6 +2826,16 @@ impl BlockPairsRequestOwnedView {
     pub fn rels(&self) -> &::buffa::RepeatedView<'_, &'_ str> {
         &self.0.reborrow().rels
     }
+    /// Also blocks by list, both ways: a list a subscribes to that holds b, and
+    /// the reverse. rel only, no lists or dir; each side's newest 100.
+    ///
+    /// Field 3: `via`
+    #[must_use]
+    pub fn via(
+        &self,
+    ) -> &::buffa::MessageFieldView<super::super::__buffa::view::ViaView<'_>> {
+        &self.0.reborrow().via
+    }
 }
 impl ::core::convert::From<::buffa::OwnedView<BlockPairsRequestView<'static>>>
 for BlockPairsRequestOwnedView {
@@ -2343,10 +2877,23 @@ pub struct BlockPairsResponseView<'a> {
     ///
     /// Field 2: `b_blocks_a`
     pub b_blocks_a: ::buffa::RepeatedView<'a, bool>,
-    /// Either way: the two can't interact.
+    /// Either way: the two can't interact. With via, a list counts too.
     ///
     /// Field 3: `blocked`
     pub blocked: ::buffa::RepeatedView<'a, bool>,
+    /// Only with via, one each per pair: a's record naming b and b's naming a,
+    /// as URIs, or empty.
+    ///
+    /// Field 4: `a_blocks_b_uri`
+    pub a_blocks_b_uri: ::buffa::RepeatedView<'a, &'a str>,
+    /// Field 5: `b_blocks_a_uri`
+    pub b_blocks_a_uri: ::buffa::RepeatedView<'a, &'a str>,
+    /// Only with via: a list a subscribes to that holds b, and the reverse.
+    ///
+    /// Field 6: `a_blocks_b_list`
+    pub a_blocks_b_list: ::buffa::RepeatedView<'a, &'a str>,
+    /// Field 7: `b_blocks_a_list`
+    pub b_blocks_a_list: ::buffa::RepeatedView<'a, &'a str>,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for BlockPairsResponseView<'a> {
@@ -2436,6 +2983,50 @@ impl<'a> ::buffa::MessageView<'a> for BlockPairsResponseView<'a> {
                     );
                 }
             }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __elem = ::buffa::types::borrow_str(&mut cur)?;
+                ctx.register_element_memory(
+                    ::buffa::__private::element_footprint(&__elem),
+                )?;
+                view.a_blocks_b_uri.push(__elem);
+            }
+            5u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __elem = ::buffa::types::borrow_str(&mut cur)?;
+                ctx.register_element_memory(
+                    ::buffa::__private::element_footprint(&__elem),
+                )?;
+                view.b_blocks_a_uri.push(__elem);
+            }
+            6u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __elem = ::buffa::types::borrow_str(&mut cur)?;
+                ctx.register_element_memory(
+                    ::buffa::__private::element_footprint(&__elem),
+                )?;
+                view.a_blocks_b_list.push(__elem);
+            }
+            7u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __elem = ::buffa::types::borrow_str(&mut cur)?;
+                ctx.register_element_memory(
+                    ::buffa::__private::element_footprint(&__elem),
+                )?;
+                view.b_blocks_a_list.push(__elem);
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 let span_len = before_tag.len() - cur.len();
@@ -2461,6 +3052,18 @@ impl<'a> ::buffa::MessageView<'a> for BlockPairsResponseView<'a> {
             a_blocks_b: self.a_blocks_b.to_vec(),
             b_blocks_a: self.b_blocks_a.to_vec(),
             blocked: self.blocked.to_vec(),
+            a_blocks_b_uri: self.a_blocks_b_uri.iter().map(|s| s.to_string()).collect(),
+            b_blocks_a_uri: self.b_blocks_a_uri.iter().map(|s| s.to_string()).collect(),
+            a_blocks_b_list: self
+                .a_blocks_b_list
+                .iter()
+                .map(|s| s.to_string())
+                .collect(),
+            b_blocks_a_list: self
+                .b_blocks_a_list
+                .iter()
+                .map(|s| s.to_string())
+                .collect(),
             __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
             ..::core::default::Default::default()
         })
@@ -2486,6 +3089,18 @@ impl<'a> ::buffa::ViewEncode<'a> for BlockPairsResponseView<'a> {
             let payload: u64 = self.blocked.len() as u64
                 * ::buffa::types::BOOL_ENCODED_LEN as u64;
             size += 1u64 + ::buffa::encoding::varint_len(payload) as u64 + payload;
+        }
+        for v in &self.a_blocks_b_uri {
+            size += 1u64 + ::buffa::types::string_encoded_len(v) as u64;
+        }
+        for v in &self.b_blocks_a_uri {
+            size += 1u64 + ::buffa::types::string_encoded_len(v) as u64;
+        }
+        for v in &self.a_blocks_b_list {
+            size += 1u64 + ::buffa::types::string_encoded_len(v) as u64;
+        }
+        for v in &self.b_blocks_a_list {
+            size += 1u64 + ::buffa::types::string_encoded_len(v) as u64;
         }
         size += self.__buffa_unknown_fields.encoded_len() as u64;
         ::buffa::saturate_size(size)
@@ -2522,6 +3137,18 @@ impl<'a> ::buffa::ViewEncode<'a> for BlockPairsResponseView<'a> {
                 ::buffa::types::encode_bool(v, buf);
             }
         }
+        for v in &self.a_blocks_b_uri {
+            ::buffa::types::put_string_field(4u32, v, buf);
+        }
+        for v in &self.b_blocks_a_uri {
+            ::buffa::types::put_string_field(5u32, v, buf);
+        }
+        for v in &self.a_blocks_b_list {
+            ::buffa::types::put_string_field(6u32, v, buf);
+        }
+        for v in &self.b_blocks_a_list {
+            ::buffa::types::put_string_field(7u32, v, buf);
+        }
         self.__buffa_unknown_fields.write_to(buf);
     }
 }
@@ -2551,6 +3178,18 @@ impl<'__a> ::serde::Serialize for BlockPairsResponseView<'__a> {
         }
         if !self.blocked.is_empty() {
             __map.serialize_entry("blocked", &*self.blocked)?;
+        }
+        if !self.a_blocks_b_uri.is_empty() {
+            __map.serialize_entry("aBlocksBUri", &*self.a_blocks_b_uri)?;
+        }
+        if !self.b_blocks_a_uri.is_empty() {
+            __map.serialize_entry("bBlocksAUri", &*self.b_blocks_a_uri)?;
+        }
+        if !self.a_blocks_b_list.is_empty() {
+            __map.serialize_entry("aBlocksBList", &*self.a_blocks_b_list)?;
+        }
+        if !self.b_blocks_a_list.is_empty() {
+            __map.serialize_entry("bBlocksAList", &*self.b_blocks_a_list)?;
         }
         __map.end()
     }
@@ -2661,12 +3300,37 @@ impl BlockPairsResponseOwnedView {
     pub fn b_blocks_a(&self) -> &::buffa::RepeatedView<'_, bool> {
         &self.0.reborrow().b_blocks_a
     }
-    /// Either way: the two can't interact.
+    /// Either way: the two can't interact. With via, a list counts too.
     ///
     /// Field 3: `blocked`
     #[must_use]
     pub fn blocked(&self) -> &::buffa::RepeatedView<'_, bool> {
         &self.0.reborrow().blocked
+    }
+    /// Only with via, one each per pair: a's record naming b and b's naming a,
+    /// as URIs, or empty.
+    ///
+    /// Field 4: `a_blocks_b_uri`
+    #[must_use]
+    pub fn a_blocks_b_uri(&self) -> &::buffa::RepeatedView<'_, &'_ str> {
+        &self.0.reborrow().a_blocks_b_uri
+    }
+    /// Field 5: `b_blocks_a_uri`
+    #[must_use]
+    pub fn b_blocks_a_uri(&self) -> &::buffa::RepeatedView<'_, &'_ str> {
+        &self.0.reborrow().b_blocks_a_uri
+    }
+    /// Only with via: a list a subscribes to that holds b, and the reverse.
+    ///
+    /// Field 6: `a_blocks_b_list`
+    #[must_use]
+    pub fn a_blocks_b_list(&self) -> &::buffa::RepeatedView<'_, &'_ str> {
+        &self.0.reborrow().a_blocks_b_list
+    }
+    /// Field 7: `b_blocks_a_list`
+    #[must_use]
+    pub fn b_blocks_a_list(&self) -> &::buffa::RepeatedView<'_, &'_ str> {
+        &self.0.reborrow().b_blocks_a_list
     }
 }
 impl ::core::convert::From<::buffa::OwnedView<BlockPairsResponseView<'static>>>

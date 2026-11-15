@@ -147,6 +147,7 @@ A scraper that can't send the token reads the same text from `--ops-listen`, whi
 |---|---|---|
 | `marco_rpc_seconds` | `rpc`, `path` | RPC time in the server, request decoded to response encoded; `path` is `fast` (served on its worker) or `pool` (moved to the miss pool) |
 | `marco_rpc_errors_total` | `rpc`, `status` | RPCs that failed |
+| `marco_via_truncated_total` | `rpc`, `dir` | A subscriber's lists a `via` read cut at its cap ([Via](query-api.md#via)): `out` the request actor's newest 1,000 (a `BlockPairs` pair's `a`, 100), `in` each other's newest 100 (a pair's `b`) |
 | `marco_proxy_header_refused_total` | | Connections from `--proxy-protocol-from` closed for a missing or bad PROXY v2 header |
 | `marco_op_seconds` | `op`, `rel` | API op latency: `has`, `relationships`, `out_list`, `in_list`, `counts`, `intersect`, `filter`, `add`, `delete` |
 | `marco_op_results_total` | `op`, `rel` | Items API ops returned |

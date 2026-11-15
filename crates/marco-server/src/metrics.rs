@@ -84,6 +84,26 @@ pub static RPC_ERRORS: LazyLock<IntCounterVec> = LazyLock::new(|| {
     .unwrap()
 });
 
+pub static VIA_TRUNCATED: LazyLock<IntCounterVec> = LazyLock::new(|| {
+    register_int_counter_vec!(
+        "marco_via_truncated_total",
+        "Via reads of a subscriber's lists cut at their cap, by method and direction: out is the request actor's \
+         newest 1,000 records (a BlockPairs pair's a: its newest 100), in each other's newest 100 (a pair's b)",
+        &["rpc", "dir"]
+    )
+    .unwrap()
+});
+
+/// Counts a request's via reads its caps cut.
+pub fn via_truncated(rpc: &str, t: marco_core::ViaTruncated) {
+    if t.out > 0 {
+        VIA_TRUNCATED.with_label_values(&[rpc, "out"]).inc_by(t.out);
+    }
+    if t.inn > 0 {
+        VIA_TRUNCATED.with_label_values(&[rpc, "in"]).inc_by(t.inn);
+    }
+}
+
 pub static BUILD: LazyLock<IntGaugeVec> = LazyLock::new(|| {
     register_int_gauge_vec!("marco_build_info", "1, labelled with the version and commit", &["version", "commit"])
         .unwrap()
@@ -192,6 +212,12 @@ pub fn init(version: &str, commit: &str) {
     LazyLock::force(&POOL_WAIT);
     LazyLock::force(&BUSY);
     LazyLock::force(&RPC_ERRORS);
+    // every series at 0 from the start, so a rate over it never misses its first cut
+    for rpc in ["Graph/Relationships", "Graph/BlockPairs"] {
+        for dir in ["out", "in"] {
+            VIA_TRUNCATED.with_label_values(&[rpc, dir]);
+        }
+    }
     LazyLock::force(&READY);
     LazyLock::force(&crate::peer::REFUSED);
     LazyLock::force(&READS_BEFORE_READY);

@@ -2,7 +2,7 @@
 title: Query API
 section: marco
 order: 4
-summary: "marco.v1.Graph: Has, Relationships, ListOut and ListIn, Counts, Intersect and Filter. JSON or protobuf over HTTP, gRPC and gRPC-Web, all on one port."
+summary: "marco.v1.Graph: Has, Relationships (with list blocks and mutes by via), BlockPairs, ListOut and ListIn, Counts, Intersect and Filter. JSON or protobuf over HTTP, gRPC and gRPC-Web, all on one port."
 ---
 
 ```hero
@@ -92,6 +92,107 @@ and `block` by default), which leaves out list relations and relations whose sub
 ([Records as subjects](relations.md#records-as-subjects)). This is the call a profile's viewer state and a
 feed's hydration make. 50 others × 2 relations take ~30 µs in the engine and ~100 µs over HTTP/2
 ([Throughput and latency](perf.html)).
+
+## Via
+
+```diagram
+caption: "A list block is two hops that meet on the list's id. `via` reads the subscriber's lists, then probes the member's in set (the lists it's on) with them. The answer is the list's URI."
+nodes:
+  - { id: s, label: subscriber, sub: "the actor (DIR_OUT)", at: [0, 0], size: [9, 3], tone: blue }
+  - { id: l, label: list, sub: "AT URI node", at: [15, 0], size: [9, 3], tone: accent }
+  - { id: m, label: member, sub: "each other (DIR_OUT)", at: [30, 0], size: [9, 3], tone: cyan }
+  - { id: o, label: owner, sub: "mod list while it holds", at: [15, 5], size: [9, 3], tone: muted }
+edges:
+  - "s.r -> l.l: listblock"
+  - "l.r -> m.l: listitem"
+  - "o.t -> l.b: modlist"
+```
+
+A list block or a list mute is two hops. The viewer subscribes to a list, and the list holds the
+other. `via` asks that in the same `Relationships` call, one direction per entry, and each other
+gets one answer per entry, in order, in `viaLists`.
+
+```json
+// Relationships {"actor":"did:plc:alice2222…","others":["did:plc:bob222…"],"rels":["follow","block"],
+//   "via":[{"rel":"listblock","members":"listitem","kind":"modlist","dir":"DIR_OUT"},
+//          {"rel":"listblock","members":"listitem","kind":"modlist","dir":"DIR_IN"},
+//          {"lists":["at://did:plc:alice2222…/app.bsky.graph.list/3l…"],"members":"listitem",
+//           "kind":"modlist","dir":"DIR_OUT"}]}
+{"relationships":[
+  {"other":"did:plc:bob222222222222222222222","rels":[{"rel":"follow"},{"rel":"block"}],
+   "viaLists":["at://did:plc:carol…/app.bsky.graph.list/3k…","",""]}]}
+```
+
+| Field | |
+|---|---|
+| `rel` | A relation whose subjects are lists (it has a `subject_collection`, like `listblock`). The subscriber's lists are the subjects of its newest records. |
+| `lists` | In place of `rel`, up to 1,000 list URIs the caller holds for the actor, such as its mute lists. `DIR_OUT` only. |
+| `members` | Required. The list relation whose members count (`listitem`). |
+| `kind` | Optional. Only a list that a live record of this relation names counts. With `modlist`, that's a mod list. |
+| `dir` | Required. `DIR_OUT` asks whether the actor's lists hold the other, and `DIR_IN` whether the other's lists hold the actor. |
+
+The answer is the URI of the lowest-id list that holds the member, or empty. A list whose owner
+is taken down or deleted never answers, with or without `kind`. A hidden or unknown actor or
+other gets an empty answer for every entry, so each `Relationship` always carries one per entry.
+A caller that sees fewer is talking to a marco without `via` (unknown fields are dropped) and
+should fall back. A request without `via` gets the same answer as before `via` existed.
+
+Each read is bounded:
+
+| Whose lists | Read |
+|---|---|
+| The actor's, `DIR_OUT` from `rel` | its newest 1,000 records |
+| Each other's, `DIR_IN` | its newest 100 records |
+| The caller's `lists` | at most 1,000, or `invalid_argument` |
+
+marco checks the member's list count first, one lookup, so a member on no list (most accounts)
+costs no read of the subscriber. Each subscriber's lists are read once a call, sorted, and used to
+probe the member's in set, which is never decoded. A read also stops after passing 10 records per
+record of its cap that writes since the last checkpoint deleted or replaced, so an account that
+just unsubscribed from 150,000 lists costs ~0.3 ms instead of ~5 ms until the next checkpoint.
+Every read a cap cuts short counts in `marco_via_truncated_total{rpc, dir}`.
+
+On a synthetic graph (100,000 actors, list sizes and subscriptions shaped like the network's), in
+the engine with the handler's work but no codec, 100 others × 2 relations take ~23 µs alone and
+~35 µs with the three entries above. A viewer subscribed to 200,000 lists takes ~0.2 ms. The
+numbers come from `marco-harness via-bench`, which runs every shape here on any snapshot with
+these relations. Give it a `MARCO_MEMORY` that holds the whole snapshot, so it measures the hit
+path as a pod does:
+
+```bash
+marco-harness via-synth --out /tmp/via.marco             # 100,000 actors, ~5 s
+marco-harness via-bench --snapshot /tmp/via.marco --out via.json
+```
+
+For load through the server, `marco-harness perf` takes a mix file whose `relationships` and
+`block_pairs` shapes carry a `via` list: entries of `rel` or `lists` (a `[count, weight]`
+distribution drawn from the `lists` pool, where a draw of 0 leaves the entry out), `members`,
+`kind` and `dir` (`"out"` or `"in"`). The `listed` and `subscribers` pools draw DIDs on a list
+and DIDs with a `listblock` record.
+
+## BlockPairs
+
+Per pair of up to 1,000, whether `a` has a record naming `b` (`aBlocksB`), the reverse
+(`bBlocksA`), and either (`blocked`). `rels` names the relations that count, `block` by default,
+and refuses list relations and relations whose subjects are records. A DID that's unknown, taken
+down or deleted blocks nobody and is blocked by nobody. This is how a thread drops the replies its
+viewer can't interact with.
+
+```json
+// BlockPairs {"pairs":[{"a":"did:plc:dave2222…","b":"did:plc:carol2222…"}],
+//   "via":{"rel":"listblock","members":"listitem","kind":"modlist"}}
+{"aBlocksB":[false],"bBlocksA":[true],"blocked":[true],
+ "aBlocksBUri":[""],"bBlocksAUri":["at://did:plc:carol…/app.bsky.graph.block/3mzjs7ys3v622"],
+ "aBlocksBList":["at://did:plc:bob…/app.bsky.graph.list/3k…"],"bBlocksAList":[""]}
+```
+
+With `via` (a `rel`, no `lists` or `dir`), each pair also gets the block records' URIs
+(`aBlocksBUri`, `bBlocksAUri`) and a list each side subscribes to that holds the other
+(`aBlocksBList`, `bBlocksAList`), and `blocked` counts the lists too. `aBlocksB` and `bBlocksA`
+stay the direct records. Each side reads the subscriber's newest 100 records, after its member's
+list count says it's on a list, and once a call however many pairs name it. 1,000 pairs whose
+2,000 actors are all on lists and hold 100 subscriptions or more take ~3.7 ms on the synthetic
+graph, and 10 pairs ~4 µs.
 
 ## ListOut and ListIn
 
@@ -223,7 +324,8 @@ move a member past your cursor. The [Relations](relations.md#lists) page has how
 
 | Call | Limit |
 |---|---|
-| `Relationships` | 100 others |
+| `Relationships` | 100 others · 10 `via` entries · 1,000 `lists` an entry |
+| `BlockPairs` | 1,000 pairs |
 | `Counts` | 100 actors |
 | `ListOut`, `ListIn` | `limit` default 50, at most 1,000 |
 | `Intersect` | `limit` default 100, at most 10,000 |

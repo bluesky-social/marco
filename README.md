@@ -138,7 +138,7 @@ has the rest.
 | `marco-proto` | The API, generated from `proto/` |
 | `marco-ingest` | The Jetstream and firehose consumers |
 | `marco-load` | The bulk loader: `build`, `scan-scylla`, `fill-scylla`, `diff`, benches |
-| `marco-harness` | Source captures, the kill test, ingest lag, Jetstream retention, perf runs |
+| `marco-harness` | Source captures, the kill test, ingest lag, Jetstream retention, perf runs, `via`'s cost (`via-synth`, `via-bench`) |
 | `marco-ops` | `/metrics`, pprof CPU and heap profiles, the tracing switch |
 | `seek-core` | seek's index: folding, keys, the artifact, the overlay, ranking |
 | `seek-api` | seek's API: the dataplane's `bsky.Service/SearchActorsTypeahead` |

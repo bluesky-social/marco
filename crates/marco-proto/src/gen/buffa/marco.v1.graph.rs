@@ -581,6 +581,250 @@ pub const __HAS_RESPONSE_JSON_ANY: ::buffa::type_registry::JsonAnyEntry = ::buff
     from_json: ::buffa::type_registry::any_from_json::<HasResponse>,
     is_wkt: false,
 };
+/// Two hops in one direction: the lists a subscriber is connected to, and
+/// whether one of them holds a member. For DIR_OUT the subscriber is the
+/// request's actor and the member each other; DIR_IN is the reverse. The
+/// answer is the lowest-id such list's URI, or empty. A list whose owner is
+/// taken down or deleted never answers.
+#[derive(Clone, PartialEq, Default)]
+#[derive(::serde::Serialize, ::serde::Deserialize)]
+#[serde(default)]
+pub struct Via {
+    /// The subscriber's lists are the subjects of its records in this relation
+    /// (listblock), which needs a subject_collection: the newest 1,000 of the
+    /// request's actor's, the newest 100 of any other actor's.
+    ///
+    /// Field 1: `rel`
+    #[serde(
+        rename = "rel",
+        with = "::buffa::json_helpers::proto_string",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_str"
+    )]
+    pub rel: ::buffa::alloc::string::String,
+    /// Or the caller's own lists, in place of rel: at most 1,000 AT URIs, the
+    /// request actor's (DIR_OUT only).
+    ///
+    /// Field 2: `lists`
+    #[serde(
+        rename = "lists",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_vec",
+        deserialize_with = "::buffa::json_helpers::null_as_default"
+    )]
+    pub lists: ::buffa::alloc::vec::Vec<::buffa::alloc::string::String>,
+    /// Required: the list relation whose members count (listitem).
+    ///
+    /// Field 3: `members`
+    #[serde(
+        rename = "members",
+        with = "::buffa::json_helpers::proto_string",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_str"
+    )]
+    pub members: ::buffa::alloc::string::String,
+    /// Optional: only lists that a live record in this relation names
+    /// (modlist, the list's own record while it's a mod list). A relation whose
+    /// subjects are records. Empty: any list.
+    ///
+    /// Field 4: `kind`
+    #[serde(
+        rename = "kind",
+        with = "::buffa::json_helpers::proto_string",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_str"
+    )]
+    pub kind: ::buffa::alloc::string::String,
+    /// Required on Relationships; unset on BlockPairs, which checks both ways.
+    ///
+    /// Field 5: `dir`
+    #[serde(
+        rename = "dir",
+        with = "::buffa::json_helpers::proto_enum",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_default_enum_value"
+    )]
+    pub dir: ::buffa::EnumValue<Dir>,
+    #[serde(skip)]
+    #[doc(hidden)]
+    pub __buffa_unknown_fields: ::buffa::UnknownFields,
+}
+impl ::core::fmt::Debug for Via {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        f.debug_struct("Via")
+            .field("rel", &self.rel)
+            .field("lists", &self.lists)
+            .field("members", &self.members)
+            .field("kind", &self.kind)
+            .field("dir", &self.dir)
+            .finish()
+    }
+}
+impl Via {
+    /// Protobuf type URL for this message, for use with `Any::pack` and
+    /// `Any::unpack_if`.
+    ///
+    /// Format: `type.googleapis.com/<fully.qualified.TypeName>`
+    pub const TYPE_URL: &'static str = "type.googleapis.com/marco.v1.Via";
+}
+::buffa::impl_default_instance!(Via);
+impl ::buffa::MessageName for Via {
+    const PACKAGE: &'static str = "marco.v1";
+    const NAME: &'static str = "Via";
+    const FULL_NAME: &'static str = "marco.v1.Via";
+    const TYPE_URL: &'static str = "type.googleapis.com/marco.v1.Via";
+}
+impl ::buffa::Message for Via {
+    /// Returns the total encoded size in bytes.
+    ///
+    /// Accumulates in `u64` (which cannot overflow for in-memory
+    /// data) and saturates to `u32` at return, so a message whose
+    /// encoded size exceeds the 2 GiB protobuf limit yields a value
+    /// above [`::buffa::MAX_MESSAGE_BYTES`] that the encode entry
+    /// points reject, never a silently wrapped size.
+    #[allow(clippy::let_and_return)]
+    fn compute_size(&self, _cache: &mut ::buffa::SizeCache) -> u32 {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        let mut size = 0u64;
+        if !self.rel.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.rel) as u64;
+        }
+        for v in &self.lists {
+            size += 1u64 + ::buffa::types::string_encoded_len(v) as u64;
+        }
+        if !self.members.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.members) as u64;
+        }
+        if !self.kind.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.kind) as u64;
+        }
+        {
+            let val = self.dir.to_i32();
+            if val != 0 {
+                size += 1u64 + ::buffa::types::int32_encoded_len(val) as u64;
+            }
+        }
+        size += self.__buffa_unknown_fields.encoded_len() as u64;
+        ::buffa::saturate_size(size)
+    }
+    fn write_to(
+        &self,
+        _cache: &mut ::buffa::SizeCache,
+        buf: &mut impl ::buffa::EncodeSink,
+    ) {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        if !self.rel.is_empty() {
+            ::buffa::types::put_string_field(1u32, &self.rel, buf);
+        }
+        for v in &self.lists {
+            ::buffa::types::put_string_field(2u32, v, buf);
+        }
+        if !self.members.is_empty() {
+            ::buffa::types::put_string_field(3u32, &self.members, buf);
+        }
+        if !self.kind.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.kind, buf);
+        }
+        {
+            let val = self.dir.to_i32();
+            if val != 0 {
+                ::buffa::types::put_int32_field(5u32, val, buf);
+            }
+        }
+        self.__buffa_unknown_fields.write_to(buf);
+    }
+    fn merge_field(
+        &mut self,
+        tag: ::buffa::encoding::Tag,
+        buf: &mut impl ::buffa::bytes::Buf,
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<(), ::buffa::DecodeError> {
+        #[allow(unused_imports)]
+        use ::buffa::bytes::Buf as _;
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        match tag.field_number() {
+            1u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.rel, buf)?;
+            }
+            2u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __elem = ::buffa::types::decode_string(buf)?;
+                ctx.register_element_memory(
+                    ::buffa::__private::element_footprint(&__elem),
+                )?;
+                self.lists.push(__elem);
+            }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.members, buf)?;
+            }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.kind, buf)?;
+            }
+            5u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.dir = ::buffa::EnumValue::from(::buffa::types::decode_int32(buf)?);
+            }
+            _ => {
+                self.__buffa_unknown_fields
+                    .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
+            }
+        }
+        ::core::result::Result::Ok(())
+    }
+    fn clear(&mut self) {
+        self.rel.clear();
+        self.lists.clear();
+        self.members.clear();
+        self.kind.clear();
+        self.dir = ::buffa::EnumValue::from(0);
+        self.__buffa_unknown_fields.clear();
+    }
+}
+impl ::buffa::ExtensionSet for Via {
+    const PROTO_FQN: &'static str = "marco.v1.Via";
+    fn unknown_fields(&self) -> &::buffa::UnknownFields {
+        &self.__buffa_unknown_fields
+    }
+    fn unknown_fields_mut(&mut self) -> &mut ::buffa::UnknownFields {
+        &mut self.__buffa_unknown_fields
+    }
+}
+impl ::buffa::json_helpers::ProtoElemJson for Via {
+    fn serialize_proto_json<S: ::serde::Serializer>(
+        v: &Self,
+        s: S,
+    ) -> ::core::result::Result<S::Ok, S::Error> {
+        ::serde::Serialize::serialize(v, s)
+    }
+    fn deserialize_proto_json<'de, D: ::serde::Deserializer<'de>>(
+        d: D,
+    ) -> ::core::result::Result<Self, D::Error> {
+        <Self as ::serde::Deserialize>::deserialize(d)
+    }
+}
+#[doc(hidden)]
+pub const __VIA_JSON_ANY: ::buffa::type_registry::JsonAnyEntry = ::buffa::type_registry::JsonAnyEntry {
+    type_url: "type.googleapis.com/marco.v1.Via",
+    to_json: ::buffa::type_registry::any_to_json::<Via>,
+    from_json: ::buffa::type_registry::any_from_json::<Via>,
+    is_wkt: false,
+};
 #[derive(Clone, PartialEq, Default)]
 #[derive(::serde::Serialize, ::serde::Deserialize)]
 #[serde(default)]
@@ -606,6 +850,15 @@ pub struct RelationshipsRequest {
         deserialize_with = "::buffa::json_helpers::null_as_default"
     )]
     pub rels: ::buffa::alloc::vec::Vec<::buffa::alloc::string::String>,
+    /// At most 10. Each other gets one answer per via, in order.
+    ///
+    /// Field 4: `via`
+    #[serde(
+        rename = "via",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_vec",
+        deserialize_with = "::buffa::json_helpers::null_as_default"
+    )]
+    pub via: ::buffa::alloc::vec::Vec<Via>,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -616,6 +869,7 @@ impl ::core::fmt::Debug for RelationshipsRequest {
             .field("actor", &self.actor)
             .field("others", &self.others)
             .field("rels", &self.rels)
+            .field("via", &self.via)
             .finish()
     }
 }
@@ -642,7 +896,7 @@ impl ::buffa::Message for RelationshipsRequest {
     /// above [`::buffa::MAX_MESSAGE_BYTES`] that the encode entry
     /// points reject, never a silently wrapped size.
     #[allow(clippy::let_and_return)]
-    fn compute_size(&self, _cache: &mut ::buffa::SizeCache) -> u32 {
+    fn compute_size(&self, __cache: &mut ::buffa::SizeCache) -> u32 {
         #[allow(unused_imports)]
         use ::buffa::Enumeration as _;
         let mut size = 0u64;
@@ -655,12 +909,20 @@ impl ::buffa::Message for RelationshipsRequest {
         for v in &self.rels {
             size += 1u64 + ::buffa::types::string_encoded_len(v) as u64;
         }
+        for v in &self.via {
+            let __slot = __cache.reserve();
+            let inner_size = v.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
+                    + inner_size as u64;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u64;
         ::buffa::saturate_size(size)
     }
     fn write_to(
         &self,
-        _cache: &mut ::buffa::SizeCache,
+        __cache: &mut ::buffa::SizeCache,
         buf: &mut impl ::buffa::EncodeSink,
     ) {
         #[allow(unused_imports)]
@@ -673,6 +935,14 @@ impl ::buffa::Message for RelationshipsRequest {
         }
         for v in &self.rels {
             ::buffa::types::put_string_field(3u32, v, buf);
+        }
+        for v in &self.via {
+            ::buffa::types::put_len_delimited_header(
+                4u32,
+                u64::from(__cache.consume_next()),
+                buf,
+            );
+            v.write_to(__cache, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -716,6 +986,18 @@ impl ::buffa::Message for RelationshipsRequest {
                 )?;
                 self.rels.push(__elem);
             }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let mut elem = ::core::default::Default::default();
+                ctx.register_element_memory(
+                    ::buffa::__private::element_footprint(&elem),
+                )?;
+                ::buffa::Message::merge_length_delimited(&mut elem, buf, ctx)?;
+                self.via.push(elem);
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -727,6 +1009,7 @@ impl ::buffa::Message for RelationshipsRequest {
         self.actor.clear();
         self.others.clear();
         self.rels.clear();
+        self.via.clear();
         self.__buffa_unknown_fields.clear();
     }
 }
@@ -920,6 +1203,16 @@ pub struct Relationship {
         deserialize_with = "::buffa::json_helpers::null_as_default"
     )]
     pub rels: ::buffa::alloc::vec::Vec<RelationshipEdge>,
+    /// One per request via, in order: a list's AT URI, or empty.
+    ///
+    /// Field 3: `via_lists`
+    #[serde(
+        rename = "viaLists",
+        alias = "via_lists",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_vec",
+        deserialize_with = "::buffa::json_helpers::null_as_default"
+    )]
+    pub via_lists: ::buffa::alloc::vec::Vec<::buffa::alloc::string::String>,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -929,6 +1222,7 @@ impl ::core::fmt::Debug for Relationship {
         f.debug_struct("Relationship")
             .field("other", &self.other)
             .field("rels", &self.rels)
+            .field("via_lists", &self.via_lists)
             .finish()
     }
 }
@@ -970,6 +1264,9 @@ impl ::buffa::Message for Relationship {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        for v in &self.via_lists {
+            size += 1u64 + ::buffa::types::string_encoded_len(v) as u64;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u64;
         ::buffa::saturate_size(size)
     }
@@ -990,6 +1287,9 @@ impl ::buffa::Message for Relationship {
                 buf,
             );
             v.write_to(__cache, buf);
+        }
+        for v in &self.via_lists {
+            ::buffa::types::put_string_field(3u32, v, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -1023,6 +1323,17 @@ impl ::buffa::Message for Relationship {
                 ::buffa::Message::merge_length_delimited(&mut elem, buf, ctx)?;
                 self.rels.push(elem);
             }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __elem = ::buffa::types::decode_string(buf)?;
+                ctx.register_element_memory(
+                    ::buffa::__private::element_footprint(&__elem),
+                )?;
+                self.via_lists.push(__elem);
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -1033,6 +1344,7 @@ impl ::buffa::Message for Relationship {
     fn clear(&mut self) {
         self.other.clear();
         self.rels.clear();
+        self.via_lists.clear();
         self.__buffa_unknown_fields.clear();
     }
 }
@@ -1410,6 +1722,15 @@ pub struct BlockPairsRequest {
         deserialize_with = "::buffa::json_helpers::null_as_default"
     )]
     pub rels: ::buffa::alloc::vec::Vec<::buffa::alloc::string::String>,
+    /// Also blocks by list, both ways: a list a subscribes to that holds b, and
+    /// the reverse. rel only, no lists or dir; each side's newest 100.
+    ///
+    /// Field 3: `via`
+    #[serde(
+        rename = "via",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_unset_message_field"
+    )]
+    pub via: ::buffa::MessageField<Via, ::buffa::Inline<Via>>,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -1419,6 +1740,7 @@ impl ::core::fmt::Debug for BlockPairsRequest {
         f.debug_struct("BlockPairsRequest")
             .field("pairs", &self.pairs)
             .field("rels", &self.rels)
+            .field("via", &self.via)
             .finish()
     }
 }
@@ -1460,6 +1782,14 @@ impl ::buffa::Message for BlockPairsRequest {
         for v in &self.rels {
             size += 1u64 + ::buffa::types::string_encoded_len(v) as u64;
         }
+        if self.via.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.via.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
+                    + inner_size as u64;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u64;
         ::buffa::saturate_size(size)
     }
@@ -1480,6 +1810,14 @@ impl ::buffa::Message for BlockPairsRequest {
         }
         for v in &self.rels {
             ::buffa::types::put_string_field(2u32, v, buf);
+        }
+        if self.via.is_set() {
+            ::buffa::types::put_len_delimited_header(
+                3u32,
+                u64::from(__cache.consume_next()),
+                buf,
+            );
+            self.via.write_to(__cache, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -1517,6 +1855,17 @@ impl ::buffa::Message for BlockPairsRequest {
                 )?;
                 self.rels.push(__elem);
             }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::Message::merge_length_delimited(
+                    self.via.get_or_insert_default(),
+                    buf,
+                    ctx,
+                )?;
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -1527,6 +1876,7 @@ impl ::buffa::Message for BlockPairsRequest {
     fn clear(&mut self) {
         self.pairs.clear();
         self.rels.clear();
+        self.via = ::buffa::MessageField::none();
         self.__buffa_unknown_fields.clear();
     }
 }
@@ -1583,7 +1933,7 @@ pub struct BlockPairsResponse {
         deserialize_with = "::buffa::json_helpers::null_as_default"
     )]
     pub b_blocks_a: ::buffa::alloc::vec::Vec<bool>,
-    /// Either way: the two can't interact.
+    /// Either way: the two can't interact. With via, a list counts too.
     ///
     /// Field 3: `blocked`
     #[serde(
@@ -1592,6 +1942,43 @@ pub struct BlockPairsResponse {
         deserialize_with = "::buffa::json_helpers::null_as_default"
     )]
     pub blocked: ::buffa::alloc::vec::Vec<bool>,
+    /// Only with via, one each per pair: a's record naming b and b's naming a,
+    /// as URIs, or empty.
+    ///
+    /// Field 4: `a_blocks_b_uri`
+    #[serde(
+        rename = "aBlocksBUri",
+        alias = "a_blocks_b_uri",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_vec",
+        deserialize_with = "::buffa::json_helpers::null_as_default"
+    )]
+    pub a_blocks_b_uri: ::buffa::alloc::vec::Vec<::buffa::alloc::string::String>,
+    /// Field 5: `b_blocks_a_uri`
+    #[serde(
+        rename = "bBlocksAUri",
+        alias = "b_blocks_a_uri",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_vec",
+        deserialize_with = "::buffa::json_helpers::null_as_default"
+    )]
+    pub b_blocks_a_uri: ::buffa::alloc::vec::Vec<::buffa::alloc::string::String>,
+    /// Only with via: a list a subscribes to that holds b, and the reverse.
+    ///
+    /// Field 6: `a_blocks_b_list`
+    #[serde(
+        rename = "aBlocksBList",
+        alias = "a_blocks_b_list",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_vec",
+        deserialize_with = "::buffa::json_helpers::null_as_default"
+    )]
+    pub a_blocks_b_list: ::buffa::alloc::vec::Vec<::buffa::alloc::string::String>,
+    /// Field 7: `b_blocks_a_list`
+    #[serde(
+        rename = "bBlocksAList",
+        alias = "b_blocks_a_list",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_vec",
+        deserialize_with = "::buffa::json_helpers::null_as_default"
+    )]
+    pub b_blocks_a_list: ::buffa::alloc::vec::Vec<::buffa::alloc::string::String>,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -1602,6 +1989,10 @@ impl ::core::fmt::Debug for BlockPairsResponse {
             .field("a_blocks_b", &self.a_blocks_b)
             .field("b_blocks_a", &self.b_blocks_a)
             .field("blocked", &self.blocked)
+            .field("a_blocks_b_uri", &self.a_blocks_b_uri)
+            .field("b_blocks_a_uri", &self.b_blocks_a_uri)
+            .field("a_blocks_b_list", &self.a_blocks_b_list)
+            .field("b_blocks_a_list", &self.b_blocks_a_list)
             .finish()
     }
 }
@@ -1647,6 +2038,18 @@ impl ::buffa::Message for BlockPairsResponse {
                 * ::buffa::types::BOOL_ENCODED_LEN as u64;
             size += 1u64 + ::buffa::encoding::varint_len(payload) as u64 + payload;
         }
+        for v in &self.a_blocks_b_uri {
+            size += 1u64 + ::buffa::types::string_encoded_len(v) as u64;
+        }
+        for v in &self.b_blocks_a_uri {
+            size += 1u64 + ::buffa::types::string_encoded_len(v) as u64;
+        }
+        for v in &self.a_blocks_b_list {
+            size += 1u64 + ::buffa::types::string_encoded_len(v) as u64;
+        }
+        for v in &self.b_blocks_a_list {
+            size += 1u64 + ::buffa::types::string_encoded_len(v) as u64;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u64;
         ::buffa::saturate_size(size)
     }
@@ -1680,6 +2083,18 @@ impl ::buffa::Message for BlockPairsResponse {
             for &v in &self.blocked {
                 ::buffa::types::encode_bool(v, buf);
             }
+        }
+        for v in &self.a_blocks_b_uri {
+            ::buffa::types::put_string_field(4u32, v, buf);
+        }
+        for v in &self.b_blocks_a_uri {
+            ::buffa::types::put_string_field(5u32, v, buf);
+        }
+        for v in &self.a_blocks_b_list {
+            ::buffa::types::put_string_field(6u32, v, buf);
+        }
+        for v in &self.b_blocks_a_list {
+            ::buffa::types::put_string_field(7u32, v, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -1814,6 +2229,50 @@ impl ::buffa::Message for BlockPairsResponse {
                     );
                 }
             }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __elem = ::buffa::types::decode_string(buf)?;
+                ctx.register_element_memory(
+                    ::buffa::__private::element_footprint(&__elem),
+                )?;
+                self.a_blocks_b_uri.push(__elem);
+            }
+            5u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __elem = ::buffa::types::decode_string(buf)?;
+                ctx.register_element_memory(
+                    ::buffa::__private::element_footprint(&__elem),
+                )?;
+                self.b_blocks_a_uri.push(__elem);
+            }
+            6u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __elem = ::buffa::types::decode_string(buf)?;
+                ctx.register_element_memory(
+                    ::buffa::__private::element_footprint(&__elem),
+                )?;
+                self.a_blocks_b_list.push(__elem);
+            }
+            7u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __elem = ::buffa::types::decode_string(buf)?;
+                ctx.register_element_memory(
+                    ::buffa::__private::element_footprint(&__elem),
+                )?;
+                self.b_blocks_a_list.push(__elem);
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -1825,6 +2284,10 @@ impl ::buffa::Message for BlockPairsResponse {
         self.a_blocks_b.clear();
         self.b_blocks_a.clear();
         self.blocked.clear();
+        self.a_blocks_b_uri.clear();
+        self.b_blocks_a_uri.clear();
+        self.a_blocks_b_list.clear();
+        self.b_blocks_a_list.clear();
         self.__buffa_unknown_fields.clear();
     }
 }

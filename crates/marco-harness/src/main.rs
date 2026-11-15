@@ -12,6 +12,8 @@
 //!                                                                              read inputs for perf, as DIDs, plus weighted pools
 //! marco-harness perf --inputs F --target engine|stack|h2 --out F.json          Graph read throughput and latency
 //! marco-harness checkpoint-day --snapshot DIR --ops F.jsonl.zst --work DIR     a recorded day's checkpoint: R, P_new, garbage
+//! marco-harness via-synth --out DIR                                            a synthetic snapshot with list subscriptions
+//! marco-harness via-bench --snapshot DIR --out F.json                          via's latency per request shape
 //! ```
 
 mod capture;
@@ -23,6 +25,7 @@ mod mixfile;
 mod perf;
 mod skew;
 mod synth;
+mod via;
 
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
@@ -221,11 +224,26 @@ enum Cmd {
     /// Graph read throughput and latency per query shape: in-process, through
     /// the RPC stack in-process, or over HTTP/2; closed or open loop.
     Perf(Box<perf::Args>),
+    /// A synthetic snapshot with list subscriptions (listblock) and mod lists
+    /// (modlist), adversarial accounts included, for via-bench and perf.
+    ViaSynth(via::SynthArgs),
+    /// Via's latency per request shape on a snapshot with list subscriptions:
+    /// the typical calls, the worst case, the adversarial accounts, and an
+    /// uncheckpointed mass unsubscribe.
+    ViaBench(via::BenchArgs),
 }
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
     let cmd = match cli.cmd {
+        Cmd::ViaSynth(a) => {
+            println!("{}", serde_json::to_string_pretty(&via::synth(&a)?)?);
+            return Ok(());
+        }
+        Cmd::ViaBench(a) => {
+            println!("{}", serde_json::to_string_pretty(&via::bench(&a)?)?);
+            return Ok(());
+        }
         Cmd::PerfInputs { snapshot, out, seed, pool_size, follows, viewer_weights, subject_weights } => {
             return perf::inputs_cmd(
                 &snapshot,
@@ -311,7 +329,9 @@ fn main() -> Result<()> {
                 let (proto, url) = src.get();
                 retention(proto, &url).await
             }
-            Cmd::PerfInputs { .. } | Cmd::Perf(_) => unreachable!("run before the runtime"),
+            Cmd::PerfInputs { .. } | Cmd::Perf(_) | Cmd::ViaSynth(_) | Cmd::ViaBench(_) => {
+                unreachable!("run before the runtime")
+            }
         }
     })
 }
