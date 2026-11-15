@@ -185,6 +185,18 @@ another repo, counts it (`cross_repo_rows` in the report's table) and says
 so at the end. A row with a null column is skipped and counted as
 `null_rows`, for any table.
 
+**Records.** A table can hold each record itself rather than its subject
+in a column: `record = "raw"` names the column with the record's JSON
+(blob or text). The scan builds the record's URI from the actor and rkey
+and runs it through the relation's rule (`Relation::edge`), as the live
+path does, so `when` and a `$self` subject work: an appview's `lists`
+table gives `modlist` its mod lists. A record table names no subject or
+list column, and a relation with `when` or `$self` needs one. A record
+the relation doesn't keep is counted as `unmatched_rows`, one that
+doesn't parse or isn't an edge as `bad_rows`. A relation whose subjects
+are record URIs in a column (`listblock`'s `list`) needs nothing more:
+the build checks them.
+
 **Where rows go.** Token order isn't DID order, so rows are bucketed by repo
 DID prefix as they arrive. Each range buffers `--chunk-rows` (262144) rows,
 then at the next partition boundary compresses them into a frame per bucket
@@ -271,13 +283,19 @@ relation = "listitem"         # a list relation: the table needs a list column
 name = "list_items"
 subject = "subject"
 list = "list"                 # the column with the list's AT URI (default list)
+
+[[table]]
+relation = "modlist"          # not a default: needs it in --relations
+name = "lists"
+record = "raw"                # the record's JSON, blob or text; no subject or list column
 ```
 
 Column and table names that aren't plain lower-case identifiers are quoted
 for you. The partition key comes from the schema, and the token bounds use
 all of its columns, so any partition key works. The scan needs `SELECT` on
 the tables, `system_schema` and `system.tablets`. A `list` column is only
-for a list relation's table, and a list relation's table always has one.
+for a list relation's table, and a list relation's table always has one,
+unless it's a record table.
 
 **Primary keys.** With `((actor_did), rkey)`, each record is its own row
 and the snapshot holds exactly the table's records. With `((actor_did),

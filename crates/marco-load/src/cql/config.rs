@@ -74,6 +74,12 @@ pub struct Table {
     /// (default list). Only a list relation's table has one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub list: Option<String>,
+    /// A table that holds each record itself: the column with its JSON (blob
+    /// or text). The relation's rule reads the subject (and list) from it, as
+    /// the live path does, so the subject and list columns aren't read. A
+    /// relation with `when` or a `$self` subject needs one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub record: Option<String>,
 }
 
 /// A list table's list column when its config leaves it out.
@@ -211,6 +217,8 @@ impl Config {
 
     /// Fills in each list relation's list column, and refuses a list column
     /// on a table whose relation has no list, or a relation not in `rels`.
+    /// A record table names no subject or list column, and a relation whose
+    /// edges only the record can say (`when`, `$self`) needs a record table.
     pub fn resolve(&mut self, rels: &marco_core::Relations) -> Result<()> {
         for t in &mut self.tables {
             let Some(id) = rels.by_name(&t.relation) else {
@@ -222,6 +230,22 @@ impl Config {
                     "{:?} is a companion; scan its list relation, {:?}",
                     t.relation,
                     r.owner_of.as_deref().unwrap_or("")
+                );
+            }
+            if t.record.is_some() {
+                if t.list.is_some() || t.subject != default_subject() {
+                    bail!(
+                        "table {:?} has a record column: its subject and list come from the record, so it names neither column",
+                        t.name
+                    );
+                }
+                continue;
+            }
+            if !r.when.is_empty() || r.is_self() {
+                bail!(
+                    "table {:?}: {:?} has `when` or a $self subject, which the scan reads from the record: name the table's record column (record = \"...\")",
+                    t.name,
+                    t.relation
                 );
             }
             match (&r.list, &t.list) {
@@ -313,5 +337,87 @@ mod tests {
             "nodes = [\"x\"]\nkeyspace = \"k\"\nbogus = 1\n[[table]]\nrelation = \"a\"\nname = \"b\""
         )
         .is_err());
+    }
+
+    /// The defaults, then a list subscription (a list's URI as the subject)
+    /// and a list's purpose (its own URI, while it's a mod list).
+    fn list_subject_rels() -> marco_core::Relations {
+        marco_core::Relations::parse_toml(
+            r#"
+[[relation]]
+name = "follow"
+collection = "app.bsky.graph.follow"
+subject = "subject"
+
+[[relation]]
+name = "listitem"
+collection = "app.bsky.graph.listitem"
+subject = "subject"
+list = "list"
+
+[[relation]]
+name = "listblock"
+collection = "app.bsky.graph.listblock"
+subject = "subject"
+subject_collection = "app.bsky.graph.list"
+
+[[relation]]
+name = "modlist"
+collection = "app.bsky.graph.list"
+subject = "$self"
+when = { purpose = "app.bsky.graph.defs#modlist" }
+"#,
+        )
+        .unwrap()
+    }
+
+    /// A list subscription's table is a plain one whose subject column holds
+    /// the list's URI. A list's purpose is only in the record, so its table
+    /// names a record column and no subject or list column.
+    #[test]
+    fn list_subscriptions_and_purposes() {
+        let rels = list_subject_rels();
+        let mut c = Config::parse(
+            r#"
+            nodes = ["127.0.0.1:9042"]
+            keyspace = "bsky"
+            [[table]]
+            relation = "listblock"
+            name = "listblocks"
+            subject = "list"
+            [[table]]
+            relation = "modlist"
+            name = "lists"
+            record = "raw"
+            "#,
+        )
+        .unwrap();
+        c.resolve(&rels).unwrap();
+        assert_eq!((c.tables[0].subject.as_str(), c.tables[0].list.as_deref()), ("list", None));
+        assert_eq!((c.tables[1].record.as_deref(), c.tables[1].list.as_deref()), (Some("raw"), None));
+
+        let no_record = Table { record: None, ..c.tables[1].clone() };
+        let e = Config { tables: vec![no_record], ..c.clone() }.resolve(&rels).unwrap_err();
+        assert!(format!("{e:#}").contains("record column"), "{e:#}");
+        for bad in [
+            Table { subject: "subject".into(), ..c.tables[1].clone() },
+            Table { list: Some("list".into()), ..c.tables[1].clone() },
+        ] {
+            assert!(
+                Config { tables: vec![bad], ..c.clone() }.resolve(&rels).is_err(),
+                "a record table names no column"
+            );
+        }
+        // any relation's table can be a record table: a list relation's list comes from its record too
+        let li = Table { relation: "listitem".into(), name: "listitems".into(), ..c.tables[1].clone() };
+        let mut l = Config { tables: vec![li], ..c.clone() };
+        l.resolve(&rels).unwrap();
+        assert_eq!(l.tables[0].list, None);
+        // a plan written before record columns reads back the same
+        let t: Table = serde_json::from_str(
+            r#"{"relation":"follow","name":"follows","actor":"actor_did","rkey":"rkey","subject":"target_did"}"#,
+        )
+        .unwrap();
+        assert!(!serde_json::to_string(&t).unwrap().contains("record"));
     }
 }

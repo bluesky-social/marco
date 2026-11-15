@@ -14,12 +14,14 @@ use std::collections::{BTreeMap, HashMap};
 use anyhow::{bail, Context, Result};
 use scylla::client::session::Session;
 use scylla::cluster::{ClusterState, Node};
+use scylla::deserialize::value::DeserializeValue;
 use scylla::frame::response::result::TableSpec;
 use scylla::routing::Token;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use super::config::{Config, Table};
+use super::scan::RecordCol;
 
 /// A token interval (lo, hi]: Scylla's token() never returns i64::MIN, so
 /// (i64::MIN, i64::MAX] is the whole ring.
@@ -242,11 +244,25 @@ pub async fn make(session: &Session, cfg: &Config) -> Result<Plan> {
     let mut shards = std::collections::BTreeSet::new();
     for (ti, t) in cfg.tables.iter().enumerate() {
         let meta = keyspace.tables.get(&t.name).with_context(|| format!("no table {}.{}", cfg.keyspace, t.name))?;
-        for c in [&t.actor, &t.rkey, &t.subject].into_iter().chain(&t.list) {
+        let cols: Vec<&String> = match &t.record {
+            Some(rec) => vec![&t.actor, &t.rkey, rec],
+            None => [&t.actor, &t.rkey, &t.subject].into_iter().chain(&t.list).collect(),
+        };
+        for c in cols {
             if !meta.columns.contains_key(c) {
                 let mut have: Vec<&String> = meta.columns.keys().collect();
                 have.sort();
                 bail!("{}.{} has no column {c:?} (it has {have:?})", cfg.keyspace, t.name);
+            }
+        }
+        if let Some(rec) = &t.record {
+            let typ = &meta.columns[rec].typ;
+            if RecordCol::type_check(typ).is_err() {
+                bail!(
+                    "{}.{}'s record column {rec:?} is {typ:?}: a record column is blob or text",
+                    cfg.keyspace,
+                    t.name
+                );
             }
         }
         plan.partition_keys.push(meta.partition_key.clone());
