@@ -4,10 +4,14 @@ use std::sync::Arc;
 
 use connectrpc::{ConnectError, InboundStream, RequestContext, Response, ServiceRequest, ServiceResult};
 use futures::StreamExt;
+use marco_core::graph::VIA_MAX_LISTS;
 use marco_core::read::{Hold, ReadCx, StorageError, R};
-use marco_core::{AmongPlan, Dir, Graph, ListRef, RelId, SetOp, COUNT_EXACT};
+use marco_core::relation::parse_uri;
+use marco_core::{
+    AmongPlan, Dir, Graph, ListRef, PairQuery, RelId, SetOp, ViaCuts, ViaHit, ViaLists, ViaQuery, COUNT_EXACT,
+};
 use marco_proto::connect::marco::v1 as svc;
-use marco_proto::v1::__buffa::oneof::{write_op, write_result};
+use marco_proto::v1::__buffa::oneof::{via, write_op, write_result};
 use marco_proto::v1::*;
 
 use crate::app::{App, Op, Outcome, MAX_BATCH};
@@ -66,6 +70,147 @@ pub const EDGES_AMONG_ON_WORKER: usize = 100;
 /// How long an EdgesAmong request may run, at most: its client's deadline
 /// if sooner.
 pub const EDGES_AMONG_DEADLINE: std::time::Duration = std::time::Duration::from_secs(5);
+
+/// Vias a Relationships call takes: a profile's viewer state needs three.
+pub const MAX_VIAS: usize = 10;
+
+/// A via's `members` and `kind`, resolved: the list relation, and the
+/// relation whose live records say which lists count.
+fn members_kind(
+    g: &Graph,
+    members: &str,
+    kind: &str,
+    e: &impl Fn(String) -> ConnectError,
+) -> Result<(RelId, Option<RelId>), ConnectError> {
+    let rels = g.relations();
+    let rel = |n: &str| rels.by_name(n).ok_or_else(|| e(format!("no relation {n:?}")));
+    if members.is_empty() {
+        return Err(e("members is required".into()));
+    }
+    let m = rel(members)?;
+    if !rels.is_list(m) {
+        return Err(e(format!("members {members:?} isn't a list relation")));
+    }
+    let k = match kind {
+        "" => None,
+        k => {
+            let r = rel(k)?;
+            if !rels.is_uri_subject(r) {
+                return Err(e(format!("kind {k:?}'s subjects aren't records")));
+            }
+            Some(r)
+        }
+    };
+    Ok((m, k))
+}
+
+/// A relation whose subjects are records, which a via reads a subscriber's
+/// lists from.
+fn lists_rel(g: &Graph, name: &str, e: &impl Fn(String) -> ConnectError) -> Result<RelId, ConnectError> {
+    if name.is_empty() {
+        return Err(e("rel is required".into()));
+    }
+    let r = g.relations().by_name(name).ok_or_else(|| e(format!("no relation {name:?}")))?;
+    if !g.relations().is_uri_subject(r) {
+        return Err(e(format!("rel {name:?}'s subjects aren't records: give it a subject_collection")));
+    }
+    Ok(r)
+}
+
+/// A Relationships via, its names resolved and checked. The caller's lists
+/// stay URIs until a read resolves them against the graph it reads.
+#[derive(Clone, Debug)]
+pub struct ViaArgs {
+    from: ViaFrom,
+    members: RelId,
+    kind: Option<RelId>,
+    dir: Dir,
+}
+
+#[derive(Clone, Debug)]
+enum ViaFrom {
+    Rel(RelId),
+    Lists(Vec<String>),
+}
+
+impl ViaArgs {
+    /// Via `i` of a request.
+    pub fn of(g: &Graph, v: &Via, i: usize) -> Result<ViaArgs, ConnectError> {
+        let e = |m: String| bad(format!("via {i}: {m}"));
+        let (members, kind) = members_kind(g, &v.members, &v.kind, &e)?;
+        let dir = match v.dir.as_known() {
+            Some(marco_proto::v1::Dir::DIR_OUT) => Dir::Out,
+            Some(marco_proto::v1::Dir::DIR_IN) => Dir::In,
+            _ => return Err(e("dir must be DIR_OUT or DIR_IN".into())),
+        };
+        let from = match &v.source {
+            None => return Err(e("rel or lists is required".into())),
+            Some(via::Source::Rel(r)) => ViaFrom::Rel(lists_rel(g, r, &e)?),
+            Some(via::Source::Lists(l)) => {
+                if dir != Dir::Out {
+                    return Err(e("lists are the actor's own: DIR_OUT only".into()));
+                }
+                if l.uris.len() > VIA_MAX_LISTS {
+                    return Err(e(format!("at most {VIA_MAX_LISTS} lists")));
+                }
+                if let Some(u) = l.uris.iter().find(|u| parse_uri(u).is_none()) {
+                    return Err(e(format!("{u:?} isn't a record URI")));
+                }
+                ViaFrom::Lists(l.uris.clone())
+            }
+        };
+        Ok(ViaArgs { from, members, kind, dir })
+    }
+
+    /// The via as the graph reads it: a caller's lists marco doesn't know
+    /// hold nobody.
+    pub fn query(&self, g: &Graph) -> ViaQuery {
+        let lists = match &self.from {
+            ViaFrom::Rel(r) => ViaLists::Rel(*r),
+            ViaFrom::Lists(l) => {
+                let mut ids: Vec<u32> = l.iter().filter_map(|u| g.id_of(u)).collect();
+                ids.sort_unstable();
+                ids.dedup();
+                ViaLists::Given(ids)
+            }
+        };
+        ViaQuery { lists, members: self.members, kind: self.kind, dir: self.dir }
+    }
+
+    /// The relation a drop by this via names (Filter's `Dropped.rel`): its
+    /// rel, or for a caller's lists the list relation.
+    pub fn rel(&self) -> RelId {
+        match self.from {
+            ViaFrom::Rel(r) => r,
+            ViaFrom::Lists(_) => self.members,
+        }
+    }
+
+    pub fn dir(&self) -> Dir {
+        self.dir
+    }
+}
+
+/// A request's vias.
+pub fn vias_of(g: &Graph, vias: &[Via]) -> Result<Vec<ViaArgs>, ConnectError> {
+    if vias.len() > MAX_VIAS {
+        return Err(bad(format!("at most {MAX_VIAS} vias")));
+    }
+    vias.iter().enumerate().map(|(i, v)| ViaArgs::of(g, v, i)).collect()
+}
+
+/// A BlockPairs via, its names resolved and checked.
+pub fn pair_via_of(g: &Graph, v: &PairVia) -> Result<PairQuery, ConnectError> {
+    let e = |m: String| bad(format!("via: {m}"));
+    let rel = lists_rel(g, &v.rel, &e)?;
+    let (members, kind) = members_kind(g, &v.members, &v.kind, &e)?;
+    Ok(PairQuery { rel, members, kind })
+}
+
+/// A list's URI, or empty.
+fn list_uri(g: &Graph, l: Option<u32>) -> String {
+    l.and_then(|l| g.did_of(l)).unwrap_or_default()
+}
 
 fn limit(l: u32, def: u32, max: u32) -> usize {
     (if l == 0 { def } else { l.min(max) }) as usize
@@ -249,21 +394,38 @@ pub fn has_(g: &Graph, cx: &ReadCx<'_>, rel: RelId, req: &HasRequest) -> R<HasRe
     Ok(HasResponse { uri: uri.unwrap_or_default(), ..Default::default() })
 }
 
+/// Relationships, its names resolved, and the via reads the cap cut.
+/// `cap` is the most of a subscriber's records a via reads.
 pub fn relationships_(
     g: &Graph,
     cx: &ReadCx<'_>,
     rels: &[RelId],
+    vias: &[ViaArgs],
+    cap: usize,
     req: &RelationshipsRequest,
-) -> R<RelationshipsResponse> {
+) -> R<(RelationshipsResponse, ViaCuts)> {
     let others: Vec<&str> = req.others.iter().map(String::as_str).collect();
-    let rows = g.relationships(cx, &req.actor, &others, rels)?;
+    let rows = g.relationships(cx, &req.actor, &others, rels);
     let actor_hidden = g.hidden(&req.actor);
+    // a hidden actor or other answers no via, as it has no edges
+    let via = if vias.is_empty() {
+        Ok((Vec::new(), ViaCuts::default()))
+    } else {
+        let actor = g.id_of(&req.actor).filter(|_| !actor_hidden);
+        let ids: Vec<Option<u32>> = others.iter().map(|o| g.id_of(o).filter(|_| !g.hidden(o))).collect();
+        let qs: Vec<ViaQuery> = vias.iter().map(|v| v.query(g)).collect();
+        g.relationships_via(cx, actor, &ids, &qs, cap)
+    };
+    // both asked before either's miss returns, so one pass names both's pages
+    let (rows, (via, cuts)) = (rows?, via?);
     let relationships = req
         .others
         .iter()
         .zip(rows)
-        .map(|(o, per)| {
+        .enumerate()
+        .map(|(j, (o, per))| {
             let hide = actor_hidden || g.hidden(o);
+            let hits: &[ViaHit] = via.get(j).map_or(&[], Vec::as_slice);
             Relationship {
                 other: o.clone(),
                 rels: rels
@@ -276,44 +438,88 @@ pub fn relationships_(
                         ..Default::default()
                     })
                     .collect(),
+                via: hits
+                    .iter()
+                    .map(|h| ViaAnswer { list: list_uri(g, h.list), truncated: h.truncated, ..Default::default() })
+                    .collect(),
                 ..Default::default()
             }
         })
         .collect();
-    Ok(RelationshipsResponse { relationships, ..Default::default() })
+    Ok((RelationshipsResponse { relationships, ..Default::default() }, cuts))
 }
 
-/// BlockPairs, its names resolved. With `uris`, also each hit's record.
-pub fn block_pairs_(g: &Graph, cx: &ReadCx<'_>, rels: &[RelId], req: &BlockPairsRequest) -> R<BlockPairsResponse> {
+/// BlockPairs, its names resolved, and the via reads the cap cut. Without
+/// `via` or `uris` the answer is the direct blocks alone.
+pub fn block_pairs_(
+    g: &Graph,
+    cx: &ReadCx<'_>,
+    rels: &[RelId],
+    via: Option<&PairQuery>,
+    cap: usize,
+    req: &BlockPairsRequest,
+) -> R<(BlockPairsResponse, ViaCuts)> {
     let pairs: Vec<(&str, &str)> = req.pairs.iter().map(|p| (p.a.as_str(), p.b.as_str())).collect();
-    let mut res = g.block_pairs(cx, &pairs, rels)?;
-    if g.any_status() {
-        for (r, (a, b)) in res.iter_mut().zip(&pairs) {
-            if (r.0 || r.1) && (g.hidden(a) || g.hidden(b)) {
+    let res = g.block_pairs(cx, &pairs, rels);
+    let hidden = |(a, b): (&str, &str)| g.any_status() && (g.hidden(a) || g.hidden(b));
+    if via.is_none() && !req.uris {
+        let mut res = res?;
+        for (r, &p) in res.iter_mut().zip(&pairs) {
+            if (r.0 || r.1) && hidden(p) {
                 *r = (false, false);
             }
         }
-    }
-    let mut resp = BlockPairsResponse {
-        a_blocks_b: res.iter().map(|r| r.0).collect(),
-        b_blocks_a: res.iter().map(|r| r.1).collect(),
-        blocked: res.iter().map(|r| r.0 || r.1).collect(),
-        ..Default::default()
-    };
-    if req.uris {
-        // a URI costs a lookup only on a hit, and a hit's DIDs are known
-        let mut pend = Ok(());
-        let mut uri = |hit: bool, from: &str, to: &str| match (hit, g.id_of(from), g.id_of(to)) {
-            (true, Some(f), Some(t)) => item(&mut pend, g.block_uri(cx, rels, f, t)).unwrap_or_default(),
-            _ => String::new(),
+        let resp = BlockPairsResponse {
+            a_blocks_b: res.iter().map(|r| r.0).collect(),
+            b_blocks_a: res.iter().map(|r| r.1).collect(),
+            blocked: res.iter().map(|r| r.0 || r.1).collect(),
+            ..Default::default()
         };
-        for (&(x, y), &(a, b)) in res.iter().zip(&pairs) {
-            resp.a_blocks_b_uri.push(uri(x, a, b));
-            resp.b_blocks_a_uri.push(uri(y, b, a));
+        return Ok((resp, ViaCuts::default()));
+    }
+    // an unknown or hidden DID blocks nobody and is blocked by nobody
+    let ids: Vec<Option<(u32, u32)>> =
+        pairs.iter().map(|&p| g.id_of(p.0).zip(g.id_of(p.1)).filter(|_| !hidden(p))).collect();
+    let lists = via.map(|q| g.block_pairs_via(cx, &ids, q, cap)).transpose();
+    let (res, lists) = (res?, lists?);
+    let (lists, cuts) = lists.unwrap_or_default();
+    let direct: Vec<(bool, bool)> =
+        res.iter().zip(&ids).map(|(&r, id)| if id.is_some() { r } else { (false, false) }).collect();
+    let mut resp = BlockPairsResponse::default();
+    if req.uris {
+        let mut pend = Ok(());
+        for (&(x, y), id) in direct.iter().zip(&ids) {
+            let Some((a, b)) = *id else {
+                resp.a_blocks_b_uri.push(String::new());
+                resp.b_blocks_a_uri.push(String::new());
+                continue;
+            };
+            // a URI costs a lookup only on a hit
+            let uri = |hit: bool, from: u32, to: u32, pend: &mut R<()>| {
+                if hit {
+                    item(pend, g.block_uri(cx, rels, from, to)).unwrap_or_default()
+                } else {
+                    String::new()
+                }
+            };
+            resp.a_blocks_b_uri.push(uri(x, a, b, &mut pend));
+            resp.b_blocks_a_uri.push(uri(y, b, a, &mut pend));
         }
         pend?;
     }
-    Ok(resp)
+    for (k, &(x, y)) in direct.iter().enumerate() {
+        let (lx, ly) = lists.get(k).copied().unwrap_or_default();
+        resp.a_blocks_b.push(x);
+        resp.b_blocks_a.push(y);
+        resp.blocked.push(x || y || lx.list.is_some() || ly.list.is_some());
+        if via.is_some() {
+            resp.a_blocks_b_list.push(list_uri(g, lx.list));
+            resp.b_blocks_a_list.push(list_uri(g, ly.list));
+            resp.a_blocks_b_truncated.push(lx.truncated);
+            resp.b_blocks_a_truncated.push(ly.truncated);
+        }
+    }
+    Ok((resp, cuts))
 }
 
 pub fn list_out_(g: &Graph, cx: &ReadCx<'_>, rel: RelId, req: &ListOutRequest) -> R<ListOutResponse> {
@@ -669,15 +875,16 @@ impl svc::Graph for GraphApi {
         if req.others.len() > 100 {
             return Err(bad("at most 100 others"));
         }
-        let rels = {
+        let (rels, vias) = {
             let g = self.0.graph();
-            if req.rels.is_empty() {
-                g.relations().actor_rels()
-            } else {
-                rel_ids(&g, &req.rels)?
-            }
+            let rels = if req.rels.is_empty() { g.relations().actor_rels() } else { rel_ids(&g, &req.rels)? };
+            (rels, vias_of(&g, &req.via)?)
         };
-        let resp = run(&self.0, &ctx, "Graph/Relationships", move |g, cx| relationships_(g, cx, &rels, &req)).await?;
+        let cap = self.0.cfg.via_max_records;
+        let (resp, cuts) =
+            run(&self.0, &ctx, "Graph/Relationships", move |g, cx| relationships_(g, cx, &rels, &vias, cap, &req))
+                .await?;
+        crate::metrics::via_truncated("Graph/Relationships", cuts);
         Response::ok(resp)
     }
 
@@ -691,8 +898,16 @@ impl svc::Graph for GraphApi {
         if req.pairs.len() > MAX_BLOCK_PAIRS {
             return Err(bad(format!("at most {MAX_BLOCK_PAIRS} pairs")));
         }
-        let rels = block_pair_rels(&self.0.graph(), &req.rels)?;
-        let resp = run(&self.0, &ctx, "Graph/BlockPairs", move |g, cx| block_pairs_(g, cx, &rels, &req)).await?;
+        let (rels, via) = {
+            let g = self.0.graph();
+            let via = req.via.as_option().map(|v| pair_via_of(&g, v)).transpose()?;
+            (block_pair_rels(&g, &req.rels)?, via)
+        };
+        let cap = self.0.cfg.via_max_records;
+        let (resp, cuts) =
+            run(&self.0, &ctx, "Graph/BlockPairs", move |g, cx| block_pairs_(g, cx, &rels, via.as_ref(), cap, &req))
+                .await?;
+        crate::metrics::via_truncated("Graph/BlockPairs", cuts);
         Response::ok(resp)
     }
 

@@ -94,6 +94,9 @@ pub struct Config {
     /// The pace of background I/O (`--background-io`): compactions,
     /// checkpoint writes, verify and list stats.
     pub background: marco_core::store::io::Rate,
+    /// The most of a subscriber's newest records a via reads
+    /// (`--via-max-records`).
+    pub via_max_records: usize,
 }
 
 /// Distinct pages failing on the device within the storm window that take
@@ -130,6 +133,7 @@ impl Config {
             memory_limit: None,
             compaction: marco_core::CompactPolicy::default(),
             background: marco_core::store::io::Rate::default(),
+            via_max_records: marco_core::graph::VIA_MAX_RECORDS,
         }
     }
 }

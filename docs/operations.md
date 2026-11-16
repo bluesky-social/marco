@@ -119,6 +119,7 @@ console's Settings page shows each one's value and where it came from.
 | `--memory` | `MARCO_MEMORY` | | Required: the store's budget (`13GiB`, `6G`), its pinned sections, page cache and tables. Pages are read with `O_DIRECT` into the cache, every one checked against its sum; when the budget holds them all, open loads every page. It must hold the pinned sections, the shards' index and heads a second time (a checkpoint reads them again beside the old until its switch), and 2 GiB more, or marco won't start. The graph's deltas and the process live outside it, up to what `--memory-limit` leaves. |
 | `--memory-limit` | `MARCO_MEMORY_LIMIT` | the cgroup's `memory.max` | The whole process's limit (`8GiB`, or `none`). What the process holds beside `--memory` (the graph's deltas in both served copies, a checkpoint's replay, requests) past the limit less `--memory` less 512 MiB comes out of the cache, so a day of writes and its checkpoint stay under it. `marco_process_beside_bytes` is what it holds, `marco_store_bytes{part="reserved"}` what the cache gave up for it. |
 | `--miss-threads` | `MARCO_MISS_THREADS` | 64 | The threads a request that misses the cache moves to. A request that waits over a second for one gets `resource_exhausted`. |
+| `--via-max-records` | `MARCO_VIA_MAX_RECORDS` | 1000 | The most of a subscriber's newest records a `via` reads, whichever call or side names it ([What a via reads](query-api.md#what-a-via-reads)). An empty answer from a read this stopped says it's truncated. |
 | `--edges-among-max-actors` | `MARCO_EDGES_AMONG_MAX_ACTORS` | 10000 | The most actors an `EdgesAmong` request takes ([Query API](query-api.md#edgesamong)). |
 | `--trace-ratio` | `MARCO_TRACE_RATIO` | 0 | The share of ops that get a span, 0 to 1. |
 | `--otlp URL` | `MARCO_OTLP` | | An OTLP/HTTP collector's base URL for spans. |
@@ -148,6 +149,7 @@ A scraper that can't send the token reads the same text from `--ops-listen`, whi
 |---|---|---|
 | `marco_rpc_seconds` | `rpc`, `path` | RPC time in the server, request decoded to response encoded; `path` is `fast` (served on its worker) or `pool` (moved to the miss pool) |
 | `marco_rpc_errors_total` | `rpc`, `status` | RPCs that failed |
+| `marco_via_truncated_total` | `rpc`, `reason` | A subscriber's lists a `via` read only in part ([What a via reads](query-api.md#what-a-via-reads)): `cap`, it has more records than `--via-max-records`, or `deletes`, more deletes since the last checkpoint than a read passes |
 | `marco_proxy_header_refused_total` | | Connections from `--proxy-protocol-from` closed for a missing or bad PROXY v2 header |
 | `marco_op_seconds` | `op`, `rel` | API op latency: `has`, `relationships`, `out_list`, `in_list`, `counts`, `intersect`, `filter`, `add`, `delete` |
 | `marco_op_results_total` | `op`, `rel` | Items API ops returned |

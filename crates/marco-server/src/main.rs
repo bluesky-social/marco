@@ -156,6 +156,10 @@ struct Serve {
     /// Threads a request that misses the engine's cache moves to.
     #[arg(long, env = "MARCO_MISS_THREADS", default_value_t = 64)]
     miss_threads: usize,
+    /// The most of a subscriber's newest records a via reads (Relationships and BlockPairs), whichever
+    /// call or side names it. An empty answer that a read this cap stopped says so.
+    #[arg(long, env = "MARCO_VIA_MAX_RECORDS", default_value_t = marco_core::graph::VIA_MAX_RECORDS)]
+    via_max_records: usize,
     /// The most actors one EdgesAmong request takes.
     #[arg(long, env = "MARCO_EDGES_AMONG_MAX_ACTORS", default_value_t = marco_server::graph_svc::EDGES_AMONG_MAX)]
     edges_among_max_actors: usize,
@@ -218,6 +222,7 @@ fn flags(m: &ArgMatches, s: &Serve) -> Vec<FlagInfo> {
         ("memory", s.memory.clone()),
         ("memory_limit", s.memory_limit.clone().unwrap_or_else(|| "cgroup".into())),
         ("miss_threads", s.miss_threads.to_string()),
+        ("via_max_records", s.via_max_records.to_string()),
         ("edges_among_max_actors", s.edges_among_max_actors.to_string()),
         ("jetstream", s.jetstream.clone().unwrap_or_else(|| "—".into())),
         ("jetstream_v2", s.jetstream_v2.clone().unwrap_or_else(|| "—".into())),
@@ -358,6 +363,9 @@ fn main() -> Result<()> {
             if s.miss_threads == 0 {
                 bail!("--miss-threads must be at least 1");
             }
+            if s.via_max_records == 0 {
+                bail!("--via-max-records must be at least 1");
+            }
             let cfg = Config {
                 read_only: s.read_only,
                 api_read_only: s.api_read_only,
@@ -382,6 +390,7 @@ fn main() -> Result<()> {
                 expected_sources: source.iter().map(|s| s.name.clone()).collect(),
                 storage,
                 miss_threads: s.miss_threads,
+                via_max_records: s.via_max_records,
                 edges_among_max: s.edges_among_max_actors,
                 memory_limit,
                 ..Config::new(s.snapshot.clone())
