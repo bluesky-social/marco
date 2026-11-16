@@ -131,9 +131,16 @@ pub async fn serve(app: Arc<App>, ui: Arc<ui::Ui>) -> Result<(SocketAddr, Socket
         .with_context(|| format!("bind --admin-listen {}", app.cfg.admin_listen))?;
     let (a1, a2) = (api.local_addr()?, admin.local_addr()?);
     let r1 = api_router(&app).merge(ui::docs_routes(ui.clone(), false)).into_make_service_with_connect_info::<Peer>();
-    let r2 = admin_router(&app, ui).into_make_service_with_connect_info::<Peer>();
+    let r2 = admin_router(&app, ui.clone()).into_make_service_with_connect_info::<Peer>();
     let from = &app.cfg.auth.proxy_protocol_from;
     let (api, admin) = (PeerListener::new(api, from.clone())?, PeerListener::new(admin, from.clone())?);
+    if let Some(addr) = &app.cfg.api_listen_extra {
+        let l = tokio::net::TcpListener::bind(addr).await.with_context(|| format!("bind --listen-extra {addr}"))?;
+        let extra = PeerListener::new(l, from.clone())?;
+        let r =
+            api_router(&app).merge(ui::docs_routes(ui.clone(), false)).into_make_service_with_connect_info::<Peer>();
+        tokio::spawn(async move { axum::serve(extra, r).await });
+    }
     tokio::spawn(async move { axum::serve(api, r1).await });
     tokio::spawn(async move { axum::serve(admin, r2).await });
     series::spawn(app);

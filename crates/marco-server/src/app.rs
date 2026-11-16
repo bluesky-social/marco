@@ -61,6 +61,8 @@ pub struct Config {
     pub admin_listen: String,
     /// /metrics and pprof without a token, for a scraper; off when None.
     pub ops_listen: Option<String>,
+    /// A second API listener (the same routes as `api_listen`), for a port the host can publish; off when None.
+    pub api_listen_extra: Option<String>,
     pub auth: AuthConfig,
     pub flags: Vec<FlagInfo>,
     /// How often the writes applied are written as a change segment.
@@ -110,6 +112,7 @@ impl Config {
             api_listen: "127.0.0.1:0".into(),
             admin_listen: "127.0.0.1:0".into(),
             ops_listen: None,
+            api_listen_extra: None,
             auth: AuthConfig::default(),
             flags: Vec::new(),
             segment_interval: Duration::from_secs(5),

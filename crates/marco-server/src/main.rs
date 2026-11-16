@@ -53,6 +53,10 @@ struct Serve {
     /// /metrics and /debug/pprof/{profile,heap} with no token, for a scraper. Keep it private; off by default.
     #[arg(long, env = "MARCO_OPS_LISTEN")]
     ops_listen: Option<String>,
+    /// A second listener with the same routes as --listen, on a port the host publishes to its LAN (the
+    /// mesh's service port isn't reachable that way). Off by default.
+    #[arg(long, env = "MARCO_LISTEN_EXTRA")]
+    listen_extra: Option<String>,
     /// A file holding the admin token. Without it (or a proxy header) Admin and Graph writes are off.
     #[arg(long, env = "MARCO_ADMIN_TOKEN_FILE")]
     admin_token_file: Option<PathBuf>,
@@ -358,6 +362,7 @@ fn main() -> Result<()> {
                 api_listen: s.listen.clone(),
                 admin_listen: s.admin_listen.clone(),
                 ops_listen: s.ops_listen.clone(),
+                api_listen_extra: s.listen_extra.clone(),
                 auth: auth(&s)?,
                 flags: flags(m, &s),
                 segment_interval: std::time::Duration::from_secs_f64(s.segment_interval),
