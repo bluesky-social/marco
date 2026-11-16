@@ -236,6 +236,7 @@ function Explorer() {
             run()
           }}
         >
+          <p className="ex-about">{call.about}</p>
           <div className="ex-tip" title={call.tip.replace(/`/g, '')}>
             <code>POST /marco.v1.Graph/{call.name}</code>
           </div>

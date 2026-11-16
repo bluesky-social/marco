@@ -171,6 +171,13 @@
 .ex-tip {
   cursor: help;
 }
+.ex-about {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink);
+  max-width: 46ch;
+}
 .ex-presets {
   display: flex;
   flex-wrap: wrap;

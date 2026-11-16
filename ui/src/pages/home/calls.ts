@@ -26,6 +26,8 @@ export type Values = Record<string, string>
 export type Call = {
   name: string
   hint: string
+  /** One plain sentence on what the call answers, shown above the form. */
+  about: string
   tip: string
   fields: Field[]
   defaults: Values
@@ -49,6 +51,7 @@ const dir = (s: string) => (s === 'in' ? 'DIR_IN' : 'DIR_OUT')
 export const CALLS: Call[] = [
   {
     name: 'Has',
+    about: 'Checks whether one account follows (or blocks, or lists) another, and gives the record if it does.',
     hint: 'a → b',
     tip: 'The newest `rel` record of `from` naming `to`: its AT URI, or empty',
     fields: [
@@ -61,6 +64,7 @@ export const CALLS: Call[] = [
   },
   {
     name: 'Relationships',
+    about: 'Shows how one account and up to 100 others are connected: who follows or blocks whom, in both directions.',
     hint: '1 × n',
     tip: 'Per other and relation: the actor’s record naming it and its record naming the actor. At most 100 others',
     fields: [
@@ -73,6 +77,7 @@ export const CALLS: Call[] = [
   },
   {
     name: 'BlockPairs',
+    about: 'For each pair of accounts, says whether either one blocks the other.',
     hint: 'n pairs',
     tip: 'Per pair: whether a blocks b and whether b blocks a. At most 1,000 pairs',
     fields: [
@@ -91,6 +96,7 @@ export const CALLS: Call[] = [
   },
   {
     name: 'EdgesAmong',
+    about: "Finds every follow or block between accounts in a group, to show how tightly they're connected.",
     hint: 'n × n',
     tip: 'Every edge whose actor and subject are both in the set, with counts per relation. At most 10,000 actors',
     fields: [
@@ -103,6 +109,7 @@ export const CALLS: Call[] = [
   },
   {
     name: 'ListOut',
+    about: "Lists what an account points at, newest first: who it follows, or who's on a list.",
     hint: 'out →',
     tip: 'An actor’s records, newest first: its follows, or a list’s members',
     fields: [
@@ -117,6 +124,7 @@ export const CALLS: Call[] = [
   },
   {
     name: 'ListIn',
+    about: "Lists the accounts pointing at someone: their followers, or the lists they're on.",
     hint: '← in',
     tip: 'The actors naming a subject, in id order: its followers',
     fields: [
@@ -130,6 +138,7 @@ export const CALLS: Call[] = [
   },
   {
     name: 'Counts',
+    about: "Counts each account's follows, followers and blocks.",
     hint: 'totals',
     tip: 'Per actor and relation: out records, in actors and distinct out subjects. At most 100 actors',
     fields: [
@@ -141,6 +150,7 @@ export const CALLS: Call[] = [
   },
   {
     name: 'Intersect',
+    about: "Compares two groups of accounts and returns who's in both, or in the first but not the second, like the followers two people share.",
     hint: 'a ∩ b',
     tip: 'The actors in both sides, or in a and not b. A side can be a list',
     fields: [
@@ -172,6 +182,7 @@ export const CALLS: Call[] = [
   },
   {
     name: 'Filter',
+    about: "Takes a set of accounts and removes the ones a viewer shouldn't be shown, such as anyone they block or who blocks them.",
     hint: 'drop',
     tip: 'The actors, less any a drop rule matches for the viewer',
     fields: [
