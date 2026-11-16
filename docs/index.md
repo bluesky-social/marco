@@ -41,3 +41,4 @@ Served unchanged at `/docs/<name>.html` and linked from the site.
 | [Read mix](read-mix.html) | Real app traffic turned into marco calls per active user |
 | [Rebuild from Scylla, measured](scylla-results.html) | scan-scylla on the whole network: scan, build, catch-up, correctness |
 | [Lists](lists-results.html) | The whole network with lists: size, build, list lookups and set operations |
+| [Via, measured](via-results.html) | List blocks by `via` on a synthetic graph: every request shape, the adversarial accounts, the read cap at 1,000 and 100 |
