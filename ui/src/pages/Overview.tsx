@@ -77,7 +77,7 @@ export function useAttention(o?: GetOverviewResponse, sh?: ListShardsResponse) {
   return items
 }
 
-const READ_RPCS = ['Has', 'Relationships', 'Counts', 'ListOut', 'ListIn', 'Intersect', 'Filter'].map((m) => `Graph/${m}`)
+const READ_RPCS = ['Has', 'Relationships', 'BlockPairs', 'Counts', 'ListOut', 'ListIn', 'Intersect', 'Filter', 'EdgesAmong'].map((m) => `Graph/${m}`)
 export const readRate = (s?: GetSeriesResponse) =>
   READ_RPCS.reduce<number[]>((acc, rpc) => {
     const v = sum(s, { metric: 'rpc_rate', rpc })

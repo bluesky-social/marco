@@ -22,11 +22,12 @@ pub enum Op {
     Intersect,
     Filter,
     BlockPairs,
+    EdgesAmong,
     Add,
     Delete,
 }
 
-pub const OPS: [Op; 10] = [
+pub const OPS: [Op; 11] = [
     Op::Has,
     Op::Relationships,
     Op::OutList,
@@ -35,6 +36,7 @@ pub const OPS: [Op; 10] = [
     Op::Intersect,
     Op::Filter,
     Op::BlockPairs,
+    Op::EdgesAmong,
     Op::Add,
     Op::Delete,
 ];
@@ -50,6 +52,7 @@ impl Op {
             Op::Intersect => "intersect",
             Op::Filter => "filter",
             Op::BlockPairs => "block_pairs",
+            Op::EdgesAmong => "edges_among",
             Op::Add => "add",
             Op::Delete => "delete",
         }

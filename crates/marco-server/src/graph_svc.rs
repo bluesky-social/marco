@@ -5,7 +5,7 @@ use std::sync::Arc;
 use connectrpc::{ConnectError, InboundStream, RequestContext, Response, ServiceRequest, ServiceResult};
 use futures::StreamExt;
 use marco_core::read::{Hold, ReadCx, StorageError, R};
-use marco_core::{Dir, Graph, ListRef, RelId, SetOp, COUNT_EXACT};
+use marco_core::{AmongPlan, Dir, Graph, ListRef, RelId, SetOp, COUNT_EXACT};
 use marco_proto::connect::marco::v1 as svc;
 use marco_proto::v1::__buffa::oneof::{write_op, write_result};
 use marco_proto::v1::*;
@@ -54,6 +54,18 @@ pub fn dir_pb(d: Dir) -> buffa::EnumValue<marco_proto::v1::Dir> {
 /// Pairs a BlockPairs call takes: a thread's hydration is under 100, so
 /// this only stops a runaway caller.
 pub const MAX_BLOCK_PAIRS: usize = 1000;
+
+/// Actors an EdgesAmong request takes by default (`--edges-among-max-actors`).
+pub const EDGES_AMONG_MAX: usize = 10_000;
+
+/// EdgesAmong requests of more actors than this run on the miss pool from
+/// the start: a set of 500 popular accounts takes ~25 ms, too long to hold
+/// a worker.
+pub const EDGES_AMONG_ON_WORKER: usize = 100;
+
+/// How long an EdgesAmong request may run, at most: its client's deadline
+/// if sooner.
+pub const EDGES_AMONG_DEADLINE: std::time::Duration = std::time::Duration::from_secs(5);
 
 fn limit(l: u32, def: u32, max: u32) -> usize {
     (if l == 0 { def } else { l.min(max) }) as usize
@@ -167,17 +179,40 @@ async fn run_with<T: Send + 'static>(
         let g = app.graph();
         app.engine.pass(&mut Hold::none(), |cx| f(&g, cx))
     };
-    let m = match first {
+    match first {
         Ok(t) => {
             observe(rpc, 0, 0);
-            return Ok(t);
+            Ok(t)
         }
-        Err(m) => m,
-    };
+        Err(m) => on_pool(app, ctx, rpc, job, Some(m), f).await,
+    }
+}
+
+/// [`run`] for a read too long for a worker's pass, such as a big
+/// EdgesAmong: every pass runs on the miss pool.
+pub async fn run_on_pool<T: Send + 'static>(
+    app: &Arc<App>,
+    ctx: &RequestContext,
+    rpc: &'static str,
+    f: impl Fn(&Graph, &ReadCx<'_>) -> R<T> + Send + 'static,
+) -> Result<T, ConnectError> {
+    on_pool(app, ctx, rpc, false, None, f).await
+}
+
+async fn on_pool<T: Send + 'static>(
+    app: &Arc<App>,
+    ctx: &RequestContext,
+    rpc: &'static str,
+    job: bool,
+    first: Option<marco_core::read::Misses>,
+    f: impl Fn(&Graph, &ReadCx<'_>) -> R<T> + Send + 'static,
+) -> Result<T, ConnectError> {
     crate::metrics::set_path("pool");
     let limit = if job { app.engine.job_limit() } else { app.engine.page_limit() };
-    if m.needed() > limit {
-        return Err(storage_error(StorageError::TooBig { pages: m.needed(), limit }));
+    if let Some(m) = &first {
+        if m.needed() > limit {
+            return Err(storage_error(StorageError::TooBig { pages: m.needed(), limit }));
+        }
     }
     let wait = ctx.time_remaining().map_or(BUSY_WAIT, |r| r.min(BUSY_WAIT));
     let a = app.clone();
@@ -185,7 +220,7 @@ async fn run_with<T: Send + 'static>(
         .miss_pool
         .run(wait, move || {
             let mut hold = if job { Hold::job(&a.engine) } else { Hold::request(&a.engine) };
-            let r = a.engine.resume_blocking(&mut hold, Some(m), |cx| {
+            let r = a.engine.resume_blocking(&mut hold, first, |cx| {
                 let g = a.graph();
                 f(&g, cx)
             });
@@ -498,6 +533,91 @@ pub fn filter_(g: &Graph, cx: &ReadCx<'_>, q: &FilterArgs, req: &FilterRequest) 
     Ok(FilterResponse { actors, dropped, ..Default::default() })
 }
 
+/// An EdgesAmong request with its relations resolved.
+#[derive(Clone)]
+pub struct AmongArgs {
+    pub actors: Vec<String>,
+    pub rels: Vec<RelId>,
+    pub limit: usize,
+    pub plan: AmongPlan,
+}
+
+impl AmongArgs {
+    pub fn of(g: &Graph, req: &EdgesAmongRequest, max: usize) -> Result<AmongArgs, ConnectError> {
+        if req.actors.len() > max {
+            return Err(bad(format!("at most {max} actors")));
+        }
+        let rels = if req.rels.is_empty() {
+            g.relations().actor_rels()
+        } else {
+            req.rels.iter().map(|n| rel_id(g, n)).collect::<Result<Vec<_>, _>>()?
+        };
+        let rs = g.relations();
+        for &r in &rels {
+            let name = &rs.get(r).name;
+            if rs.is_list(r) || rs.is_owner(r) {
+                return Err(bad(format!("{name:?} is a list relation: its actors are lists")));
+            }
+            if rs.is_uri_subject(r) {
+                return Err(bad(format!("{name:?}'s subjects are records, not actors")));
+            }
+        }
+        Ok(AmongArgs {
+            actors: req.actors.clone(),
+            rels,
+            limit: limit(req.limit, 10_000, 50_000),
+            plan: AmongPlan::Auto,
+        })
+    }
+}
+
+/// EdgesAmong; None when `deadline` passed first.
+pub fn edges_among_(
+    g: &Graph,
+    cx: &ReadCx<'_>,
+    q: &AmongArgs,
+    deadline: Option<std::time::Instant>,
+) -> R<Option<EdgesAmongResponse>> {
+    let mut unknown = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+    let mut ids = Vec::with_capacity(q.actors.len());
+    let mut did = std::collections::HashMap::with_capacity(q.actors.len());
+    let status = g.any_status();
+    for a in &q.actors {
+        match g.id_of(a) {
+            None if seen.insert(a.as_str()) => unknown.push(a.clone()),
+            None => {}
+            Some(id) if !(status && g.hidden_id(id)) => {
+                ids.push(id);
+                did.insert(id, a.as_str());
+            }
+            Some(_) => {}
+        }
+    }
+    ids.sort_unstable();
+    ids.dedup();
+    let Some(r) = g.edges_among(cx, &ids, &q.rels, q.limit, q.plan, deadline)? else { return Ok(None) };
+    let name = |rel: RelId| g.relations().get(rel).name.clone();
+    let edges = r
+        .edges
+        .iter()
+        .map(|&(rel, a, s, k)| AmongEdge {
+            from: did[&a].to_string(),
+            rel: name(rel),
+            to: did[&s].to_string(),
+            uri: g.uri(rel, a, k).unwrap_or_default(),
+            ..Default::default()
+        })
+        .collect();
+    let counts = q
+        .rels
+        .iter()
+        .zip(&r.counts)
+        .map(|(&rel, &n)| AmongCount { rel: name(rel), edges: n, ..Default::default() })
+        .collect();
+    Ok(Some(EdgesAmongResponse { edges, counts, unknown, truncated: r.truncated, ..Default::default() }))
+}
+
 /// The relations a BlockPairs request names: block by default, and no
 /// list relation or relation whose subjects are records.
 pub fn block_pair_rels(g: &Graph, names: &[String]) -> Result<Vec<RelId>, ConnectError> {
@@ -621,6 +741,25 @@ impl svc::Graph for GraphApi {
         }
         let q = FilterArgs::of(&self.0.graph(), &req)?;
         Response::ok(run(&self.0, &ctx, "Graph/Filter", move |g, cx| filter_(g, cx, &q, &req)).await?)
+    }
+
+    async fn edges_among(
+        &self,
+        ctx: RequestContext,
+        req: ServiceRequest<'_, EdgesAmongRequest>,
+    ) -> ServiceResult<EdgesAmongResponse> {
+        self.readable()?;
+        let req = req.to_owned_message();
+        let q = AmongArgs::of(&self.0.graph(), &req, self.0.cfg.edges_among_max)?;
+        let budget = ctx.time_remaining().map_or(EDGES_AMONG_DEADLINE, |r| r.min(EDGES_AMONG_DEADLINE));
+        let deadline = Some(std::time::Instant::now() + budget);
+        let f = move |g: &Graph, cx: &ReadCx<'_>| edges_among_(g, cx, &q, deadline);
+        let resp = if req.actors.len() > EDGES_AMONG_ON_WORKER {
+            run_on_pool(&self.0, &ctx, "Graph/EdgesAmong", f).await?
+        } else {
+            run(&self.0, &ctx, "Graph/EdgesAmong", f).await?
+        };
+        resp.map_or_else(|| Err(ConnectError::deadline_exceeded("EdgesAmong ran past its deadline")), Response::ok)
     }
 
     async fn write(&self, _: RequestContext, mut reqs: InboundStream<WriteRequest>) -> ServiceResult<WriteResponse> {

@@ -50,7 +50,9 @@ use crate::snapshot::{
 use crate::store::{Manifest, ShardFile, Store, DEFAULT_SHARDS};
 use crate::varint::u32_at;
 
+mod among;
 mod checkpoint;
+pub use among::{Among, AmongEdge, AmongPlan, AMONG_PROBE_COST};
 pub use checkpoint::{
     BaseSwap, CheckpointReport, CompactPolicy, Compacted, Garbage, Headroom, COMPACTION_STOPPED, SPACE_FILL,
 };

@@ -84,6 +84,8 @@ pub struct Config {
     pub storage: Storage,
     /// Threads a request that misses moves to (`--miss-threads`).
     pub miss_threads: usize,
+    /// The most actors an EdgesAmong request takes (`--edges-among-max-actors`).
+    pub edges_among_max: usize,
     /// The process's memory limit, which the store keeps it under by giving back
     /// cache ([`crate::memory`]); None: no limit to keep.
     pub memory_limit: Option<u64>,
@@ -124,6 +126,7 @@ impl Config {
             load: true,
             storage: Storage::from_env().unwrap_or_else(|e| panic!("{e:#}")),
             miss_threads: 64,
+            edges_among_max: crate::graph_svc::EDGES_AMONG_MAX,
             memory_limit: None,
             compaction: marco_core::CompactPolicy::default(),
             background: marco_core::store::io::Rate::default(),

@@ -53,6 +53,11 @@ service Graph {
   rpc Filter(FilterRequest) returns (FilterResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
+  // Every edge whose actor and subject are both in `actors`: how densely a
+  // set of accounts follows (or blocks) itself. At most 10000 actors.
+  rpc EdgesAmong(EdgesAmongRequest) returns (EdgesAmongResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
   // Ops from a pipeline, many messages on one stream, answered once at the end.
   rpc Write(stream WriteRequest) returns (WriteResponse);
   // Ops in one request. The relation comes from each URI's collection.
@@ -263,6 +268,44 @@ message Dropped {
   // The first rule that dropped it, or "status" for an actor taken down or deleted.
   string rel = 2;
   Dir dir = 3;
+}
+
+message EdgesAmongRequest {
+  // DIDs; a repeat counts once. At most 10000 (the server's
+  // --edges-among-max-actors).
+  repeated string actors = 1;
+  // Empty is every relation between actors (follow and block by default).
+  // A list relation, or one whose subjects are records, is refused.
+  repeated string rels = 2;
+  // The most edges returned, default 10000, at most 50000. Counts are
+  // exact past it.
+  uint32 limit = 3;
+}
+
+message EdgesAmongResponse {
+  // By relation in the order asked, then by actor and subject in id order.
+  // One per (actor, subject) pair, with its newest record.
+  repeated AmongEdge edges = 1;
+  // One per relation, in the order asked.
+  repeated AmongCount counts = 2;
+  // The actors marco has no record of, in the request's order.
+  repeated string unknown = 3;
+  // There were more edges than limit: counts has them all.
+  bool truncated = 4;
+}
+
+message AmongEdge {
+  string from = 1;
+  string rel = 2;
+  string to = 3;
+  // The newest record of `from` naming `to`.
+  string uri = 4;
+}
+
+message AmongCount {
+  string rel = 1;
+  // (actor, subject) pairs among the actors.
+  uint64 edges = 2;
 }
 
 message WriteOp {

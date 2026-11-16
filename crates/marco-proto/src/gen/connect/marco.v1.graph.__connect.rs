@@ -62,6 +62,14 @@ pub type OwnedFilterRequestView = ::buffa::view::OwnedView<
 pub type OwnedFilterResponseView = ::buffa::view::OwnedView<
     crate::proto::marco::v1::__buffa::view::FilterResponseView<'static>,
 >;
+///Shorthand for `OwnedView<EdgesAmongRequestView<'static>>`.
+pub type OwnedEdgesAmongRequestView = ::buffa::view::OwnedView<
+    crate::proto::marco::v1::__buffa::view::EdgesAmongRequestView<'static>,
+>;
+///Shorthand for `OwnedView<EdgesAmongResponseView<'static>>`.
+pub type OwnedEdgesAmongResponseView = ::buffa::view::OwnedView<
+    crate::proto::marco::v1::__buffa::view::EdgesAmongResponseView<'static>,
+>;
 ///Shorthand for `OwnedView<WriteRequestView<'static>>`.
 pub type OwnedWriteRequestView = ::buffa::view::OwnedView<
     crate::proto::marco::v1::__buffa::view::WriteRequestView<'static>,
@@ -350,6 +358,40 @@ for ::buffa::view::OwnedView<
         )
     }
 }
+impl ::connectrpc::Encodable<crate::proto::marco::v1::EdgesAmongResponse>
+for crate::proto::marco::v1::__buffa::view::EdgesAmongResponseView<'_> {
+    fn encode(
+        &self,
+        codec: ::connectrpc::CodecFormat,
+    ) -> ::std::result::Result<::buffa::bytes::Bytes, ::connectrpc::ConnectError> {
+        ::connectrpc::__codegen::encode_view_body(self, codec)
+    }
+}
+impl ::connectrpc::Encodable<crate::proto::marco::v1::EdgesAmongResponse>
+for ::buffa::view::OwnedView<
+    crate::proto::marco::v1::__buffa::view::EdgesAmongResponseView<'static>,
+> {
+    fn encode(
+        &self,
+        codec: ::connectrpc::CodecFormat,
+    ) -> ::std::result::Result<::buffa::bytes::Bytes, ::connectrpc::ConnectError> {
+        ::connectrpc::__codegen::encode_view_body(self.reborrow(), codec)
+    }
+    /// An `OwnedView` still holds the buffer it was decoded from, so
+    /// its large fields can be handed to the response body by
+    /// reference count instead of copied. The bare view impl above
+    /// cannot do this: it has borrows but no buffer to name.
+    fn encode_segments(
+        &self,
+        codec: ::connectrpc::CodecFormat,
+    ) -> ::std::result::Result<::connectrpc::EncodedBody, ::connectrpc::ConnectError> {
+        ::connectrpc::__codegen::encode_view_body_segments(
+            self.reborrow(),
+            self.bytes(),
+            codec,
+        )
+    }
+}
 impl ::connectrpc::Encodable<crate::proto::marco::v1::WriteResponse>
 for crate::proto::marco::v1::__buffa::view::WriteResponseView<'_> {
     fn encode(
@@ -465,6 +507,12 @@ pub const GRAPH_INTERSECT_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::server(
 /// Static [`Spec`](::connectrpc::Spec) for the `Filter` RPC, as seen by the server; the generated client passes it with [`origin`](::connectrpc::Spec::origin) `Client` (compare across sides with [`Spec::same_method`](::connectrpc::Spec::same_method)).
 pub const GRAPH_FILTER_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::server(
         "/marco.v1.Graph/Filter",
+        ::connectrpc::StreamType::Unary,
+    )
+    .with_idempotency_level(::connectrpc::IdempotencyLevel::NoSideEffects);
+/// Static [`Spec`](::connectrpc::Spec) for the `EdgesAmong` RPC, as seen by the server; the generated client passes it with [`origin`](::connectrpc::Spec::origin) `Client` (compare across sides with [`Spec::same_method`](::connectrpc::Spec::same_method)).
+pub const GRAPH_EDGES_AMONG_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::server(
+        "/marco.v1.Graph/EdgesAmong",
         ::connectrpc::StreamType::Unary,
     )
     .with_idempotency_level(::connectrpc::IdempotencyLevel::NoSideEffects);
@@ -717,6 +765,30 @@ pub trait Graph: Send + Sync + 'static {
         Output = ::connectrpc::ServiceResult<
             impl ::connectrpc::Encodable<
                 crate::proto::marco::v1::FilterResponse,
+            > + Send + use<'a, Self>,
+        >,
+    > + Send;
+    /// Every edge whose actor and subject are both in `actors`: how densely a
+    /// set of accounts follows (or blocks) itself. At most 10000 actors.
+    ///
+    /// `'a` lets the response body borrow from `&self` (e.g. server-resident state).
+    ///
+    /// `request` is borrowed from the request body and is valid for the
+    /// duration of the call; message fields are read directly on it
+    /// (zero-copy). The response cannot borrow from `request` — use
+    /// `.to_owned_message()` (or copy the specific fields) for anything
+    /// returned, stored, or moved into `tokio::spawn`.
+    fn edges_among<'a>(
+        &'a self,
+        ctx: ::connectrpc::RequestContext,
+        request: ::connectrpc::ServiceRequest<
+            '_,
+            crate::proto::marco::v1::EdgesAmongRequest,
+        >,
+    ) -> impl ::std::future::Future<
+        Output = ::connectrpc::ServiceResult<
+            impl ::connectrpc::Encodable<
+                crate::proto::marco::v1::EdgesAmongResponse,
             > + Send + use<'a, Self>,
         >,
     > + Send;
@@ -1016,6 +1088,35 @@ impl<S: Graph> GraphExt for S {
                 },
             )
             .with_spec(GRAPH_FILTER_SPEC)
+            .route_view_idempotent(
+                GRAPH_SERVICE_NAME,
+                "EdgesAmong",
+                {
+                    let svc = ::std::sync::Arc::clone(&self);
+                    ::connectrpc::view_handler_fn(move |
+                        ctx,
+                        req: ::buffa::view::OwnedView<
+                            crate::proto::marco::v1::__buffa::view::EdgesAmongRequestView<
+                                'static,
+                            >,
+                        >,
+                        format|
+                    {
+                        let svc = ::std::sync::Arc::clone(&svc);
+                        async move {
+                            let sreq = ::connectrpc::ServiceRequest::<
+                                crate::proto::marco::v1::EdgesAmongRequest,
+                            >::from_parts(req.reborrow(), req.bytes());
+                            svc.edges_among(ctx, sreq)
+                                .await?
+                                .encode::<
+                                    crate::proto::marco::v1::EdgesAmongResponse,
+                                >(format)
+                        }
+                    })
+                },
+            )
+            .with_spec(GRAPH_EDGES_AMONG_SPEC)
             .route_view_client_stream(
                 GRAPH_SERVICE_NAME,
                 "Write",
@@ -1164,6 +1265,12 @@ impl<T: Graph> ::connectrpc::Dispatcher for GraphServer<T> {
                 Some(
                     ::connectrpc::dispatcher::codegen::MethodDescriptor::unary(true)
                         .with_spec(GRAPH_FILTER_SPEC),
+                )
+            }
+            "EdgesAmong" => {
+                Some(
+                    ::connectrpc::dispatcher::codegen::MethodDescriptor::unary(true)
+                        .with_spec(GRAPH_EDGES_AMONG_SPEC),
                 )
             }
             "Write" => {
@@ -1351,6 +1458,26 @@ impl<T: Graph> ::connectrpc::Dispatcher for GraphServer<T> {
                     svc.filter(ctx, req)
                         .await?
                         .encode::<crate::proto::marco::v1::FilterResponse>(format)
+                })
+            }
+            "EdgesAmong" => {
+                let svc = ::std::sync::Arc::clone(&self.inner);
+                Box::pin(async move {
+                    let body = ::connectrpc::dispatcher::codegen::request_proto_bytes::<
+                        crate::proto::marco::v1::EdgesAmongRequest,
+                    >(request.encoded()?, format)?;
+                    let req: crate::proto::marco::v1::__buffa::view::EdgesAmongRequestView<
+                        '_,
+                    > = ::connectrpc::dispatcher::codegen::decode_borrowed_request_view(
+                        &body,
+                        ctx.decode_options(),
+                    )?;
+                    let req = ::connectrpc::ServiceRequest::<
+                        crate::proto::marco::v1::EdgesAmongRequest,
+                    >::from_parts(&req, &body);
+                    svc.edges_among(ctx, req)
+                        .await?
+                        .encode::<crate::proto::marco::v1::EdgesAmongResponse>(format)
                 })
             }
             "WriteBatch" => {
@@ -1816,6 +1943,46 @@ where
                 &self.transport,
                 &self.config,
                 GRAPH_FILTER_SPEC.with_origin(::connectrpc::SpecOrigin::Client),
+                request,
+                options,
+            )
+            .await
+    }
+    /// Call the EdgesAmong RPC. Sends a request to /marco.v1.Graph/EdgesAmong.
+    pub async fn edges_among(
+        &self,
+        request: crate::proto::marco::v1::EdgesAmongRequest,
+    ) -> Result<
+        ::connectrpc::client::UnaryResponse<
+            ::buffa::view::OwnedView<
+                crate::proto::marco::v1::__buffa::view::EdgesAmongResponseView<'static>,
+            >,
+        >,
+        ::connectrpc::ConnectError,
+    > {
+        self.edges_among_with_options(
+                request,
+                ::connectrpc::client::CallOptions::default(),
+            )
+            .await
+    }
+    /// Call the EdgesAmong RPC with explicit per-call options. Options override [`ClientConfig`](::connectrpc::client::ClientConfig) defaults.
+    pub async fn edges_among_with_options(
+        &self,
+        request: crate::proto::marco::v1::EdgesAmongRequest,
+        options: ::connectrpc::client::CallOptions,
+    ) -> Result<
+        ::connectrpc::client::UnaryResponse<
+            ::buffa::view::OwnedView<
+                crate::proto::marco::v1::__buffa::view::EdgesAmongResponseView<'static>,
+            >,
+        >,
+        ::connectrpc::ConnectError,
+    > {
+        ::connectrpc::client::call_unary(
+                &self.transport,
+                &self.config,
+                GRAPH_EDGES_AMONG_SPEC.with_origin(::connectrpc::SpecOrigin::Client),
                 request,
                 options,
             )

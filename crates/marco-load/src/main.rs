@@ -23,6 +23,7 @@ use std::path::PathBuf;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 
+mod among_bench;
 mod bench;
 mod build;
 #[cfg(feature = "scylla")]
@@ -104,6 +105,8 @@ enum Cmd {
     },
     Bench(bench::Args),
     BenchLists(lists_bench::Args),
+    /// EdgesAmong over sets of accounts of several sizes and shapes, every plan.
+    BenchAmong(among_bench::Args),
     Verify(verify::VerifyArgs),
     Replay(verify::ReplayArgs),
     Diff(diff::Args),
@@ -177,6 +180,7 @@ fn main() -> Result<()> {
         Cmd::Open { snapshot } => bench::open(&snapshot)?,
         Cmd::Bench(a) => bench::run(&a)?,
         Cmd::BenchLists(a) => lists_bench::run(&a)?,
+        Cmd::BenchAmong(a) => among_bench::run(&a)?,
         Cmd::Verify(a) => verify::verify(&a)?,
         Cmd::Replay(a) => verify::replay(&a)?,
         Cmd::Diff(a) => diff::run(&a)?,

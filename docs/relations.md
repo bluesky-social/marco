@@ -194,7 +194,8 @@ as an edge, and the write API keeps every add. So an exporter writes a row only 
 it refuses a relation with `when` or `$self` ([Rebuilding from Scylla](scylla.md)).
 
 Reads that compare two actors leave these relations out. `Relationships` without `rels` means the
-relations between actors, and `BlockPairs` refuses one in `rels` as it refuses a list relation.
+relations between actors, and `BlockPairs` and `EdgesAmong` refuse one in `rels` as they refuse a
+list relation.
 Named in `rels`, `Relationships` takes list URIs as `others`, so
 `{"actor":"<did>","others":["<list URI>"],"rels":["listblock"]}` gives the actor's subscription
 to each list. In the build input, the `subject` column holds the record's URI

@@ -18,6 +18,7 @@ const RPC_OP: [string, string][] = [
   ['ListIn', 'in_list'],
   ['Intersect', 'intersect'],
   ['Filter', 'filter'],
+  ['EdgesAmong', 'edges_among'],
   ['WriteBatch', 'add'],
   ['Write', 'add'],
 ]

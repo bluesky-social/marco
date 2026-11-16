@@ -5,7 +5,7 @@
 // about your own instance. When `marco serve --public-url` puts the origin in
 // <meta name="marco-public-url">, DocsApp swaps it into those spans.
 
-export const READ_RPCS = ['Has', 'Relationships', 'BlockPairs', 'ListOut', 'ListIn', 'Counts', 'Intersect', 'Filter']
+export const READ_RPCS = ['Has', 'Relationships', 'BlockPairs', 'ListOut', 'ListIn', 'Counts', 'Intersect', 'Filter', 'EdgesAmong']
 const PUBLIC_PATH = new RegExp(`^/(?:marco\\.v1\\.Graph/(?:${READ_RPCS.join('|')})|readyz|healthz|docs)(?![\\w.])`)
 // highlighted HTML: a quote is an entity, so a path stops at `&`
 const ORIGIN = /(?:https?:\/\/)?localhost:7300(?=(\/[^\s&<"]*)?)/g

@@ -2,7 +2,7 @@
 title: Query API
 section: marco
 order: 4
-summary: "marco.v1.Graph: Has, Relationships, ListOut and ListIn, Counts, Intersect and Filter. JSON or protobuf over HTTP, gRPC and gRPC-Web, all on one port."
+summary: "marco.v1.Graph: Has, Relationships, ListOut and ListIn, Counts, Intersect, Filter and EdgesAmong. JSON or protobuf over HTTP, gRPC and gRPC-Web, all on one port."
 ---
 
 ```hero
@@ -19,7 +19,7 @@ diagram:
     - "out.r -> ops.l25"
     - "inn.r -> ops.l75"
 facts:
-  - { value: "8", label: read calls, note: "plus Write and WriteBatch", tone: accent }
+  - { value: "9", label: read calls, note: "plus Write and WriteBatch", tone: accent }
   - { value: "100", label: others per Relationships, note: "and actors per Counts", tone: blue }
   - { value: "1,000", label: actors per Filter, note: "and items per ListOut page", tone: cyan }
   - { value: "3", label: protocols on :7300, note: "Connect · gRPC · gRPC-Web" }
@@ -202,6 +202,99 @@ deleted. When several rules hit, a `rel`/`dir` rule is reported before any `memb
 whatever order the request lists them in. Actors marco doesn't know are kept. A viewer marco doesn't know has no blocks, so only
 `memberOf` rules apply. An unknown or hidden list drops nobody.
 
+## EdgesAmong
+
+```diagram
+caption: "Each edge is found once. A member with a short out log scans it against the set. One whose out log is long next to the set is probed: every member's in set is asked whether it holds it."
+nodes:
+  - { id: set, label: actors, sub: "up to 10,000 DIDs", at: [0, 2.5], size: [9, 3], tone: accent }
+  - { id: scan, label: scan, sub: "out log · hash of the set", at: [14, 0], size: [10, 3], tone: blue }
+  - { id: probe, label: probe, sub: "in sets · long out logs", at: [14, 5], size: [10, 3], tone: cyan }
+  - { id: res, label: edges, sub: "from · rel · to · uri", at: [29, 2.5], size: [10, 3], tone: solid }
+edges:
+  - "set.r -> scan.l: short"
+  - "set.r -> probe.l: long"
+  - "scan.r -> res.l25"
+  - "probe.r -> res.l75"
+```
+
+Every edge whose actor and subject are both in `actors`: who in a set follows (or blocks) whom.
+A farm of accounts that rarely follow each other and a circle where everyone follows everyone look
+the same one account at a time, and this tells them apart in one call.
+
+```bash
+curl -s localhost:7300/marco.v1.Graph/EdgesAmong -H 'content-type: application/json' \
+  -d '{"actors":["did:plc:alice2222222222222222222","did:plc:bob222222222222222222222",
+                 "did:plc:carol2222222222222222222","did:plc:erin2222222222222222222"]}'
+```
+
+```json
+{"edges":[
+  {"from":"did:plc:alice2222222222222222222","rel":"follow","to":"did:plc:bob222222222222222222222",
+   "uri":"at://did:plc:alice2222222222222222222/app.bsky.graph.follow/3mzjs7ys3uz22"},
+  {"from":"did:plc:alice2222222222222222222","rel":"follow","to":"did:plc:carol2222222222222222222",
+   "uri":"at://did:plc:alice2222222222222222222/app.bsky.graph.follow/3mzjs7ys3v222"},
+  {"from":"did:plc:bob222222222222222222222","rel":"follow","to":"did:plc:alice2222222222222222222",
+   "uri":"at://did:plc:bob222222222222222222222/app.bsky.graph.follow/3mzjs7ys3v322"},
+  {"from":"did:plc:carol2222222222222222222","rel":"follow","to":"did:plc:alice2222222222222222222",
+   "uri":"at://did:plc:carol2222222222222222222/app.bsky.graph.follow/3mzjs7ys3v422"}],
+ "counts":[{"rel":"follow","edges":"4"},{"rel":"block"}],
+ "unknown":["did:plc:erin2222222222222222222"]}
+```
+
+- One edge per (actor, subject) pair and relation, with the URI of its newest record, as `Has`
+  gives it.
+- `counts` has every relation asked, in order: the edges among the actors, past `limit` too.
+- `unknown` is the actors marco has no record of, in the request's order. A repeated actor counts
+  once.
+- `rels` empty means the relations between actors (`follow` and `block` by default). A list
+  relation, its `.owner` companion and a relation whose subjects are records (`listblock`,
+  `modlist`) are refused with `invalid_argument`, since their actors or subjects aren't DIDs.
+- An actor that's taken down or deleted has no edges either way, and isn't in `unknown`.
+- Edges come by relation in the order asked, then by actor and subject in id order. `limit`
+  (default 10,000, at most 50,000) caps them, and past it `truncated` is true. A truncated answer
+  holds the first relation's edges first, so ask one relation per call to get some of each.
+
+A subscription to a mod list (`listblock`) or a mod list itself (`modlist`) names a list, not an
+account. Covering them would join through the list: the edges from the set's members to lists,
+then each list's members (`listitem`) in the set, as "a blocks b through list L". That's a
+second kind of edge, with the list as its middle, so it would be a field of its own.
+
+### How it's answered
+
+Per relation, each member is scanned or probed by its out log's length. A member that follows
+fewer than 64 times the set's size scans its out log, testing each subject against a hash of the
+set, and reads its rkeys only for the edges it returns. A member with a longer out log is probed:
+each member's in set is asked, block by block, which of the probed members it holds, and the record
+of each hit is found through the probed member's by-subject index. An edge from a scanned member
+is found by its scan, and one from a probed member by its subject's in set, so none is found
+twice. A small set of popular accounts, each following thousands, is mostly probed, and a big set
+mostly scans.
+
+Measured in the engine on the whole network's follows and blocks (a 47 GB snapshot, warm, on a
+32-thread box), both relations asked, DIDs resolved and URIs built. Sets are drawn from the 20,000
+accounts with the most followers, from accounts that follow and are followed by at most 500, and
+from one account's followers. p99 is over 200 sets of 5 and 50, 40 of 500 and 10 of 5,000.
+
+| Set | Follows among them (mean) | p50 | p99 |
+|---|---|---|---|
+| 5 popular | 3 | 5 µs | 34 µs |
+| 50 popular | 359 | 0.6 ms | 2.1 ms |
+| 500 popular | 34,488 | 27 ms | 34 ms |
+| 5,000 popular | 2,776,227 | 250 ms | 264 ms |
+| 5,000 ordinary | 4 | 4.1 ms | 8.0 ms |
+| 50 followers of one account | 247 | 0.25 ms | 2.4 ms |
+| 500 followers of one account | 23,763 | 16 ms | 56 ms |
+| 5,000 followers of one account | 1,873,276 | 57 ms | 374 ms |
+
+Probing keeps small sets cheap: scanning every member of a set of 5 popular accounts takes 95 µs.
+Scanning keeps big ones cheap: probing every member of 5,000 takes 1.2 s. A request of more than 100 actors runs
+on the miss pool from the start, so a big set never holds a worker.
+
+A request runs for at most 5 seconds, or its client's deadline if sooner, and past that is
+`deadline_exceeded`. Like every read, one that needs more of the cache at once than a request may
+hold is `resource_exhausted`.
+
 ## Lists
 
 A list relation's actor is the list's AT URI, so every call above takes a list:
@@ -228,9 +321,11 @@ move a member past your cursor. The [Relations](relations.md#lists) page has how
 | `ListOut`, `ListIn` | `limit` default 50, at most 1,000 |
 | `Intersect` | `limit` default 100, at most 10,000 |
 | `Filter` | 1,000 actors |
+| `EdgesAmong` | 10,000 actors (`--edges-among-max-actors`), `limit` default 10,000, at most 50,000 |
 | `Write`, `WriteBatch` | 1,000 ops a message |
 
 A request over a limit is `invalid_argument`, except `limit` itself, which is clamped. Errors use
 Connect's codes: `invalid_argument` for a bad request, `unavailable` before ready,
+`deadline_exceeded` for an `EdgesAmong` past its deadline,
 `unauthenticated` for a write without the token, `failed_precondition` for a write to a
 `--read-only` marco.

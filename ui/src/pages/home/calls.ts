@@ -90,6 +90,18 @@ export const CALLS: Call[] = [
     }),
   },
   {
+    name: 'EdgesAmong',
+    hint: 'n × n',
+    tip: 'Every edge whose actor and subject are both in the set, with counts per relation. At most 10,000 actors',
+    fields: [
+      { k: 'actors', label: 'actors', kind: 'actors', tip: 'At most 10,000' },
+      { k: 'rels', label: 'rels', kind: 'rels', placeholder: 'follow, block' },
+      { k: 'limit', label: 'limit', kind: 'int', tip: 'Edges returned: default 10,000, at most 50,000' },
+    ],
+    defaults: { actors: `${BSKY}\n${JAY}\n${BSKY_FOLLOW}`, rels: '', limit: '' },
+    build: (v, did) => ({ actors: lines(v.actors).map(did), rels: list(lines(v.rels)), limit: int(v.limit) }),
+  },
+  {
     name: 'ListOut',
     hint: 'out →',
     tip: 'An actor’s records, newest first: its follows, or a list’s members',

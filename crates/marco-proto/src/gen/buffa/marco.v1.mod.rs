@@ -59,6 +59,10 @@ pub mod __buffa {
         reg.register_json_any(super::__FILTER_REQUEST_JSON_ANY);
         reg.register_json_any(super::__FILTER_RESPONSE_JSON_ANY);
         reg.register_json_any(super::__DROPPED_JSON_ANY);
+        reg.register_json_any(super::__EDGES_AMONG_REQUEST_JSON_ANY);
+        reg.register_json_any(super::__EDGES_AMONG_RESPONSE_JSON_ANY);
+        reg.register_json_any(super::__AMONG_EDGE_JSON_ANY);
+        reg.register_json_any(super::__AMONG_COUNT_JSON_ANY);
         reg.register_json_any(super::__WRITE_OP_JSON_ANY);
         reg.register_json_any(super::__ADD_OP_JSON_ANY);
         reg.register_json_any(super::__DELETE_OP_JSON_ANY);
@@ -224,6 +228,22 @@ pub use self::__buffa::view::FilterResponseOwnedView;
 pub use self::__buffa::view::DroppedView;
 #[doc(inline)]
 pub use self::__buffa::view::DroppedOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::EdgesAmongRequestView;
+#[doc(inline)]
+pub use self::__buffa::view::EdgesAmongRequestOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::EdgesAmongResponseView;
+#[doc(inline)]
+pub use self::__buffa::view::EdgesAmongResponseOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::AmongEdgeView;
+#[doc(inline)]
+pub use self::__buffa::view::AmongEdgeOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::AmongCountView;
+#[doc(inline)]
+pub use self::__buffa::view::AmongCountOwnedView;
 #[doc(inline)]
 pub use self::__buffa::view::WriteOpView;
 #[doc(inline)]

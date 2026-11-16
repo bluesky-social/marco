@@ -156,6 +156,9 @@ struct Serve {
     /// Threads a request that misses the engine's cache moves to.
     #[arg(long, env = "MARCO_MISS_THREADS", default_value_t = 64)]
     miss_threads: usize,
+    /// The most actors one EdgesAmong request takes.
+    #[arg(long, env = "MARCO_EDGES_AMONG_MAX_ACTORS", default_value_t = marco_server::graph_svc::EDGES_AMONG_MAX)]
+    edges_among_max_actors: usize,
     /// Caps the engine's frames below what --memory allows, skipping the minimum-budget check:
     /// for tests that want a starved cache.
     #[arg(long, env = "MARCO_MAX_FRAMES", hide = true)]
@@ -215,6 +218,7 @@ fn flags(m: &ArgMatches, s: &Serve) -> Vec<FlagInfo> {
         ("memory", s.memory.clone()),
         ("memory_limit", s.memory_limit.clone().unwrap_or_else(|| "cgroup".into())),
         ("miss_threads", s.miss_threads.to_string()),
+        ("edges_among_max_actors", s.edges_among_max_actors.to_string()),
         ("jetstream", s.jetstream.clone().unwrap_or_else(|| "—".into())),
         ("jetstream_v2", s.jetstream_v2.clone().unwrap_or_else(|| "—".into())),
         ("firehose", s.firehose.clone().unwrap_or_else(|| "—".into())),
@@ -378,6 +382,7 @@ fn main() -> Result<()> {
                 expected_sources: source.iter().map(|s| s.name.clone()).collect(),
                 storage,
                 miss_threads: s.miss_threads,
+                edges_among_max: s.edges_among_max_actors,
                 memory_limit,
                 ..Config::new(s.snapshot.clone())
             };

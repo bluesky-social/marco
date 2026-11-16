@@ -20,7 +20,7 @@ firehose, or your own pipeline through the write API).
   on" and "these actors less the list's members" are all set operations.
 - **One API.** `marco.v1.Graph` is a ConnectRPC service: gRPC, gRPC-Web and JSON over POST from one
   proto (`proto/marco/v1`). `Has`, `Relationships`, `BlockPairs`, `ListOut`, `ListIn`, `Counts`,
-  `Intersect` and `Filter` read, and `Write` and `WriteBatch` write. → [Query API](docs/query-api.md)
+  `Intersect`, `Filter` and `EdgesAmong` read, and `Write` and `WriteBatch` write. → [Query API](docs/query-api.md)
 - **Several ways to build a snapshot.** `marco-load build` reads build input: zstd RowBinary rows
   per relation, which any exporter can write (a ClickHouse archive export, or a script). If you
   run an appview, `marco-load scan-scylla` reads its follows, blocks and list items tables in

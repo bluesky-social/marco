@@ -76,7 +76,7 @@ export function weighted(s: GetSeriesResponse | undefined, metric: 'op_p50' | 'o
   })
 }
 
-export const READ_OPS = ['has', 'relationships', 'counts', 'out_list', 'in_list', 'intersect', 'filter']
+export const READ_OPS = ['has', 'relationships', 'counts', 'out_list', 'in_list', 'intersect', 'filter', 'edges_among']
 export const WRITE_OPS = ['add', 'delete']
 
 // ---------------------------------------------------------------- writes

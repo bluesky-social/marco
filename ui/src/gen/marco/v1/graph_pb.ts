@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file marco/v1/graph.proto.
  */
 export const file_marco_v1_graph: GenFile = /*@__PURE__*/
-  fileDesc("ChRtYXJjby92MS9ncmFwaC5wcm90bxIIbWFyY28udjEiMwoKSGFzUmVxdWVzdBILCgNyZWwYASABKAkSDAoEZnJvbRgCIAEoCRIKCgJ0bxgDIAEoCSIaCgtIYXNSZXNwb25zZRILCgN1cmkYASABKAkiQwoUUmVsYXRpb25zaGlwc1JlcXVlc3QSDQoFYWN0b3IYASABKAkSDgoGb3RoZXJzGAIgAygJEgwKBHJlbHMYAyADKAkiRgoVUmVsYXRpb25zaGlwc1Jlc3BvbnNlEi0KDXJlbGF0aW9uc2hpcHMYASADKAsyFi5tYXJjby52MS5SZWxhdGlvbnNoaXAiRwoMUmVsYXRpb25zaGlwEg0KBW90aGVyGAEgASgJEigKBHJlbHMYAiADKAsyGi5tYXJjby52MS5SZWxhdGlvbnNoaXBFZGdlIkAKEFJlbGF0aW9uc2hpcEVkZ2USCwoDcmVsGAEgASgJEg8KB291dF91cmkYAiABKAkSDgoGaW5fdXJpGAMgASgJIiEKCUJsb2NrUGFpchIJCgFhGAEgASgJEgkKAWIYAiABKAkiRQoRQmxvY2tQYWlyc1JlcXVlc3QSIgoFcGFpcnMYASADKAsyEy5tYXJjby52MS5CbG9ja1BhaXISDAoEcmVscxgCIAMoCSJNChJCbG9ja1BhaXJzUmVzcG9uc2USEgoKYV9ibG9ja3NfYhgBIAMoCBISCgpiX2Jsb2Nrc19hGAIgAygIEg8KB2Jsb2NrZWQYAyADKAgiXQoOTGlzdE91dFJlcXVlc3QSCwoDcmVsGAEgASgJEg0KBWFjdG9yGAIgASgJEg0KBWxpbWl0GAMgASgNEg4KBmN1cnNvchgEIAEoCRIQCghkaXN0aW5jdBgFIAEoCCJDCg9MaXN0T3V0UmVzcG9uc2USIAoFZWRnZXMYASADKAsyES5tYXJjby52MS5PdXRFZGdlEg4KBmN1cnNvchgCIAEoCSInCgdPdXRFZGdlEgsKA3VyaRgBIAEoCRIPCgdzdWJqZWN0GAIgASgJIkwKDUxpc3RJblJlcXVlc3QSCwoDcmVsGAEgASgJEg8KB3N1YmplY3QYAiABKAkSDQoFbGltaXQYAyABKA0SDgoGY3Vyc29yGAQgASgJIjAKDkxpc3RJblJlc3BvbnNlEg4KBmFjdG9ycxgBIAMoCRIOCgZjdXJzb3IYAiABKAkiLQoNQ291bnRzUmVxdWVzdBIOCgZhY3RvcnMYASADKAkSDAoEcmVscxgCIAMoCSI3Cg5Db3VudHNSZXNwb25zZRIlCgZjb3VudHMYASADKAsyFS5tYXJjby52MS5BY3RvckNvdW50cyI/CgtBY3RvckNvdW50cxINCgVhY3RvchgBIAEoCRIhCgRyZWxzGAIgAygLMhMubWFyY28udjEuUmVsQ291bnRzIlYKCVJlbENvdW50cxILCgNyZWwYASABKAkSEwoLb3V0X3JlY29yZHMYAiABKAQSEQoJaW5fYWN0b3JzGAMgASgEEhQKDG91dF9zdWJqZWN0cxgEIAEoBCJCCghMaXN0U2lkZRILCgNyZWwYASABKAkSGgoDZGlyGAIgASgOMg0ubWFyY28udjEuRGlyEg0KBWFjdG9yGAMgASgJIrABChBJbnRlcnNlY3RSZXF1ZXN0Eh0KAWEYASABKAsyEi5tYXJjby52MS5MaXN0U2lkZRIdCgFiGAIgASgLMhIubWFyY28udjEuTGlzdFNpZGUSDQoFbGltaXQYAyABKA0SGwoCb3AYBCABKA4yDy5tYXJjby52MS5TZXRPcBIOCgZjdXJzb3IYBSABKAkSDQoFY291bnQYBiABKAgSEwoLY291bnRfbGltaXQYByABKA0idgoRSW50ZXJzZWN0UmVzcG9uc2USDgoGYWN0b3JzGAEgAygJEg0KBWFfbGVuGAIgASgEEg0KBWJfbGVuGAMgASgEEg4KBmN1cnNvchgEIAEoCRINCgV0b3RhbBgFIAEoBBIUCgx0b3RhbF9jYXBwZWQYBiABKAgiXAoKRmlsdGVyRHJvcBILCgNyZWwYASABKAkSGgoDZGlyGAIgASgOMg0ubWFyY28udjEuRGlyEiUKCW1lbWJlcl9vZhgDIAEoCzISLm1hcmNvLnYxLkxpc3RTaWRlIlMKDUZpbHRlclJlcXVlc3QSDgoGdmlld2VyGAEgASgJEg4KBmFjdG9ycxgCIAMoCRIiCgRkcm9wGAMgAygLMhQubWFyY28udjEuRmlsdGVyRHJvcCJECg5GaWx0ZXJSZXNwb25zZRIOCgZhY3RvcnMYASADKAkSIgoHZHJvcHBlZBgCIAMoCzIRLm1hcmNvLnYxLkRyb3BwZWQiQQoHRHJvcHBlZBINCgVhY3RvchgBIAEoCRILCgNyZWwYAiABKAkSGgoDZGlyGAMgASgOMg0ubWFyY28udjEuRGlyIlUKB1dyaXRlT3ASHgoDYWRkGAEgASgLMg8ubWFyY28udjEuQWRkT3BIABIkCgZkZWxldGUYAiABKAsyEi5tYXJjby52MS5EZWxldGVPcEgAQgQKAm9wIkQKBUFkZE9wEgsKA3VyaRgBIAEoCRIPCgdzdWJqZWN0GAIgASgJEgwKBGxpc3QYBCABKAkSDwoHdGltZV91cxgDIAEoAyIoCghEZWxldGVPcBILCgN1cmkYASABKAkSDwoHdGltZV91cxgCIAEoAyKHAQoLV3JpdGVSZXN1bHQSDwoFYWRkZWQYASABKAhIABIQCgZleGlzdHMYAiABKAhIABIRCgdkZWxldGVkGAMgASgISAASEQoHcmVtb3ZlZBgEIAEoCUgAEhMKCW5vdF9mb3VuZBgFIAEoCEgAEg8KBWVycm9yGAYgASgJSABCCQoHb3V0Y29tZSI+CgxXcml0ZVJlcXVlc3QSHgoDb3BzGAEgAygLMhEubWFyY28udjEuV3JpdGVPcBIOCgZjdXJzb3IYAiABKAkiRwoNV3JpdGVSZXNwb25zZRImCgdyZXN1bHRzGAEgAygLMhUubWFyY28udjEuV3JpdGVSZXN1bHQSDgoGY3Vyc29yGAIgASgJIkMKEVdyaXRlQmF0Y2hSZXF1ZXN0Eh4KA29wcxgBIAMoCzIRLm1hcmNvLnYxLldyaXRlT3ASDgoGY3Vyc29yGAIgASgJIkwKEldyaXRlQmF0Y2hSZXNwb25zZRImCgdyZXN1bHRzGAEgAygLMhUubWFyY28udjEuV3JpdGVSZXN1bHQSDgoGY3Vyc29yGAIgASgJKjMKA0RpchITCg9ESVJfVU5TUEVDSUZJRUQQABILCgdESVJfT1VUEAESCgoGRElSX0lOEAIqQwoFU2V0T3ASFgoSU0VUX09QX1VOU1BFQ0lGSUVEEAASDgoKU0VUX09QX0FORBABEhIKDlNFVF9PUF9BTkRfTk9UEAIywAUKBUdyYXBoEjcKA0hhcxIULm1hcmNvLnYxLkhhc1JlcXVlc3QaFS5tYXJjby52MS5IYXNSZXNwb25zZSIDkAIBElUKDVJlbGF0aW9uc2hpcHMSHi5tYXJjby52MS5SZWxhdGlvbnNoaXBzUmVxdWVzdBofLm1hcmNvLnYxLlJlbGF0aW9uc2hpcHNSZXNwb25zZSIDkAIBEkwKCkJsb2NrUGFpcnMSGy5tYXJjby52MS5CbG9ja1BhaXJzUmVxdWVzdBocLm1hcmNvLnYxLkJsb2NrUGFpcnNSZXNwb25zZSIDkAIBEkMKB0xpc3RPdXQSGC5tYXJjby52MS5MaXN0T3V0UmVxdWVzdBoZLm1hcmNvLnYxLkxpc3RPdXRSZXNwb25zZSIDkAIBEkAKBkxpc3RJbhIXLm1hcmNvLnYxLkxpc3RJblJlcXVlc3QaGC5tYXJjby52MS5MaXN0SW5SZXNwb25zZSIDkAIBEkAKBkNvdW50cxIXLm1hcmNvLnYxLkNvdW50c1JlcXVlc3QaGC5tYXJjby52MS5Db3VudHNSZXNwb25zZSIDkAIBEkkKCUludGVyc2VjdBIaLm1hcmNvLnYxLkludGVyc2VjdFJlcXVlc3QaGy5tYXJjby52MS5JbnRlcnNlY3RSZXNwb25zZSIDkAIBEkAKBkZpbHRlchIXLm1hcmNvLnYxLkZpbHRlclJlcXVlc3QaGC5tYXJjby52MS5GaWx0ZXJSZXNwb25zZSIDkAIBEjoKBVdyaXRlEhYubWFyY28udjEuV3JpdGVSZXF1ZXN0GhcubWFyY28udjEuV3JpdGVSZXNwb25zZSgBEkcKCldyaXRlQmF0Y2gSGy5tYXJjby52MS5Xcml0ZUJhdGNoUmVxdWVzdBocLm1hcmNvLnYxLldyaXRlQmF0Y2hSZXNwb25zZWIGcHJvdG8z");
+  fileDesc("ChRtYXJjby92MS9ncmFwaC5wcm90bxIIbWFyY28udjEiMwoKSGFzUmVxdWVzdBILCgNyZWwYASABKAkSDAoEZnJvbRgCIAEoCRIKCgJ0bxgDIAEoCSIaCgtIYXNSZXNwb25zZRILCgN1cmkYASABKAkiQwoUUmVsYXRpb25zaGlwc1JlcXVlc3QSDQoFYWN0b3IYASABKAkSDgoGb3RoZXJzGAIgAygJEgwKBHJlbHMYAyADKAkiRgoVUmVsYXRpb25zaGlwc1Jlc3BvbnNlEi0KDXJlbGF0aW9uc2hpcHMYASADKAsyFi5tYXJjby52MS5SZWxhdGlvbnNoaXAiRwoMUmVsYXRpb25zaGlwEg0KBW90aGVyGAEgASgJEigKBHJlbHMYAiADKAsyGi5tYXJjby52MS5SZWxhdGlvbnNoaXBFZGdlIkAKEFJlbGF0aW9uc2hpcEVkZ2USCwoDcmVsGAEgASgJEg8KB291dF91cmkYAiABKAkSDgoGaW5fdXJpGAMgASgJIiEKCUJsb2NrUGFpchIJCgFhGAEgASgJEgkKAWIYAiABKAkiRQoRQmxvY2tQYWlyc1JlcXVlc3QSIgoFcGFpcnMYASADKAsyEy5tYXJjby52MS5CbG9ja1BhaXISDAoEcmVscxgCIAMoCSJNChJCbG9ja1BhaXJzUmVzcG9uc2USEgoKYV9ibG9ja3NfYhgBIAMoCBISCgpiX2Jsb2Nrc19hGAIgAygIEg8KB2Jsb2NrZWQYAyADKAgiXQoOTGlzdE91dFJlcXVlc3QSCwoDcmVsGAEgASgJEg0KBWFjdG9yGAIgASgJEg0KBWxpbWl0GAMgASgNEg4KBmN1cnNvchgEIAEoCRIQCghkaXN0aW5jdBgFIAEoCCJDCg9MaXN0T3V0UmVzcG9uc2USIAoFZWRnZXMYASADKAsyES5tYXJjby52MS5PdXRFZGdlEg4KBmN1cnNvchgCIAEoCSInCgdPdXRFZGdlEgsKA3VyaRgBIAEoCRIPCgdzdWJqZWN0GAIgASgJIkwKDUxpc3RJblJlcXVlc3QSCwoDcmVsGAEgASgJEg8KB3N1YmplY3QYAiABKAkSDQoFbGltaXQYAyABKA0SDgoGY3Vyc29yGAQgASgJIjAKDkxpc3RJblJlc3BvbnNlEg4KBmFjdG9ycxgBIAMoCRIOCgZjdXJzb3IYAiABKAkiLQoNQ291bnRzUmVxdWVzdBIOCgZhY3RvcnMYASADKAkSDAoEcmVscxgCIAMoCSI3Cg5Db3VudHNSZXNwb25zZRIlCgZjb3VudHMYASADKAsyFS5tYXJjby52MS5BY3RvckNvdW50cyI/CgtBY3RvckNvdW50cxINCgVhY3RvchgBIAEoCRIhCgRyZWxzGAIgAygLMhMubWFyY28udjEuUmVsQ291bnRzIlYKCVJlbENvdW50cxILCgNyZWwYASABKAkSEwoLb3V0X3JlY29yZHMYAiABKAQSEQoJaW5fYWN0b3JzGAMgASgEEhQKDG91dF9zdWJqZWN0cxgEIAEoBCJCCghMaXN0U2lkZRILCgNyZWwYASABKAkSGgoDZGlyGAIgASgOMg0ubWFyY28udjEuRGlyEg0KBWFjdG9yGAMgASgJIrABChBJbnRlcnNlY3RSZXF1ZXN0Eh0KAWEYASABKAsyEi5tYXJjby52MS5MaXN0U2lkZRIdCgFiGAIgASgLMhIubWFyY28udjEuTGlzdFNpZGUSDQoFbGltaXQYAyABKA0SGwoCb3AYBCABKA4yDy5tYXJjby52MS5TZXRPcBIOCgZjdXJzb3IYBSABKAkSDQoFY291bnQYBiABKAgSEwoLY291bnRfbGltaXQYByABKA0idgoRSW50ZXJzZWN0UmVzcG9uc2USDgoGYWN0b3JzGAEgAygJEg0KBWFfbGVuGAIgASgEEg0KBWJfbGVuGAMgASgEEg4KBmN1cnNvchgEIAEoCRINCgV0b3RhbBgFIAEoBBIUCgx0b3RhbF9jYXBwZWQYBiABKAgiXAoKRmlsdGVyRHJvcBILCgNyZWwYASABKAkSGgoDZGlyGAIgASgOMg0ubWFyY28udjEuRGlyEiUKCW1lbWJlcl9vZhgDIAEoCzISLm1hcmNvLnYxLkxpc3RTaWRlIlMKDUZpbHRlclJlcXVlc3QSDgoGdmlld2VyGAEgASgJEg4KBmFjdG9ycxgCIAMoCRIiCgRkcm9wGAMgAygLMhQubWFyY28udjEuRmlsdGVyRHJvcCJECg5GaWx0ZXJSZXNwb25zZRIOCgZhY3RvcnMYASADKAkSIgoHZHJvcHBlZBgCIAMoCzIRLm1hcmNvLnYxLkRyb3BwZWQiQQoHRHJvcHBlZBINCgVhY3RvchgBIAEoCRILCgNyZWwYAiABKAkSGgoDZGlyGAMgASgOMg0ubWFyY28udjEuRGlyIkAKEUVkZ2VzQW1vbmdSZXF1ZXN0Eg4KBmFjdG9ycxgBIAMoCRIMCgRyZWxzGAIgAygJEg0KBWxpbWl0GAMgASgNIoIBChJFZGdlc0Ftb25nUmVzcG9uc2USIgoFZWRnZXMYASADKAsyEy5tYXJjby52MS5BbW9uZ0VkZ2USJAoGY291bnRzGAIgAygLMhQubWFyY28udjEuQW1vbmdDb3VudBIPCgd1bmtub3duGAMgAygJEhEKCXRydW5jYXRlZBgEIAEoCCI/CglBbW9uZ0VkZ2USDAoEZnJvbRgBIAEoCRILCgNyZWwYAiABKAkSCgoCdG8YAyABKAkSCwoDdXJpGAQgASgJIigKCkFtb25nQ291bnQSCwoDcmVsGAEgASgJEg0KBWVkZ2VzGAIgASgEIlUKB1dyaXRlT3ASHgoDYWRkGAEgASgLMg8ubWFyY28udjEuQWRkT3BIABIkCgZkZWxldGUYAiABKAsyEi5tYXJjby52MS5EZWxldGVPcEgAQgQKAm9wIkQKBUFkZE9wEgsKA3VyaRgBIAEoCRIPCgdzdWJqZWN0GAIgASgJEgwKBGxpc3QYBCABKAkSDwoHdGltZV91cxgDIAEoAyIoCghEZWxldGVPcBILCgN1cmkYASABKAkSDwoHdGltZV91cxgCIAEoAyKHAQoLV3JpdGVSZXN1bHQSDwoFYWRkZWQYASABKAhIABIQCgZleGlzdHMYAiABKAhIABIRCgdkZWxldGVkGAMgASgISAASEQoHcmVtb3ZlZBgEIAEoCUgAEhMKCW5vdF9mb3VuZBgFIAEoCEgAEg8KBWVycm9yGAYgASgJSABCCQoHb3V0Y29tZSI+CgxXcml0ZVJlcXVlc3QSHgoDb3BzGAEgAygLMhEubWFyY28udjEuV3JpdGVPcBIOCgZjdXJzb3IYAiABKAkiRwoNV3JpdGVSZXNwb25zZRImCgdyZXN1bHRzGAEgAygLMhUubWFyY28udjEuV3JpdGVSZXN1bHQSDgoGY3Vyc29yGAIgASgJIkMKEVdyaXRlQmF0Y2hSZXF1ZXN0Eh4KA29wcxgBIAMoCzIRLm1hcmNvLnYxLldyaXRlT3ASDgoGY3Vyc29yGAIgASgJIkwKEldyaXRlQmF0Y2hSZXNwb25zZRImCgdyZXN1bHRzGAEgAygLMhUubWFyY28udjEuV3JpdGVSZXN1bHQSDgoGY3Vyc29yGAIgASgJKjMKA0RpchITCg9ESVJfVU5TUEVDSUZJRUQQABILCgdESVJfT1VUEAESCgoGRElSX0lOEAIqQwoFU2V0T3ASFgoSU0VUX09QX1VOU1BFQ0lGSUVEEAASDgoKU0VUX09QX0FORBABEhIKDlNFVF9PUF9BTkRfTk9UEAIyjgYKBUdyYXBoEjcKA0hhcxIULm1hcmNvLnYxLkhhc1JlcXVlc3QaFS5tYXJjby52MS5IYXNSZXNwb25zZSIDkAIBElUKDVJlbGF0aW9uc2hpcHMSHi5tYXJjby52MS5SZWxhdGlvbnNoaXBzUmVxdWVzdBofLm1hcmNvLnYxLlJlbGF0aW9uc2hpcHNSZXNwb25zZSIDkAIBEkwKCkJsb2NrUGFpcnMSGy5tYXJjby52MS5CbG9ja1BhaXJzUmVxdWVzdBocLm1hcmNvLnYxLkJsb2NrUGFpcnNSZXNwb25zZSIDkAIBEkMKB0xpc3RPdXQSGC5tYXJjby52MS5MaXN0T3V0UmVxdWVzdBoZLm1hcmNvLnYxLkxpc3RPdXRSZXNwb25zZSIDkAIBEkAKBkxpc3RJbhIXLm1hcmNvLnYxLkxpc3RJblJlcXVlc3QaGC5tYXJjby52MS5MaXN0SW5SZXNwb25zZSIDkAIBEkAKBkNvdW50cxIXLm1hcmNvLnYxLkNvdW50c1JlcXVlc3QaGC5tYXJjby52MS5Db3VudHNSZXNwb25zZSIDkAIBEkkKCUludGVyc2VjdBIaLm1hcmNvLnYxLkludGVyc2VjdFJlcXVlc3QaGy5tYXJjby52MS5JbnRlcnNlY3RSZXNwb25zZSIDkAIBEkAKBkZpbHRlchIXLm1hcmNvLnYxLkZpbHRlclJlcXVlc3QaGC5tYXJjby52MS5GaWx0ZXJSZXNwb25zZSIDkAIBEkwKCkVkZ2VzQW1vbmcSGy5tYXJjby52MS5FZGdlc0Ftb25nUmVxdWVzdBocLm1hcmNvLnYxLkVkZ2VzQW1vbmdSZXNwb25zZSIDkAIBEjoKBVdyaXRlEhYubWFyY28udjEuV3JpdGVSZXF1ZXN0GhcubWFyY28udjEuV3JpdGVSZXNwb25zZSgBEkcKCldyaXRlQmF0Y2gSGy5tYXJjby52MS5Xcml0ZUJhdGNoUmVxdWVzdBocLm1hcmNvLnYxLldyaXRlQmF0Y2hSZXNwb25zZWIGcHJvdG8z");
 
 /**
  * @generated from message marco.v1.HasRequest
@@ -744,6 +744,141 @@ export const DroppedSchema: GenMessage<Dropped> = /*@__PURE__*/
   messageDesc(file_marco_v1_graph, 24);
 
 /**
+ * @generated from message marco.v1.EdgesAmongRequest
+ */
+export type EdgesAmongRequest = Message<"marco.v1.EdgesAmongRequest"> & {
+  /**
+   * DIDs; a repeat counts once. At most 10000 (the server's
+   * --edges-among-max-actors).
+   *
+   * @generated from field: repeated string actors = 1;
+   */
+  actors: string[];
+
+  /**
+   * Empty is every relation between actors (follow and block by default).
+   * A list relation, or one whose subjects are records, is refused.
+   *
+   * @generated from field: repeated string rels = 2;
+   */
+  rels: string[];
+
+  /**
+   * The most edges returned, default 10000, at most 50000. Counts are
+   * exact past it.
+   *
+   * @generated from field: uint32 limit = 3;
+   */
+  limit: number;
+};
+
+/**
+ * Describes the message marco.v1.EdgesAmongRequest.
+ * Use `create(EdgesAmongRequestSchema)` to create a new message.
+ */
+export const EdgesAmongRequestSchema: GenMessage<EdgesAmongRequest> = /*@__PURE__*/
+  messageDesc(file_marco_v1_graph, 25);
+
+/**
+ * @generated from message marco.v1.EdgesAmongResponse
+ */
+export type EdgesAmongResponse = Message<"marco.v1.EdgesAmongResponse"> & {
+  /**
+   * By relation in the order asked, then by actor and subject in id order.
+   * One per (actor, subject) pair, with its newest record.
+   *
+   * @generated from field: repeated marco.v1.AmongEdge edges = 1;
+   */
+  edges: AmongEdge[];
+
+  /**
+   * One per relation, in the order asked.
+   *
+   * @generated from field: repeated marco.v1.AmongCount counts = 2;
+   */
+  counts: AmongCount[];
+
+  /**
+   * The actors marco has no record of, in the request's order.
+   *
+   * @generated from field: repeated string unknown = 3;
+   */
+  unknown: string[];
+
+  /**
+   * There were more edges than limit: counts has them all.
+   *
+   * @generated from field: bool truncated = 4;
+   */
+  truncated: boolean;
+};
+
+/**
+ * Describes the message marco.v1.EdgesAmongResponse.
+ * Use `create(EdgesAmongResponseSchema)` to create a new message.
+ */
+export const EdgesAmongResponseSchema: GenMessage<EdgesAmongResponse> = /*@__PURE__*/
+  messageDesc(file_marco_v1_graph, 26);
+
+/**
+ * @generated from message marco.v1.AmongEdge
+ */
+export type AmongEdge = Message<"marco.v1.AmongEdge"> & {
+  /**
+   * @generated from field: string from = 1;
+   */
+  from: string;
+
+  /**
+   * @generated from field: string rel = 2;
+   */
+  rel: string;
+
+  /**
+   * @generated from field: string to = 3;
+   */
+  to: string;
+
+  /**
+   * The newest record of `from` naming `to`.
+   *
+   * @generated from field: string uri = 4;
+   */
+  uri: string;
+};
+
+/**
+ * Describes the message marco.v1.AmongEdge.
+ * Use `create(AmongEdgeSchema)` to create a new message.
+ */
+export const AmongEdgeSchema: GenMessage<AmongEdge> = /*@__PURE__*/
+  messageDesc(file_marco_v1_graph, 27);
+
+/**
+ * @generated from message marco.v1.AmongCount
+ */
+export type AmongCount = Message<"marco.v1.AmongCount"> & {
+  /**
+   * @generated from field: string rel = 1;
+   */
+  rel: string;
+
+  /**
+   * (actor, subject) pairs among the actors.
+   *
+   * @generated from field: uint64 edges = 2;
+   */
+  edges: bigint;
+};
+
+/**
+ * Describes the message marco.v1.AmongCount.
+ * Use `create(AmongCountSchema)` to create a new message.
+ */
+export const AmongCountSchema: GenMessage<AmongCount> = /*@__PURE__*/
+  messageDesc(file_marco_v1_graph, 28);
+
+/**
  * @generated from message marco.v1.WriteOp
  */
 export type WriteOp = Message<"marco.v1.WriteOp"> & {
@@ -770,7 +905,7 @@ export type WriteOp = Message<"marco.v1.WriteOp"> & {
  * Use `create(WriteOpSchema)` to create a new message.
  */
 export const WriteOpSchema: GenMessage<WriteOp> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 25);
+  messageDesc(file_marco_v1_graph, 29);
 
 /**
  * @generated from message marco.v1.AddOp
@@ -808,7 +943,7 @@ export type AddOp = Message<"marco.v1.AddOp"> & {
  * Use `create(AddOpSchema)` to create a new message.
  */
 export const AddOpSchema: GenMessage<AddOp> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 26);
+  messageDesc(file_marco_v1_graph, 30);
 
 /**
  * @generated from message marco.v1.DeleteOp
@@ -832,7 +967,7 @@ export type DeleteOp = Message<"marco.v1.DeleteOp"> & {
  * Use `create(DeleteOpSchema)` to create a new message.
  */
 export const DeleteOpSchema: GenMessage<DeleteOp> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 27);
+  messageDesc(file_marco_v1_graph, 31);
 
 /**
  * @generated from message marco.v1.WriteResult
@@ -897,7 +1032,7 @@ export type WriteResult = Message<"marco.v1.WriteResult"> & {
  * Use `create(WriteResultSchema)` to create a new message.
  */
 export const WriteResultSchema: GenMessage<WriteResult> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 28);
+  messageDesc(file_marco_v1_graph, 32);
 
 /**
  * @generated from message marco.v1.WriteRequest
@@ -923,7 +1058,7 @@ export type WriteRequest = Message<"marco.v1.WriteRequest"> & {
  * Use `create(WriteRequestSchema)` to create a new message.
  */
 export const WriteRequestSchema: GenMessage<WriteRequest> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 29);
+  messageDesc(file_marco_v1_graph, 33);
 
 /**
  * @generated from message marco.v1.WriteResponse
@@ -949,7 +1084,7 @@ export type WriteResponse = Message<"marco.v1.WriteResponse"> & {
  * Use `create(WriteResponseSchema)` to create a new message.
  */
 export const WriteResponseSchema: GenMessage<WriteResponse> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 30);
+  messageDesc(file_marco_v1_graph, 34);
 
 /**
  * @generated from message marco.v1.WriteBatchRequest
@@ -973,7 +1108,7 @@ export type WriteBatchRequest = Message<"marco.v1.WriteBatchRequest"> & {
  * Use `create(WriteBatchRequestSchema)` to create a new message.
  */
 export const WriteBatchRequestSchema: GenMessage<WriteBatchRequest> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 31);
+  messageDesc(file_marco_v1_graph, 35);
 
 /**
  * @generated from message marco.v1.WriteBatchResponse
@@ -995,7 +1130,7 @@ export type WriteBatchResponse = Message<"marco.v1.WriteBatchResponse"> & {
  * Use `create(WriteBatchResponseSchema)` to create a new message.
  */
 export const WriteBatchResponseSchema: GenMessage<WriteBatchResponse> = /*@__PURE__*/
-  messageDesc(file_marco_v1_graph, 32);
+  messageDesc(file_marco_v1_graph, 36);
 
 /**
  * @generated from enum marco.v1.Dir
@@ -1159,6 +1294,17 @@ export const Graph: GenService<{
     methodKind: "unary";
     input: typeof FilterRequestSchema;
     output: typeof FilterResponseSchema;
+  },
+  /**
+   * Every edge whose actor and subject are both in `actors`: how densely a
+   * set of accounts follows (or blocks) itself. At most 10000 actors.
+   *
+   * @generated from rpc marco.v1.Graph.EdgesAmong
+   */
+  edgesAmong: {
+    methodKind: "unary";
+    input: typeof EdgesAmongRequestSchema;
+    output: typeof EdgesAmongResponseSchema;
   },
   /**
    * Ops from a pipeline, many messages on one stream, answered once at the end.
