@@ -34,6 +34,7 @@ Served unchanged at `/docs/<name>.html` and linked from the site.
 
 | Page | What's in it |
 |---|---|
+| [How marco stores the graph](storage-explainer.html) | DIDs to ids, out logs, in sets in Elias-Fano, deltas and tombstones, what's in RAM, each lookup step by step |
 | [Build and reads, whole network](p0-results.html) | The whole network built from the archive: build, size, open, reads, correctness |
 | [Durability and restarts, measured](p1-results.html) | Kill -9 tests, restart, Jetstream lag, checkpoint cost |
 | [Throughput and latency](perf.html) | Every Graph query through the server and in-process, throughput, latency, profiles |

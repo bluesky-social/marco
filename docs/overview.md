@@ -101,6 +101,9 @@ edges:
   128. Membership is a binary search and one block decode, and an intersection skips whole blocks.
   Follows' in sets come to 2.09 B a pair.
 
+[How marco stores the graph](storage-explainer.html) shows these encodings byte by byte, what stays
+in memory, and each lookup step by step.
+
 marco reads the snapshot with `O_DIRECT` into its own cache of `--memory` bytes, checking every
 page against its sum. Opening reads each file's footer and pinned sections (the directory, each
 shard's index and heads), and every page too when the budget holds them all. Writes land in small

@@ -1,0 +1,1055 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How marco stores the graph</title>
+<style>
+:root {
+  --bg:#f4f5f6; --surface:#ffffff; --surface-2:#eef0f2; --surface-3:#e4e7ea;
+  --border:#dde0e4; --border-strong:#c9ced5;
+  --text:#15171b; --text-2:#454c57; --muted:#6a717d;
+  --accent:#2f6f5e; --accent-soft:rgba(47,111,94,.14);
+  --ok:#127a4a; --ok-soft:rgba(18,122,74,.12);
+  --err:#c22f2f; --err-soft:rgba(194,47,47,.11);
+  --out:#1b62c6; --out-soft:rgba(27,98,198,.12);
+  --in:#0e776a; --in-soft:rgba(14,119,106,.13);
+  --pin:#6d4bb8; --pin-soft:rgba(109,75,184,.13);
+  --page:#946000; --page-soft:rgba(148,96,0,.13);
+  --delta:#b0441a; --delta-soft:rgba(176,68,26,.12);
+  --code:#eef0f2;
+  --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:#0b0d10; --surface:#12151a; --surface-2:#171b21; --surface-3:#1d222a;
+    --border:#242a33; --border-strong:#323944;
+    --text:#e6e9ee; --text-2:#aab2bf; --muted:#7c8594;
+    --accent:#5cc8a8; --accent-soft:rgba(92,200,168,.15);
+    --ok:#3fcf8e; --ok-soft:rgba(63,207,142,.13);
+    --err:#ff6b6b; --err-soft:rgba(255,107,107,.12);
+    --out:#62a8ff; --out-soft:rgba(98,168,255,.15);
+    --in:#52c6b2; --in-soft:rgba(82,198,178,.15);
+    --pin:#b39cff; --pin-soft:rgba(179,156,255,.15);
+    --page:#f2b54a; --page-soft:rgba(242,181,74,.14);
+    --delta:#f2935f; --delta-soft:rgba(242,147,95,.15);
+    --code:#171b21;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 var(--sans); }
+main { max-width: 920px; margin: 0 auto; padding: 32px 16px 80px; }
+h1 { font-size: 30px; margin: 0 0 4px; letter-spacing: -.01em; line-height: 1.2; }
+h2 { font-size: 21px; margin: 44px 0 10px; padding-top: 12px; border-top: 1px solid var(--border); }
+p, li { color: var(--text-2); }
+p { margin: 10px 0; }
+a { color: var(--accent); }
+code, .mono { font-family: var(--mono); font-size: .88em; }
+code { background: var(--code); padding: .08em .35em; border-radius: 4px; }
+.sub { color: var(--muted); margin: 0 0 14px; }
+.nojs { font-size: 13px; color: var(--muted); border: 1px dashed var(--border-strong); border-radius: 8px; padding: 6px 10px; }
+.js .nojs { display: none; }
+figure { margin: 14px 0 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; overflow-x: auto; }
+figcaption { color: var(--muted); font-size: 13px; margin-top: 8px; line-height: 1.5; }
+svg { display: block; max-width: 100%; height: auto; font-family: var(--sans); }
+svg.wide { min-width: 600px; }
+svg text { fill: var(--text); font-size: 12px; }
+svg .t2 { fill: var(--text-2); }
+svg .mu { fill: var(--muted); font-size: 11px; }
+svg .h { font-weight: 600; font-size: 13px; }
+svg .mono { font-family: var(--mono); font-size: 11px; }
+svg .box { fill: var(--surface-2); stroke: var(--border-strong); }
+svg .f-out { fill: var(--out-soft); stroke: var(--out); }
+svg .f-in { fill: var(--in-soft); stroke: var(--in); }
+svg .f-pin { fill: var(--pin-soft); stroke: var(--pin); }
+svg .f-page { fill: var(--page-soft); stroke: var(--page); }
+svg .f-delta { fill: var(--delta-soft); stroke: var(--delta); }
+svg .s-out { fill: var(--out); } svg .s-in { fill: var(--in); } svg .s-pin { fill: var(--pin); }
+svg .s-page { fill: var(--page); } svg .s-delta { fill: var(--delta); }
+svg .ln { stroke: var(--text-2); stroke-width: 1.3; fill: none; }
+svg .lnd { stroke: var(--muted); stroke-width: 1.1; fill: none; stroke-dasharray: 4 3; }
+svg .ah { fill: var(--text-2); }
+.facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 14px 0; }
+.fact { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; border-top: 3px solid var(--t, var(--accent)); }
+.fact .v { font-size: 26px; font-weight: 650; letter-spacing: -.01em; color: var(--t, var(--accent)); line-height: 1.15; font-variant-numeric: tabular-nums; }
+.fact .v small { font-size: 14px; font-weight: 500; margin-left: 3px; }
+.fact .l { color: var(--text); font-size: 13.5px; font-weight: 600; margin-top: 2px; }
+.fact .n { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.t-out { --t: var(--out); } .t-in { --t: var(--in); } .t-pin { --t: var(--pin); } .t-page { --t: var(--page); }
+@media (max-width: 700px) { .facts { grid-template-columns: repeat(2, 1fr); } h1 { font-size: 25px; } }
+table { border-collapse: collapse; width: 100%; margin: 10px 0 14px; font-size: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+th, td { text-align: left; padding: 6px 9px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { background: var(--surface-2); font-weight: 600; font-size: 13px; color: var(--text); }
+td { color: var(--text-2); }
+td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr:last-child td { border-bottom: none; }
+.tw { overflow-x: auto; }
+/* widgets */
+.ctl { display: none; flex-wrap: wrap; gap: 8px 10px; align-items: center; margin: 0 0 10px; font-size: 14px; color: var(--text-2); }
+.js .ctl { display: flex; }
+.ctl label { display: inline-flex; gap: 6px; align-items: center; max-width: 100%; }
+.ctl label.grow { flex: 1 1 300px; }
+.ctl label.grow input { flex: 1; width: 100%; }
+input[type=text] { font: 13px var(--mono); padding: 5px 8px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--surface-2); color: var(--text); min-width: 0; }
+input[type=range] { accent-color: var(--accent); width: min(420px, 62vw); }
+.meter { position: relative; height: 24px; border-radius: 4px; background: var(--surface-2); border: 1px solid var(--border-strong); margin-top: 8px; }
+.meter .fill { position: absolute; inset: 0 auto 0 0; background: var(--in-soft); border-right: 2px solid var(--in); border-radius: 4px 0 0 4px; }
+.meter .tick { position: absolute; top: -4px; bottom: -4px; border-left: 1px dashed var(--muted); }
+.meter b { position: absolute; right: 8px; top: 1px; font-size: 14px; color: var(--text); }
+.scale { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 2px; }
+button { font: 13px var(--sans); padding: 4px 10px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--surface-2); color: var(--text); cursor: pointer; }
+button:hover { border-color: var(--text-2); }
+button.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+button:disabled { opacity: .45; cursor: default; }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.out-panel { font-size: 14px; color: var(--text-2); }
+.k { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; margin: 10px 0 4px; }
+.cells { display: inline-flex; flex-wrap: wrap; gap: 3px; vertical-align: middle; }
+.cell { font: 12px/1.3 var(--mono); padding: 2px 6px; border-radius: 4px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text); white-space: nowrap; }
+.cell.on { border-color: var(--text); box-shadow: 0 0 0 1px var(--text); }
+.cell.dim { opacity: .45; }
+.cell.c-out { background: var(--out-soft); border-color: var(--out); }
+.cell.c-in { background: var(--in-soft); border-color: var(--in); }
+.cell.c-pin { background: var(--pin-soft); border-color: var(--pin); }
+.cell.c-page { background: var(--page-soft); border-color: var(--page); }
+.cell.c-delta { background: var(--delta-soft); border-color: var(--delta); }
+.cell.del { text-decoration: line-through; background: var(--err-soft); border-color: var(--err); }
+.cell.ok { background: var(--ok-soft); border-color: var(--ok); }
+.cell.tomb { background: var(--err-soft); border-color: var(--err); }
+.chars { display: flex; flex-wrap: wrap; gap: 2px; }
+.ch { display: flex; flex-direction: column; align-items: center; width: 34px; padding: 3px 0; border-radius: 4px; background: var(--out-soft); font: 11px/1.25 var(--mono); }
+.ch:nth-child(even) { background: var(--in-soft); }
+.ch b { font-size: 15px; color: var(--text); }
+.ch i { font-style: normal; color: var(--muted); }
+.ch span { font-size: 10px; letter-spacing: -.02em; }
+.bits { display: flex; flex-wrap: wrap; gap: 2px; margin: 2px 0 6px; }
+.bit { width: 15px; height: 20px; display: grid; place-items: center; font: 11px var(--mono); border-radius: 3px; background: var(--surface-2); color: var(--muted); border: 1px solid transparent; }
+.bit.one { color: var(--text); font-weight: 700; }
+.bit.g0 { background: var(--in-soft); } .bit.g1 { background: var(--out-soft); }
+.bit.gap { margin-left: 5px; }
+.bit.hl { border-color: var(--text); }
+.bit.hit { background: var(--ok-soft); border-color: var(--ok); color: var(--text); }
+.bit.skip { background: var(--surface-3); border: 1px dashed var(--muted); color: var(--text); }
+.bytes { display: flex; flex-wrap: wrap; gap: 2px; margin: 6px 0; }
+.byte { width: 11px; height: 18px; border-radius: 2px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--text-2); }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; background: var(--c); vertical-align: -1px; }
+.mini { width: 100%; font-size: 13px; margin: 6px 0; }
+.mini td, .mini th { padding: 3px 7px; }
+.mini td { font-family: var(--mono); font-size: 12px; }
+.read { font-size: 14px; color: var(--text); margin: 8px 0 0; }
+.read b { font-weight: 600; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 640px) { .two { grid-template-columns: 1fr; } }
+.panel { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; background: var(--bg); }
+.log { font-size: 13px; color: var(--text-2); min-height: 1.6em; margin-top: 8px; }
+.flow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0; font-size: 13px; }
+.flow .cell { font-family: var(--sans); font-size: 12.5px; padding: 3px 8px; }
+.flow .arr { color: var(--muted); }
+/* the lookup stepper */
+.map { display: flex; flex-wrap: wrap; gap: 8px; }
+.grp { border: 1px dashed var(--c); border-radius: 8px; padding: 6px 8px 8px; flex: 1 1 200px; }
+.grp .gl { font-size: 11.5px; color: var(--c); font-weight: 600; margin-bottom: 4px; }
+.grp .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip { font: 12px var(--mono); padding: 4px 8px; border-radius: 5px; background: var(--surface-2); border: 1px solid var(--border); color: var(--muted); }
+.chip.on { background: var(--cs); border-color: var(--c); color: var(--text); box-shadow: 0 0 0 1px var(--c); font-weight: 600; }
+.g-pin { --c: var(--pin); --cs: var(--pin-soft); }
+.g-delta { --c: var(--delta); --cs: var(--delta-soft); flex: 0 1 130px; }
+.g-page { --c: var(--page); --cs: var(--page-soft); flex: 2 1 280px; }
+.stepbox { margin-top: 10px; border-left: 3px solid var(--accent); padding: 4px 0 4px 12px; }
+.stepno { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+.steptext { color: var(--text); font-size: 14.5px; margin: 2px 0 6px; }
+.stepbox.pool { border-left-color: var(--page); }
+.stepbox.done { border-left-color: var(--ok); }
+.counters { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; color: var(--muted); margin-top: 8px; }
+.counters b { color: var(--text); font-variant-numeric: tabular-nums; }
+.nav { display: flex; gap: 6px; margin-left: auto; }
+.det { font-size: 13px; color: var(--text-2); }
+.det .row { margin: 3px 0; }
+.det .lab { color: var(--muted); font-size: 12px; margin-right: 6px; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>How marco stores the graph</h1>
+<p class="sub">The encodings, what sits in memory, and what each lookup an appview makes costs.</p>
+<p class="nojs">Scripts are off in this viewer, so each widget below shows its first state.</p>
+
+<figure>
+<svg class="wide" viewBox="0 0 760 236" role="img" aria-label="A follow record becomes two ids through the directory, then a row in the actor's out log and an id in the subject's in set">
+  <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+  <rect class="box" x="8" y="64" width="196" height="104" rx="6"/>
+  <text class="h" x="20" y="86">a follow record</text>
+  <text class="mono" x="20" y="106">at://did:plc:aaaa…/</text>
+  <text class="mono" x="20" y="121">app.bsky.graph.follow/</text>
+  <text class="mono" x="20" y="136">3m5vq7ytwab2c</text>
+  <text class="mono" x="20" y="156">subject: did:plc:bbbb…</text>
+  <rect class="f-pin" x="246" y="64" width="216" height="104" rx="6"/>
+  <text class="h" x="258" y="86">directory</text>
+  <text class="mono" x="258" y="106">did:plc:aaaa…  1,204,331</text>
+  <text class="mono" x="258" y="121">did:plc:bbbb… 30,117,452</text>
+  <text class="mu" x="258" y="144">sorted, 15 B a did:plc</text>
+  <text class="mu" x="258" y="159">id = position</text>
+  <rect class="f-out" x="502" y="8" width="250" height="102" rx="6"/>
+  <text class="h" x="514" y="30">out log of 1,204,331</text>
+  <text class="mu" x="514" y="46">follow · shard 1 · sorted by rkey</text>
+  <text class="mono t2" x="514" y="66">rkey u64</text><text class="mono t2" x="740" y="66" text-anchor="end">subject u32</text>
+  <text class="mono" x="514" y="82">3m5vk2bq4xa2c</text><text class="mono" x="740" y="82" text-anchor="end">8,330,904</text>
+  <rect class="f-out" x="508" y="87" width="238" height="17" rx="3"/>
+  <text class="mono" x="514" y="100">3m5vq7ytwab2c</text><text class="mono" x="740" y="100" text-anchor="end">30,117,452</text>
+  <rect class="f-in" x="502" y="128" width="250" height="100" rx="6"/>
+  <text class="h" x="514" y="150">in set of 30,117,452</text>
+  <text class="mu" x="514" y="166">follow · shard 40 · sorted actor ids</text>
+  <rect class="f-in" x="590" y="178" width="72" height="17" rx="3"/>
+  <text class="mono" x="514" y="191">…1,198,004</text><text class="mono" x="596" y="191">1,204,331</text><text class="mono" x="668" y="191">1,230,577…</text>
+  <text class="mu" x="514" y="214">Elias-Fano blocks of 128</text>
+  <path class="ln" d="M204,116 L244,116" marker-end="url(#ah)"/>
+  <path class="ln" d="M462,98 L500,62" marker-end="url(#ah)"/>
+  <path class="ln" d="M462,134 L500,176" marker-end="url(#ah)"/>
+</svg>
+<figcaption>One follow, filed twice. The actor's out log keeps the record, as its rkey and the subject's id. The subject's in set keeps only the actor's id. Each side lives in the shard that holds its owner's id.</figcaption>
+</figure>
+
+<div class="facts">
+  <div class="fact t-out"><div class="v">13.9<small>B</small></div><div class="l">a follow, both views</div><div class="n">out log 11.7 B · in set 2.2 B</div></div>
+  <div class="fact t-pin"><div class="v">15<small>B</small></div><div class="l">a did:plc in the directory</div><div class="n">then a 4 B id in every list</div></div>
+  <div class="fact t-in"><div class="v">2.1<small>B</small></div><div class="l">a follower in an in set</div><div class="n">Elias-Fano · a plain u32 is 4 B</div></div>
+  <div class="fact"><div class="v">684<small>ns</small></div><div class="l">Has, p50</div><div class="n">engine, 1 thread · 24.5M/s on 16</div></div>
+</div>
+
+<p>marco keeps every follow, block and list item on the network, 3.03B records, in a 44.1 GB snapshot on one box. An appview asks it graph questions while it renders a page. Does the viewer follow this author? Which of these 50 accounts block the viewer? Who are the mutuals?</p>
+<p>An edge is a record, such as a follow, keyed by (actor, relation, rkey) and naming a subject. The out log keeps the actor's records in rkey order, so a follows page is a range and a delete by URI can find its subject. The in set keeps the subject's actors sorted, so "who follows this account?" and "does the viewer follow it?" are operations on sorted integers. Both views store u32 ids.</p>
+
+<h2 id="ids">DIDs become u32 ids</h2>
+<figure>
+  <div class="ctl">
+    <label class="grow">DID <input type="text" id="did-in" size="34" value="did:plc:abcdefghijklmnopqrstuvwx" spellcheck="false" autocomplete="off" aria-label="a DID"></label>
+    <button id="did-rand" type="button">random did:plc</button>
+    <button id="did-web" type="button">a did:web</button>
+  </div>
+  <div id="did-out" class="out-panel"><!--pre-->
+    <div class="k">24 characters, 5 bits each</div>
+    <div class="chars"><span class="ch"><b>a</b><i>6</i><span>00110</span></span><span class="ch"><b>b</b><i>7</i><span>00111</span></span><span class="ch"><b>c</b><i>8</i><span>01000</span></span><span class="ch"><b>d</b><i>9</i><span>01001</span></span><span class="ch"><b>e</b><i>10</i><span>01010</span></span><span class="ch"><b>f</b><i>11</i><span>01011</span></span><span class="ch"><b>g</b><i>12</i><span>01100</span></span><span class="ch"><b>h</b><i>13</i><span>01101</span></span><span class="ch"><b>i</b><i>14</i><span>01110</span></span><span class="ch"><b>j</b><i>15</i><span>01111</span></span><span class="ch"><b>k</b><i>16</i><span>10000</span></span><span class="ch"><b>l</b><i>17</i><span>10001</span></span><span class="ch"><b>m</b><i>18</i><span>10010</span></span><span class="ch"><b>n</b><i>19</i><span>10011</span></span><span class="ch"><b>o</b><i>20</i><span>10100</span></span><span class="ch"><b>p</b><i>21</i><span>10101</span></span><span class="ch"><b>q</b><i>22</i><span>10110</span></span><span class="ch"><b>r</b><i>23</i><span>10111</span></span><span class="ch"><b>s</b><i>24</i><span>11000</span></span><span class="ch"><b>t</b><i>25</i><span>11001</span></span><span class="ch"><b>u</b><i>26</i><span>11010</span></span><span class="ch"><b>v</b><i>27</i><span>11011</span></span><span class="ch"><b>w</b><i>28</i><span>11100</span></span><span class="ch"><b>x</b><i>29</i><span>11101</span></span></div>
+    <div class="k">120 bits as 15 bytes</div>
+    <span class="cells"><span class="cell c-pin">31</span><span class="cell c-pin">d0</span><span class="cell c-pin">95</span><span class="cell c-pin">2d</span><span class="cell c-pin">8d</span><span class="cell c-pin">73</span><span class="cell c-pin">e1</span><span class="cell c-pin">19</span><span class="cell c-pin">4e</span><span class="cell c-pin">95</span><span class="cell c-pin">b5</span><span class="cell c-pin">f1</span><span class="cell c-pin">9d</span><span class="cell c-pin">6f</span><span class="cell c-pin">9d</span></span>
+    <div class="k">DID to id</div>
+    <div class="flow">
+      <span class="cell c-pin">top 22 bits: bucket 816,165 of 4,194,304</span><span class="arr">→</span>
+      <span class="cell c-pin">~10 packed DIDs to compare</span><span class="arr">→</span>
+      <span class="cell">id ≈ 8,506,595</span><span class="arr">→</span>
+      <span class="cell">shard 11 (ids 8,166,785 to 8,909,219)</span>
+    </div>
+    <p class="read">32 B of string, 15 B in the directory, and 4 B in every list that names it.</p><!--/pre--></div>
+  <figcaption>Each of the 24 characters after <code>did:plc:</code> is 5 bits, its rank among did:plc's 32 characters in ASCII order. 120 bits pack into 15 bytes, and packed order is string order. The id here is estimated from the packed value, since the real one is the DID's position in the network's directory.</figcaption>
+</figure>
+<p>The directory is every packed did:plc, sorted, and a DID's id is its position in it. Going from id to DID is an array index (15 B at id × 15). Going from DID to id is a search of one bucket. A did:plc is a hash, so the packed values are uniform. The top 22 bits pick one of 4.2M buckets in a 16.8 MB radix table, and a bucket holds about 10 packed DIDs to compare. Other DIDs and list URIs (3.8M of the network's 47.5M ids) stay strings in a sorted side table.</p>
+<p>Ids are dense, 0 to 47.5M, so anything keyed by id is an array. The 64 shards are id ranges of about 742k ids, and each shard's index keeps 4 B per id saying where that id's list starts. A list names other accounts as u32s, 4 B where the DID string would take 32 B, and comparing two of them is one integer compare.</p>
+
+<h2 id="out">Out logs: records in rkey order</h2>
+<figure>
+  <div class="ctl">
+    <span>Time between follows</span>
+    <span class="seg" id="iv"></span>
+  </div>
+  <div id="out-out" class="out-panel"><!--pre-->
+    <div class="tw"><table class="mini"><tbody><tr><th>rkey (TID)</th><th>subject id</th><th>gap from the one before</th><th>varint</th></tr><tr><td>3mxortver22hn</td><td>556,160</td><td>first: 8 B</td><td></td></tr><tr><td>3mxortvylezhn</td><td>46,418,561</td><td>665,156,608</td><td>5 B</td></tr><tr><td>3mxortx3xgqhn</td><td>24,776,896</td><td>1,187,044,352</td><td>5 B</td></tr><tr><td>3mxortxy66rhn</td><td>22,153,423</td><td>946,603,008</td><td>5 B</td></tr><tr><td>3mxortyqdkvhn</td><td>26,291,716</td><td>810,946,560</td><td>5 B</td></tr><tr><td>3mxortzuhohhn</td><td>12,250,316</td><td>1,212,270,592</td><td>5 B</td></tr></tbody></table></div>
+    <div class="bytes" aria-label="59 bytes"><span class="byte" style="background:var(--muted);opacity:1"></span><span class="byte" style="background:var(--border-strong);opacity:1"></span><span class="byte" style="background:var(--out);opacity:1"></span><span class="byte" style="background:var(--out);opacity:1"></span><span class="byte" style="background:var(--out);opacity:1"></span><span class="byte" style="background:var(--out);opacity:1"></span><span class="byte" style="background:var(--out);opacity:1"></span><span class="byte" style="background:var(--out);opacity:1"></span><span class="byte" style="background:var(--out);opacity:1"></span><span class="byte" style="background:var(--out);opacity:1"></span><span class="byte" style="background:var(--out);opacity:1"></span><span class="byte" style="background:var(--out);opacity:1"></span><span class="byte" style="background:var(--out);opacity:1"></span><span class="byte" style="background:var(--out);opacity:1"></span><span class="byte" style="background:var(--out);opacity:1"></span><span class="byte" style="background:var(--out);opacity:1"></span><span class="byte" style="background:var(--out);opacity:1"></span><span class="byte" style="background:var(--out);opacity:1"></span><span class="byte" style="background:var(--out);opacity:1"></span><span class="byte" style="background:var(--out);opacity:1"></span><span class="byte" style="background:var(--out);opacity:1"></span><span class="byte" style="background:var(--out);opacity:1"></span><span class="byte" style="background:var(--out);opacity:1"></span><span class="byte" style="background:var(--out);opacity:1"></span><span class="byte" style="background:var(--out);opacity:1"></span><span class="byte" style="background:var(--out);opacity:1"></span><span class="byte" style="background:var(--pin);opacity:1"></span><span class="byte" style="background:var(--pin);opacity:1"></span><span class="byte" style="background:var(--pin);opacity:1"></span><span class="byte" style="background:var(--pin);opacity:1"></span><span class="byte" style="background:var(--pin);opacity:1"></span><span class="byte" style="background:var(--pin);opacity:1"></span><span class="byte" style="background:var(--pin);opacity:1"></span><span class="byte" style="background:var(--pin);opacity:1"></span><span class="byte" style="background:var(--page);opacity:1"></span><span class="byte" style="background:var(--page);opacity:0.6"></span><span class="byte" style="background:var(--page);opacity:0.6"></span><span class="byte" style="background:var(--page);opacity:0.6"></span><span class="byte" style="background:var(--page);opacity:0.6"></span><span class="byte" style="background:var(--page);opacity:1"></span><span class="byte" style="background:var(--page);opacity:0.6"></span><span class="byte" style="background:var(--page);opacity:0.6"></span><span class="byte" style="background:var(--page);opacity:0.6"></span><span class="byte" style="background:var(--page);opacity:0.6"></span><span class="byte" style="background:var(--page);opacity:1"></span><span class="byte" style="background:var(--page);opacity:0.6"></span><span class="byte" style="background:var(--page);opacity:0.6"></span><span class="byte" style="background:var(--page);opacity:0.6"></span><span class="byte" style="background:var(--page);opacity:0.6"></span><span class="byte" style="background:var(--page);opacity:1"></span><span class="byte" style="background:var(--page);opacity:0.6"></span><span class="byte" style="background:var(--page);opacity:0.6"></span><span class="byte" style="background:var(--page);opacity:0.6"></span><span class="byte" style="background:var(--page);opacity:0.6"></span><span class="byte" style="background:var(--page);opacity:1"></span><span class="byte" style="background:var(--page);opacity:0.6"></span><span class="byte" style="background:var(--page);opacity:0.6"></span><span class="byte" style="background:var(--page);opacity:0.6"></span><span class="byte" style="background:var(--page);opacity:0.6"></span></div>
+    <div class="legend"><span style="--c:var(--muted)">n, 1 B</span><span style="--c:var(--border-strong)">dups, 1 B</span><span style="--c:var(--out)">subjects, 6 × 4 B</span><span style="--c:var(--pin)">first rkey, 8 B</span><span style="--c:var(--page)">5 gaps, 25 B</span></div>
+    <p class="read"><b>59 B</b> for 6 records. The rkeys after the first cost 5.0 B each, where a u64 would take 8 B and the TID string 13 B.</p><!--/pre--></div>
+  <figcaption>A list of six follows stored whole, byte by byte. A TID rkey is 53 bits of microseconds and a 10-bit clock id, so the gap between two follows a second apart is about 2<sup>30</sup>, a 5-byte varint.</figcaption>
+</figure>
+<p>An out log is one actor's records in one relation, sorted by rkey. A TID rkey is a timestamp, so rkey order is time order, and newest-first paging with an rkey cursor needs no other index. Subjects are a plain u32 column, so any position reads in one load and a block's subjects can be scanned without touching rkeys. Rkeys are stored as the gap from the record before. Across the network's follows that's 4.00 B a record for subjects and 4.94 B for rkeys. An rkey that isn't a TID (0.014% of follows) is hashed into the same u64 with the top bit set and keeps its string in a side table.</p>
+<figure>
+<svg class="wide" viewBox="0 0 760 214" role="img" aria-label="A big out list: a pinned head with per-block first rkeys and offsets, and three paged columns">
+  <defs><marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+  <text class="h" x="10" y="20">a list of more than 128 records</text>
+  <rect class="f-pin" x="10" y="32" width="350" height="146" rx="6"/>
+  <text class="h" x="22" y="54">head, in RAM</text>
+  <text class="mono" x="22" y="76">n u32 · dups u32 · by-subject blocks u32</text>
+  <text class="mono" x="22" y="98">per block of 128 records:</text>
+  <text class="mono" x="34" y="114">first rkey u64 · subj at u32 · rkey at u32</text>
+  <text class="mono" x="22" y="136">per by-subject block:</text>
+  <text class="mono" x="34" y="152">first subject u32 · at u32 · count u8</text>
+  <rect class="f-page" x="400" y="32" width="350" height="40" rx="6"/>
+  <text class="mono" x="412" y="50">out.subj</text><text class="mu" x="412" y="65">128 subjects as u32 a block, 512 B</text>
+  <rect class="f-page" x="400" y="84" width="350" height="40" rx="6"/>
+  <text class="mono" x="412" y="102">out.rkey</text><text class="mu" x="412" y="117">127 varint gaps a block, from the first rkey in the head</text>
+  <rect class="f-page" x="400" y="136" width="350" height="42" rx="6"/>
+  <text class="mono" x="412" y="154">out.bysubj</text><text class="mu" x="412" y="169">lists of 4,096+: positions u32, subjects Elias-Fano</text>
+  <path class="ln" d="M360,60 L398,52" marker-end="url(#ah2)"/>
+  <path class="ln" d="M360,110 L398,104" marker-end="url(#ah2)"/>
+  <path class="ln" d="M360,150 L398,157" marker-end="url(#ah2)"/>
+  <text class="mu" x="10" y="200">violet: pinned, read whole at open · amber: 4 KiB pages, read on demand · a block never crosses a page</text>
+</svg>
+<figcaption>Lists of up to 128 records (92% of follow lists) are stored whole, as above, in one page. Longer lists split into a head that stays in memory and paged columns, so a lookup knows which pages it'll read before it reads any.</figcaption>
+</figure>
+<p>A list of 4,096 records or more also carries a by-subject index: blocks of positions sorted by subject, with the subjects Elias-Fano coded (below). It costs 5.6 B for each record in such a list, 1.7 B averaged over every follow. In return, finding the record behind "does this mass-follow account follow X?" takes a by-subject page and an rkey page, where a scan could read all 886k subjects of the longest follow list.</p>
+
+<h2 id="in">In sets: Elias-Fano in blocks of 128</h2>
+<figure>
+  <div class="ctl">
+    <label class="grow">Ids <input type="text" id="ef-in" size="46" value="1204, 1217, 1290, 1301, 1335, 1342, 1388, 1420, 1467, 1503" spellcheck="false" autocomplete="off" aria-label="sorted ids"></label>
+    <span class="seg" id="ef-pre"></span>
+  </div>
+  <div class="ctl">
+    <label>Probe for <input type="text" id="ef-x" size="10" value="1388" spellcheck="false" autocomplete="off" aria-label="id to look for"></label>
+    <button id="ef-go" type="button">probe</button>
+    <button id="ef-miss" type="button">try 1400</button>
+  </div>
+  <div id="ef-out" class="out-panel"><!--pre-->
+    <div class="k">first id, in the head: 1,204</div>
+    <div class="tw"><table class="mini"><tbody><tr><th>id</th><th>d = id − first</th><th>high: d &gt;&gt; l</th><th>low: l bits</th></tr><tr><td>1,217</td><td>13</td><td>0</td><td>01101</td></tr><tr><td>1,290</td><td>86</td><td>2</td><td>10110</td></tr><tr><td>1,301</td><td>97</td><td>3</td><td>00001</td></tr><tr><td>1,335</td><td>131</td><td>4</td><td>00011</td></tr><tr><td>1,342</td><td>138</td><td>4</td><td>01010</td></tr><tr><td>1,388</td><td>184</td><td>5</td><td>11000</td></tr><tr><td>1,420</td><td>216</td><td>6</td><td>11000</td></tr><tr><td>1,467</td><td>263</td><td>8</td><td>00111</td></tr><tr><td>1,503</td><td>299</td><td>9</td><td>01011</td></tr></tbody></table></div>
+    <p class="read">l = ⌊log₂(max d / count)⌋ = ⌊log₂(299 / 9)⌋ = ⌊log₂ 33⌋ = <b>5</b></p>
+    <div class="k">low bits (9 × 5)</div><div class="bits"><span class="bit  g0 ">0</span><span class="bit one g0 ">1</span><span class="bit one g0 ">1</span><span class="bit  g0 ">0</span><span class="bit one g0 ">1</span><span class="bit one g1 gap">1</span><span class="bit  g1 ">0</span><span class="bit one g1 ">1</span><span class="bit one g1 ">1</span><span class="bit  g1 ">0</span><span class="bit  g0 gap">0</span><span class="bit  g0 ">0</span><span class="bit  g0 ">0</span><span class="bit  g0 ">0</span><span class="bit one g0 ">1</span><span class="bit  g1 gap">0</span><span class="bit  g1 ">0</span><span class="bit  g1 ">0</span><span class="bit one g1 ">1</span><span class="bit one g1 ">1</span><span class="bit  g0 gap">0</span><span class="bit one g0 ">1</span><span class="bit  g0 ">0</span><span class="bit one g0 ">1</span><span class="bit  g0 ">0</span><span class="bit one g1 hit gap">1</span><span class="bit one g1 hit ">1</span><span class="bit  g1 hit ">0</span><span class="bit  g1 hit ">0</span><span class="bit  g1 hit ">0</span><span class="bit one g0 gap">1</span><span class="bit one g0 ">1</span><span class="bit  g0 ">0</span><span class="bit  g0 ">0</span><span class="bit  g0 ">0</span><span class="bit  g1 gap">0</span><span class="bit  g1 ">0</span><span class="bit one g1 ">1</span><span class="bit one g1 ">1</span><span class="bit one g1 ">1</span><span class="bit  g0 gap">0</span><span class="bit one g0 ">1</span><span class="bit  g0 ">0</span><span class="bit one g0 ">1</span><span class="bit one g0 ">1</span></div>
+    <div class="k">high bits (19)</div><div class="bits"><span class="bit one g0">1</span><span class="bit  skip">0</span><span class="bit  skip">0</span><span class="bit one g1">1</span><span class="bit  skip">0</span><span class="bit one g0">1</span><span class="bit  skip">0</span><span class="bit one g1">1</span><span class="bit one g0">1</span><span class="bit  skip">0</span><span class="bit one g1 hit">1</span><span class="bit ">0</span><span class="bit one g0">1</span><span class="bit ">0</span><span class="bit ">0</span><span class="bit one g1">1</span><span class="bit ">0</span><span class="bit one g0">1</span><span class="bit ">0</span></div>
+    <p class="read"><b>10 B</b> for the 9 ids after the first (1 B for l, 6 B low, 3 B high). As u32s they'd take 36 B.</p>
+    <div class="k">probe for 1,388</div><ol class="det"><li>d = 1,388 − 1,204 = 184, so the bucket is d &gt;&gt; 5 = 5 and the low bits are 11000.</li><li>Skip 5 zeros in the high bits (dashed). Bucket 5 starts at bit 10.</li><li>Compare the low bits of the value in it (outlined).</li></ol>
+      <p class="read"><b>In the set</b>: it's id 7 of the block's 10. Nothing else in the block was decoded.</p><!--/pre--></div>
+  <figcaption>One block. The first id sits in the head in RAM, and each later id is coded as its offset d from the first. Low bits are stored as they are. High bits go in unary: a 1 for each value, placed in bucket d &gt;&gt; l, and a 0 to close each bucket. marco's blocks hold 128 ids, and this one holds up to 32.</figcaption>
+</figure>
+<p>An in set is a subject's followers (or blockers, or the lists it's on) as sorted actor ids. marco cuts it into blocks of 128 and Elias-Fano codes each one from its first id, picking <code>l</code> from that block's own density. A value then costs <code>l</code> bits plus 2 to 3 bits. Membership never decodes the block. The probe's high part says which bucket to look in, a popcount over 64-bit words skips that many zeros, and only that bucket's low bits get compared.</p>
+<figure>
+  <div class="ctl"><label>Set size <input type="range" id="sz" min="0" max="1000" value="540" aria-label="set size"></label></div>
+  <div id="sz-out" class="out-panel"><!--pre-->
+    <p class="read"><b>11,140 members</b>: 88 blocks of 128, one page read per probe, l = 11.</p>
+    <div class="meter" role="img" aria-label="1.84 bytes a member"><div class="fill" style="width:45.9%"></div><span class="tick" style="left:50%"></span><b>1.84 B</b></div>
+    <div class="scale"><span>0</span><span>2 B</span><span>4 B, a u32</span></div>
+    <p class="read">0.07 B of each member's share is the head, in RAM.</p><!--/pre--></div>
+  <figcaption>Bytes a member for a set of followers spread over the network's 47.5M ids, sampled. Sets of up to 8 are varint gaps, sets of up to 128 are one block stored whole, and bigger sets keep 9 B a block in the head.</figcaption>
+</figure>
+<p>Follower ids land all over the id space, since ids are positions in a hash-sorted directory. So an account with a few hundred followers takes about 2.5 B a follower, and the biggest account's 31M followers cost under half a byte each. Across the network, follows' in sets come to 2.1 B a pair, 2.2 B with heads, index and page padding. 92% of in sets have 128 members or fewer and fit one page. A probe into a bigger one binary-searches the first ids in its head and reads one block.</p>
+
+<h2 id="delta">Changes since the snapshot: deltas and tombstones</h2>
+<figure>
+  <div class="ctl">
+    <span>subject</span>
+    <span class="seg" id="dl-sub"></span>
+    <button id="dl-follow" type="button">ana follows it</button>
+    <button id="dl-unfollow" type="button">ana unfollows it</button>
+  </div>
+  <div class="ctl">
+    <button id="dl-replay" type="button">replay an old create</button>
+    <button id="dl-ckpt" type="button">checkpoint</button>
+    <button id="dl-reset" type="button">reset</button>
+  </div>
+  <div id="dl-out"><!--pre-->
+    <div class="two">
+      <div class="panel det"><div class="k">ana's out log (follow)</div><table class="mini"><tbody><tr><th>rkey</th><th>subject</th><th></th></tr><tr><td><span class="cell c-out">3mycbjcw4s2q3</span></td><td>ben (1)</td><td>base</td></tr><tr><td><span class="cell c-out">3mycbl456k2q3</span></td><td>cat (2)</td><td>base</td></tr><tr><td><span class="cell c-out">3mycbmveac2q3</span></td><td>dev (3)</td><td>base</td></tr></tbody></table></div>
+      <div class="panel det"><div class="k">in sets (follow)</div><div class="row"><span class="lab">ben (1)</span><span class="cells"><span class="cell c-in">0</span><span class="cell c-in">5</span><span class="cell c-in">9</span></span></div><div class="row"><span class="lab">cat (2)</span><span class="cells"><span class="cell c-in">0</span><span class="cell c-in">3</span><span class="cell c-in">7</span><span class="cell c-in">11</span></span></div><div class="row"><span class="lab">dev (3)</span><span class="cells"><span class="cell c-in">0</span><span class="cell c-in">2</span></span></div><div class="row"><span class="lab">eli (4)</span><span class="cells"><span class="cell c-in">6</span><span class="cell c-in">13</span></span></div></div>
+    </div>
+    <div class="panel det" style="margin-top:10px"><div class="k">tombstones</div><span class="cells"><span class="read">none</span></span>
+    <p class="read">ListOut(ana) reads: <b>dev, cat, ben</b></p></div>
+    <p class="log">The snapshot holds three of ana's follows.</p><!--/pre--></div>
+  <figcaption>ana (id 0) and four subjects. Base lists come from the snapshot and never change in place. Rust-colored cells are the delta in memory, a struck-through cell is a base record or id the delta removes, and a read merges the two.</figcaption>
+</figure>
+<p>The snapshot's lists are immutable, so a write never edits one. It goes to a delta for each list it changes: an out log's delta holds added records and deleted base records by rkey, and an in set's delta holds added and removed ids. Reads merge the delta over the base, and both stay sorted, so a merge is one pass over both.</p>
+<p>A delete names only a URI, so the out log finds the subject. The pair leaves the in set only when no other record of the actor still names that subject (0.14% of follow records repeat a pair). Every delete also leaves a tombstone, the (actor, rkey) and the time the source saw it, so a create replayed from before the delete stays deleted.</p>
+<figure>
+<svg class="wide" viewBox="0 0 760 120" role="img" aria-label="Where the structures come from: a build or checkpoint writes the snapshot, writes go to deltas and change segments, and a checkpoint replays the segments into patch files">
+  <defs><marker id="ah3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+  <rect class="box" x="8" y="14" width="110" height="40" rx="6"/><text class="h" x="20" y="38">writes</text>
+  <rect class="f-delta" x="160" y="14" width="160" height="40" rx="6"/><text class="h" x="172" y="32">deltas</text><text class="mu" x="172" y="47">per list, in memory</text>
+  <rect class="f-page" x="160" y="70" width="160" height="40" rx="6"/><text class="h" x="172" y="88">change segments</text><text class="mu" x="172" y="103">every 5 s, on disk</text>
+  <rect class="f-page" x="530" y="14" width="222" height="96" rx="6"/><text class="h" x="542" y="36">snapshot</text>
+  <text class="mono" x="542" y="58">directory.marco</text><text class="mono" x="542" y="76">64 shard files, by id range</text><text class="mono" x="542" y="94">a base and its patches each</text>
+  <path class="ln" d="M118,34 L158,34" marker-end="url(#ah3)"/>
+  <path class="lnd" d="M118,44 L158,84" marker-end="url(#ah3)"/>
+  <path class="ln" d="M320,90 L528,84" marker-end="url(#ah3)"/>
+  <text class="mu" x="340" y="78">a checkpoint replays them</text>
+  <text class="mu" x="340" y="106">into patch files, about daily</text>
+  <path class="lnd" d="M528,30 L322,30" marker-end="url(#ah3)"/>
+  <text class="mu" x="340" y="22">then the deltas start over</text>
+</svg>
+<figcaption>A build writes the snapshot. Writes since then live in deltas and in change segments on disk. A checkpoint replays the segments into new patch files, and the deltas start over from the new snapshot.</figcaption>
+</figure>
+<p>A restart opens the snapshot and replays the segments written since the last checkpoint, which rebuilds the deltas. A checkpoint writes each changed list to a patch file behind its shard's base. A long list keeps its unchanged blocks in the base, and the shard's new index and heads point into both. Tombstones last until a checkpoint finds them older than anything a source still replays.</p>
+
+<h2 id="ram">What lives in RAM</h2>
+<figure>
+  <div class="ctl"><label><code>--memory</code> <input type="range" id="mem" min="6" max="48" value="13" aria-label="memory budget in GiB"></label></div>
+  <div id="mem-out"><!--pre--><svg class="wide" viewBox="0 0 760 112" role="img" aria-label="snapshot sections and the memory budget"><rect class="f-pin" x="10.0" y="40" width="14.7" height="30"></rect><rect class="f-pin" x="24.7" y="40" width="11.1" height="30"></rect><rect class="f-pin" x="35.8" y="40" width="8.6" height="30"></rect><rect class="f-pin" x="44.5" y="40" width="1.3" height="30"></rect><rect class="f-page" x="45.7" y="40" width="217.1" height="30"></rect><text class="mono" x="49.7" y="59">out.rkey</text><rect class="f-page" x="262.8" y="40" width="174.0" height="30"></rect><text class="mono" x="266.8" y="59">out.subj</text><rect class="f-page" x="436.9" y="40" width="104.3" height="30"></rect><text class="mono" x="440.9" y="59">out.small</text><rect class="f-page" x="541.2" y="40" width="100.3" height="30"></rect><text class="mono" x="545.2" y="59">out.bysubj</text><rect class="f-page" x="641.5" y="40" width="83.0" height="30"></rect><text class="mono" x="645.5" y="59">in.blocks</text><rect class="f-page" x="724.5" y="40" width="25.5" height="30"></rect><text class="h" x="10" y="26">pinned 2.1 GB</text><text class="h" x="750" y="26" text-anchor="end">paged 42.0 GB in 4 KiB pages</text><rect x="10" y="80" width="234.0" height="12" rx="3" class="f-pin" style="fill:var(--accent-soft);stroke:var(--accent)"></rect><line class="lnd" x1="244.0" y1="74" x2="244.0" y2="104"></line><text class="mu" x="248.0" y="104" text-anchor="start">13 GiB: 99.85% of requests had no cache miss</text><line class="lnd" x1="750.0" y1="74" x2="750.0" y2="104"></line><text class="mu" x="746.0" y="104" text-anchor="end">44 GiB: every page loaded at open</text></svg>
+    <p class="read"><b>--memory 13 GiB</b> holds the pinned sections and 11.8 GB of page frames. That's 28% of the pages. S3-FIFO keeps the ones requests come back to, and a miss reads one 4 KiB page.</p><!--/pre--></div>
+  <figcaption>The 44.1 GB whole-network snapshot (follows, blocks and list items) by section. Pinned sections are read whole at open and always stay. Paged sections are 4 KiB pages read into marco's own cache, which never holds more than <code>--memory</code>.</figcaption>
+</figure>
+<p>marco doesn't mmap the snapshot or use the kernel's page cache. Opening it reads the pinned sections whole and checks them: the directory, every shard's index and heads, and a 32-bit sum for each page. That's 2.1 GB for the whole network, and it's enough for any lookup to work out which pages it'll read. The other 42.0 GB are pages read with <code>O_DIRECT</code> into a cache that S3-FIFO manages, so a one-off scan doesn't push out the pages that keep getting read.</p>
+<figure>
+  <div class="flow"><span class="cell c-pin">index entry</span><span class="arr">→</span><span class="cell c-pin">offset in the shard</span><span class="arr">→</span><span class="cell c-pin">slots[page]</span><span class="arr">→</span><span class="cell c-page">frame</span><span class="arr">→</span><span class="cell ok">bytes</span></div>
+  <div class="flow"><span class="cell c-page">page missing</span><span class="arr">→</span><span class="cell">the pass records it and gives up</span><span class="arr">→</span><span class="cell">miss-pool thread</span><span class="arr">→</span><span class="cell c-page">4 KiB O_DIRECT read</span><span class="arr">→</span><span class="cell c-page">xxh3 sum checked</span><span class="arr">→</span><span class="cell">pass again</span></div>
+  <figcaption>A cache hit reads the file's slot for the page, then the frame it names, with no hashing and no lock. A request runs on its network thread only while every page it needs is in memory. On a miss it names every page it would read, then a miss-pool thread fetches them and runs it again.</figcaption>
+</figure>
+<p>With 13 GiB for the 44.1 GB snapshot, 99.85% of requests never left their network thread, on a read mix weighted toward active viewers and much-liked authors. With 44 GiB, opening loads every page in 7.8 s and no request reads the disk after that.</p>
+<p>The server also keeps two copies of the graph. They share every snapshot byte and differ only in their deltas. The writer applies a batch to the spare copy, swaps it in, then applies the same batch to the other once its readers have left, so a read never waits on a lock.</p>
+
+<h2 id="lookups">Lookups, step by step</h2>
+<figure>
+  <div class="ctl">
+    <span class="seg" id="op"></span>
+  </div>
+  <div class="ctl">
+    <label><input type="checkbox" id="cold"> cold cache</label>
+    <span class="nav"><button id="st-back" type="button">back</button><button id="st-next" type="button">next</button><button id="st-all" type="button">answer</button></span>
+  </div>
+  <div class="map" id="map"><!--pre--><div class="grp g-pin"><div class="gl">pinned, in RAM</div><div class="chips"><span class="chip on">directory</span><span class="chip ">index</span><span class="chip ">heads</span></div></div><div class="grp g-delta"><div class="gl">in RAM</div><div class="chips"><span class="chip ">deltas</span></div></div><div class="grp g-page"><div class="gl">paged, 4 KiB pages through the cache</div><div class="chips"><span class="chip ">out.small</span><span class="chip ">out.subj</span><span class="chip ">out.rkey</span><span class="chip ">out.bysubj</span><span class="chip ">in.small</span><span class="chip ">in.blocks</span></div></div><!--/pre--></div>
+  <div id="st-out"><!--pre--><div class="stepbox "><div class="stepno">step 1 of 8</div>
+    <div class="steptext">The directory turns both DIDs into ids: dev is 3 and cat is 2.</div><div class="det"><div class="row"><span class="cells"><span class="cell c-pin">did:plc:asb6pn… → 3</span><span class="cell c-pin">did:plc:7frxcn… → 2</span></span></div></div></div>
+<div class="stepbox "><div class="stepno">step 2 of 8</div>
+    <div class="steptext">cat's in set has no delta (no writes since the snapshot), so the base answers.</div><div class="det"></div></div>
+<div class="stepbox "><div class="stepno">step 3 of 8</div>
+    <div class="steptext">Id 2 is in shard 0. Its in.idx entry, 4 B in slot 2, points at a head, since the set's 14 members are more than the toy keeps whole.</div><div class="det"><div class="row"><span class="lab">shard 0 r0.in.idx</span><span class="cells"><span class="cell c-pin dim">none</span><span class="cell c-pin dim">@0</span><span class="cell on c-pin">head @0</span><span class="cell c-pin dim">@2</span><span class="cell c-pin dim">@5</span><span class="cell c-pin dim">@8</span><span class="cell c-pin dim">@10</span><span class="cell c-pin dim">@12</span></span></div></div></div>
+<div class="stepbox "><div class="stepno">step 4 of 8</div>
+    <div class="steptext">The head keeps each block's first id. A binary search for 3 picks block 0, since 0 ≤ 3 &lt; 6.</div><div class="det"><div class="row"><span class="lab">first ids</span><span class="cells"><span class="cell on c-pin">0</span><span class="cell c-pin dim">6</span><span class="cell c-pin dim">13</span><span class="cell c-pin dim">20</span></span></div></div></div>
+<div class="stepbox "><div class="stepno">step 5 of 8</div>
+    <div class="steptext">Read block 0's page and probe it in place: skip 3 zeros in the high bits, compare low bits in that bucket. 3 is there.</div><div class="det"><div class="row"><span class="lab">block</span><span class="cells"><span class="cell c-in">0</span><span class="cell c-in">1</span><span class="cell ok">3</span><span class="cell c-in">4</span></span> <span class="lab">l = 0</span></div><div class="k">low bits (3 × 0)</div><div class="bits"><span class="read">none: l is 0</span></div>
+    <div class="k">high bits (8)</div><div class="bits"><span class="bit  skip">0</span><span class="bit one g0">1</span><span class="bit  skip">0</span><span class="bit  skip">0</span><span class="bit one g1 hit">1</span><span class="bit ">0</span><span class="bit one g0">1</span><span class="bit ">0</span></div></div></div>
+<div class="stepbox "><div class="stepno">step 6 of 8</div>
+    <div class="steptext">Has answers with the record's URI, so it opens dev's out log: shard 0, out.idx slot 3, a whole list at offset 14 of out.small.</div><div class="det"><div class="row"><span class="lab">shard 0 r0.out.idx</span><span class="cells"><span class="cell c-pin dim">head @0</span><span class="cell c-pin dim">@0</span><span class="cell c-pin dim">none</span><span class="cell on c-pin">@14</span><span class="cell c-pin dim">@39</span><span class="cell c-pin dim">none</span><span class="cell c-pin dim">@53</span><span class="cell c-pin dim">@67</span></span></div></div></div>
+<div class="stepbox "><div class="stepno">step 7 of 8</div>
+    <div class="steptext">One page holds the whole list. Scanning its subject column for 2 finds position 0, and the rkeys are in the same page.</div><div class="det"><table class="mini"><tbody><tr><th>pos</th><th>subject</th><th>rkey</th></tr><tr><td>0</td><td>2 (cat)</td><td><span class="cell ok">3mwvnfetrba7c</span></td></tr><tr><td>1</td><td>7 (hal)</td><td>3mwznqbprkg7c</td></tr></tbody></table></div></div>
+<div class="stepbox done"><div class="stepno">step 8 of 8 · answer</div>
+    <div class="steptext">Yes: at://did:plc:asb6pn…/app.bsky.graph.follow/3mwvnfetrba7c</div><div class="det"></div></div><div class="counters"><span>lookups in RAM <b>6</b></span><span>pages <b>2</b></span><span>blocks <b>1</b></span></div><!--/pre--></div>
+  <figcaption>A toy graph of 24 accounts in 3 shards of 8 ids, with blocks of 4 records, lists stored whole up to 4 and a by-subject index from 8. marco uses 128, 128 and 4,096, and the steps are the same.</figcaption>
+</figure>
+<p>Every lookup follows the same chain. The directory turns DIDs into ids, the id picks a shard and an index slot, and the slot leads to a list of up to 128 in one page or to a head in RAM. The head picks the blocks to read before any page is read. The costs below are measured on the whole network with every page in memory.</p>
+<div class="tw"><table>
+  <tr><th>Lookup</th><th class="r">Engine, 1 thread, p50</th><th class="r">16 threads</th><th>What it touches</th></tr>
+  <tr><td>Has, a miss</td><td class="r">322 ns</td><td class="r"></td><td>one in-set probe, nothing else</td></tr>
+  <tr><td>Has, a hit</td><td class="r">916 ns</td><td class="r"></td><td>the probe, then the out log for the record's URI</td></tr>
+  <tr><td>Has, half hits</td><td class="r">684 ns</td><td class="r">24.5M/s</td><td></td></tr>
+  <tr><td>ListOut, 50 newest, random actor</td><td class="r">1.1 µs</td><td class="r">2.96M/s</td><td>head's first rkeys, then one or two blocks</td></tr>
+  <tr><td>ListIn, 50, a big account</td><td class="r">2.0 µs</td><td class="r">4.74M/s</td><td>head's first ids, then one block or two</td></tr>
+  <tr><td>Mutuals, random actor</td><td class="r">620 ns</td><td class="r">8.20M/s</td><td>the smaller side decoded, then probed into the other</td></tr>
+  <tr><td>Mutuals, an account following 886k</td><td class="r">8.03 ms</td><td class="r"></td><td>its 886k follows decoded into a sorted array first</td></tr>
+  <tr><td>Followed by people you follow</td><td class="r">2.3 µs</td><td class="r"></td><td>the viewer's follows, probed into the subject's in set</td></tr>
+  <tr><td>Filter 50 by blocks, both ways</td><td class="r">5.9 µs</td><td class="r">1.75M/s</td><td>the viewer's block list decoded once, then two checks per actor</td></tr>
+</table></div>
+<p>Through the server, a <code>Has</code> runs at 1.05M/s on 16 threads, and most of the server's ~11 µs a call goes to HTTP/2, the runtime and Connect. marco's own graph code is 16% of its cycles. Details and the method: <a href="perf.html">Throughput and latency</a>.</p>
+
+<h2 id="numbers">Bytes, by part</h2>
+<div class="tw"><table>
+  <tr><th>Part, whole network</th><th class="r">On disk</th><th class="r">Per unit</th><th>Where it lives</th></tr>
+  <tr><td>Snapshot: follows, blocks, list items</td><td class="r">44.1 GB</td><td class="r">3.03B records</td><td>2.1 GB pinned · 42.0 GB paged</td></tr>
+  <tr><td>Follow out logs</td><td class="r">32.0 GB</td><td class="r">11.7 B a follow</td><td>subjects 4.00 · rkeys 4.94 · by-subject 1.74 · headers, index, padding 1.0</td></tr>
+  <tr><td>Follow in sets</td><td class="r">6.1 GB</td><td class="r">2.2 B a pair</td><td>2.1 B encoded · 2.74B pairs</td></tr>
+  <tr><td>Directory</td><td class="r">0.88 GB</td><td class="r">15 B a did:plc</td><td>43.7M did:plc · 3.8M other DIDs and list URIs</td></tr>
+  <tr><td>Heads and indexes</td><td class="r">1.18 GB</td><td class="r">index: 4 B an id</td><td>pinned · per relation and direction · a bitmap where most ids have no list</td></tr>
+</table></div>
+<p>Sizes are from the whole-network build of follows, blocks and list items. The read costs are from <a href="perf.html">Throughput and latency</a>, and <a href="lists-results.html">Lists</a> has list sizes and list lookups.</p>
+
+<script>
+// Each widget draws itself into its container. The markup inside a container's pre comment markers
+// is that first drawing, saved for viewers that run no scripts (marco's /docs serves this page without them).
+// After changing the script, regenerate it: `npm run explainer` in ui/.
+(() => {
+'use strict';
+document.documentElement.classList.add('js');
+
+const B32 = '234567abcdefghijklmnopqrstuvwxyz';
+const N_IDS = 47515814, N_PLC = 43715714, WIDTH = 742435;
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const fmt = (n) => Number(n).toLocaleString('en-US');
+const plural = (n, w) => `${fmt(n)} ${w}${n === 1 ? '' : 's'}`;
+function rng(seed) {
+  return () => {
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function varintLen(v) { v = BigInt(v); let n = 1; while (v >= 128n) { v >>= 7n; n++; } return n; }
+function tidStr(v) { let s = ''; for (let i = 0; i < 13; i++) s += B32[Number((v >> BigInt(60 - 5 * i)) & 31n)]; return s; }
+function tidOf(us, clock) { return (BigInt(us) << 10n) | BigInt(clock); }
+function seg(el, items, cur, on) {
+  el.innerHTML = items.map(([k, label]) => `<button type="button" data-k="${esc(k)}" class="${k === cur ? 'on' : ''}">${esc(label)}</button>`).join('');
+  el.onclick = (e) => { const b = e.target.closest('button'); if (b) on(b.dataset.k); };
+}
+const cells = (arr, f = () => '') => `<span class="cells">${arr.map((v, i) => `<span class="cell ${f(v, i)}">${esc(v)}</span>`).join('')}</span>`;
+
+// ------------------------------------------------------------ DIDs
+function didRender() {
+  const v = $('#did-in').value.trim();
+  const out = $('#did-out');
+  const s = v.startsWith('did:plc:') ? v.slice(8) : null;
+  if (s === null || s.length !== 24 || [...s].some((c) => B32.indexOf(c) < 0)) {
+    const what = v.startsWith('did:')
+      ? 'That isn\'t a did:plc in its 24-character base32, so marco keeps it as a string in the directory\'s other-DIDs table, sorted, and finds it by binary search. 3.8M of the network\'s 47.5M ids are kept that way, list URIs among them.'
+      : 'That isn\'t a DID.';
+    out.innerHTML = `<p class="read">${esc(what)}</p>`;
+    return;
+  }
+  let p = 0n;
+  const chars = [];
+  for (const c of s) { const r = B32.indexOf(c); p = (p << 5n) | BigInt(r); chars.push([c, r]); }
+  const bytes = [];
+  for (let i = 0; i < 15; i++) bytes.push(Number((p >> BigInt(8 * (14 - i))) & 255n).toString(16).padStart(2, '0'));
+  const bucket = Number(p >> 98n);
+  const id = Number((p * BigInt(N_PLC)) >> 120n);
+  const shard = Math.floor(id / WIDTH);
+  out.innerHTML = `
+    <div class="k">24 characters, 5 bits each</div>
+    <div class="chars">${chars.map(([c, r]) => `<span class="ch"><b>${esc(c)}</b><i>${r}</i><span>${r.toString(2).padStart(5, '0')}</span></span>`).join('')}</div>
+    <div class="k">120 bits as 15 bytes</div>
+    ${cells(bytes, () => 'c-pin')}
+    <div class="k">DID to id</div>
+    <div class="flow">
+      <span class="cell c-pin">top 22 bits: bucket ${fmt(bucket)} of 4,194,304</span><span class="arr">→</span>
+      <span class="cell c-pin">~10 packed DIDs to compare</span><span class="arr">→</span>
+      <span class="cell">id ≈ ${fmt(id)}</span><span class="arr">→</span>
+      <span class="cell">shard ${shard} (ids ${fmt(shard * WIDTH)} to ${fmt(Math.min(N_IDS, (shard + 1) * WIDTH) - 1)})</span>
+    </div>
+    <p class="read">32 B of string, 15 B in the directory, and 4 B in every list that names it.</p>`;
+}
+function didRandom() {
+  const r = rng((Math.random() * 2 ** 31) | 0);
+  let s = 'did:plc:';
+  for (let i = 0; i < 24; i++) s += B32[Math.floor(r() * 32)];
+  $('#did-in').value = s;
+  didRender();
+}
+
+// ------------------------------------------------------------ out log bytes
+const IV = [['ms', '1 ms', 1e3], ['s', '1 s', 1e6], ['min', '1 min', 6e7], ['h', '1 h', 3.6e9], ['day', '1 day', 8.64e10]];
+let ivCur = 's';
+function outRender() {
+  const us = IV.find((x) => x[0] === ivCur)[2];
+  const r = rng(7);
+  let t = Date.UTC(2026, 9, 12, 15, 0, 0) * 1000;
+  const recs = [];
+  for (let i = 0; i < 6; i++) {
+    if (i) t += Math.max(1, Math.round(us * (0.6 + 0.8 * r())));
+    recs.push({ key: tidOf(t, 0x1b3), subj: Math.floor(r() * N_IDS) });
+  }
+  const gaps = recs.slice(1).map((x, i) => x.key - recs[i].key);
+  const parts = [['n', 1, 'var(--muted)'], ['dups', 1, 'var(--border-strong)'], ['subjects', 24, 'var(--out)'], ['first rkey', 8, 'var(--pin)']];
+  gaps.forEach((g) => parts.push(['gap', varintLen(g), 'var(--page)']));
+  const total = parts.reduce((a, p) => a + p[1], 0);
+  const gapBytes = gaps.reduce((a, g) => a + varintLen(g), 0);
+  const rows = recs.map((x, i) => `<tr><td>${tidStr(x.key)}</td><td>${fmt(x.subj)}</td><td>${i ? fmt(gaps[i - 1]) : 'first: 8 B'}</td><td>${i ? varintLen(gaps[i - 1]) + ' B' : ''}</td></tr>`).join('');
+  const strip = parts.map(([, n, c], j) => Array.from({ length: n }, (_, k) => `<span class="byte" style="background:${c};opacity:${j > 3 && k ? 0.6 : 1}"></span>`).join('')).join('');
+  $('#out-out').innerHTML = `
+    <div class="tw"><table class="mini"><tr><th>rkey (TID)</th><th>subject id</th><th>gap from the one before</th><th>varint</th></tr>${rows}</table></div>
+    <div class="bytes" aria-label="${total} bytes">${strip}</div>
+    <div class="legend"><span style="--c:var(--muted)">n, 1 B</span><span style="--c:var(--border-strong)">dups, 1 B</span><span style="--c:var(--out)">subjects, 6 × 4 B</span><span style="--c:var(--pin)">first rkey, 8 B</span><span style="--c:var(--page)">5 gaps, ${gapBytes} B</span></div>
+    <p class="read"><b>${total} B</b> for 6 records. The rkeys after the first cost ${(gapBytes / 5).toFixed(1)} B each, where a u64 would take 8 B and the TID string 13 B.</p>`;
+}
+
+// ------------------------------------------------------------ Elias-Fano
+function efEncode(vals) {
+  const first = vals[0], m = vals.length - 1;
+  if (m === 0) return { first, m, l: 0, d: [], low: [], hi: [], bytes: 0, maxd: 0 };
+  const d = vals.slice(1).map((v) => v - first);
+  const maxd = d[m - 1];
+  const ratio = Math.floor(maxd / m);
+  const l = ratio === 0 ? 0 : 31 - Math.clz32(ratio);
+  const upper = m + Math.floor(maxd / 2 ** l) + 1;
+  const hi = new Array(upper).fill(-1);
+  d.forEach((x, i) => { hi[Math.floor(x / 2 ** l) + i] = i; });
+  const low = d.map((x) => x % 2 ** l);
+  return { first, m, l, d, low, hi, maxd, bytes: 1 + Math.ceil((m * l) / 8) + Math.ceil(upper / 8) };
+}
+// block_find, one bit at a time: skip h zeros, then compare low bits in bucket h
+function efProbe(e, x) {
+  const tr = { x, found: false, at: -1, zeros: [], bucket: [], cmp: [] };
+  if (x < e.first) { tr.why = 'below the block\'s first id'; return tr; }
+  if (x === e.first) { tr.found = true; tr.why = 'the block\'s first id, which the head holds'; tr.at = 0; return tr; }
+  const d = x - e.first, h = Math.floor(d / 2 ** e.l), lo = d % 2 ** e.l;
+  Object.assign(tr, { d, h, lo });
+  let p = 0, i = 0, z = 0;
+  while (z < h && p < e.hi.length) { if (e.hi[p] < 0) { z++; tr.zeros.push(p); } else i++; p++; }
+  tr.start = p;
+  if (z < h) { tr.why = 'its bucket is past the last value'; return tr; }
+  while (p < e.hi.length && e.hi[p] >= 0 && i < e.m) {
+    tr.bucket.push(p); tr.cmp.push(i);
+    if (e.low[i] === lo) { tr.found = true; tr.at = i + 1; break; }
+    if (e.low[i] > lo) break;
+    i++; p++;
+  }
+  tr.why = tr.found ? `it's id ${tr.at + 1} of the block's ${e.m + 1}` : (tr.bucket.length ? 'no value in its bucket has its low bits' : 'its bucket is empty');
+  return tr;
+}
+const bin = (v, n) => (n ? v.toString(2).padStart(n, '0') : '');
+function efBitsHtml(e, tr) {
+  const lowCells = e.low.map((v, i) => {
+    const s = bin(v, e.l);
+    const cls = `g${i % 2}` + (tr && tr.cmp.includes(i) ? (tr.found && tr.at === i + 1 ? ' hit' : ' hl') : '');
+    return [...s].map((b, j) => `<span class="bit ${b === '1' ? 'one' : ''} ${cls} ${j === 0 && i ? 'gap' : ''}">${b}</span>`).join('');
+  }).join('');
+  const hiCells = e.hi.map((v, p) => {
+    let cls = v >= 0 ? `one g${v % 2}` : '';
+    if (tr && tr.zeros.includes(p)) cls += ' skip';
+    if (tr && tr.bucket.includes(p)) cls += tr.found && e.hi[p] === tr.at - 1 ? ' hit' : ' hl';
+    return `<span class="bit ${cls}">${v >= 0 ? 1 : 0}</span>`;
+  }).join('');
+  return `<div class="k">low bits (${e.m} × ${e.l})</div><div class="bits">${lowCells || '<span class="read">none: l is 0</span>'}</div>
+    <div class="k">high bits (${e.hi.length})</div><div class="bits">${hiCells}</div>`;
+}
+const EF_PRE = [
+  ['small', 'a small account', '1204, 1217, 1290, 1301, 1335, 1342, 1388, 1420, 1467, 1503', '1388', '1400'],
+  ['big', 'a big account', '500, 501, 503, 504, 505, 507, 508, 511, 512, 514, 515, 516', '508', '509'],
+  ['spread', 'spread over 47.5M', '412093, 3870114, 9120577, 15002931, 22764008, 30117452, 38800215, 46022871', '22764008', '22764009'],
+];
+let efPre = 'small', efMiss = '1400';
+function parseIds(s) {
+  const v = [...new Set(s.split(/[\s,]+/).filter(Boolean).map(Number).filter((x) => Number.isInteger(x) && x >= 0 && x < 2 ** 32))];
+  return v.sort((a, b) => a - b).slice(0, 32);
+}
+function efRender() {
+  const vals = parseIds($('#ef-in').value);
+  const out = $('#ef-out');
+  if (vals.length < 2) { out.innerHTML = '<p class="read">Give it at least two ids.</p>'; return; }
+  const e = efEncode(vals);
+  const x = Number($('#ef-x').value);
+  const tr = Number.isInteger(x) ? efProbe(e, x) : null;
+  const ratio = Math.floor(e.maxd / e.m);
+  const rows = e.d.map((d, i) => `<tr><td>${fmt(vals[i + 1])}</td><td>${fmt(d)}</td><td>${Math.floor(d / 2 ** e.l)}</td><td>${bin(e.low[i], e.l) || '-'}</td></tr>`).join('');
+  let probe = '';
+  if (tr) {
+    const steps = [];
+    if (tr.d === undefined) steps.push(`${fmt(x)} is ${tr.why}.`);
+    else {
+      steps.push(`d = ${fmt(x)} − ${fmt(e.first)} = ${fmt(tr.d)}, so the bucket is d &gt;&gt; ${e.l} = ${tr.h} and the low bits are ${bin(tr.lo, e.l) || 'none'}.`);
+      steps.push(tr.h ? `Skip ${tr.h} zeros in the high bits (dashed). Bucket ${tr.h} starts at bit ${tr.start}.` : 'Bucket 0 starts at bit 0, so nothing to skip.');
+      steps.push(tr.bucket.length ? `Compare the low bits of the ${tr.bucket.length === 1 ? 'value' : tr.bucket.length + ' values'} in it (outlined).` : 'The next bit is a 0, so the bucket is empty.');
+    }
+    probe = `<div class="k">probe for ${fmt(x)}</div><ol class="det">${steps.map((s) => `<li>${s}</li>`).join('')}</ol>
+      <p class="read"><b>${tr.found ? 'In the set' : 'Not in the set'}</b>: ${esc(tr.why)}. Nothing else in the block was decoded.</p>`;
+  }
+  out.innerHTML = `
+    <div class="k">first id, in the head: ${fmt(e.first)}</div>
+    <div class="tw"><table class="mini"><tr><th>id</th><th>d = id − first</th><th>high: d &gt;&gt; l</th><th>low: l bits</th></tr>${rows}</table></div>
+    <p class="read">l = ⌊log₂(max d / count)⌋ = ⌊log₂(${fmt(e.maxd)} / ${e.m})⌋ = ⌊log₂ ${fmt(ratio)}⌋ = <b>${e.l}</b></p>
+    ${efBitsHtml(e, tr)}
+    <p class="read"><b>${e.bytes} B</b> for the ${e.m} ids after the first (1 B for l, ${Math.ceil((e.m * e.l) / 8)} B low, ${Math.ceil(e.hi.length / 8)} B high). As u32s they'd take ${4 * e.m} B.</p>
+    ${probe}`;
+}
+
+// ------------------------------------------------------------ set size
+const IN_MAX = 31205644;
+function sizeOf(n) {
+  const r = rng(n * 7 + 3);
+  const p = Math.min(1, n / N_IDS);
+  const gap = () => (p >= 1 ? 1 : 1 + Math.floor(Math.log(1 - r()) / Math.log(1 - p)));
+  const take = (k) => { const v = [gap() - 1]; for (let i = 1; i < k; i++) v.push(v[i - 1] + gap()); return v; };
+  if (n <= 8) {
+    let tot = 0;
+    for (let s = 0; s < 4; s++) { const v = take(n); tot += 1 + v.reduce((a, x, i) => a + varintLen(i ? x - v[i - 1] : x), 0); }
+    return { per: tot / 4 / n, l: null, pinned: 0 };
+  }
+  if (n <= 128) {
+    let tot = 0, l = 0;
+    for (let s = 0; s < 4; s++) { const e = efEncode(take(n)); tot += varintLen(n) + 4 + e.bytes; l = e.l; }
+    return { per: tot / 4 / n, l, pinned: 0 };
+  }
+  let tot = 0, l = 0;
+  for (let s = 0; s < 4; s++) { const e = efEncode(take(128)); tot += e.bytes; l = e.l; }
+  return { per: tot / 4 / 128 + 9 / 128, l, pinned: 9 / 128 };
+}
+function szRender() {
+  const s = Number($('#sz').value);
+  const n = Math.max(1, Math.round(Math.exp((s / 1000) * Math.log(IN_MAX))));
+  const z = sizeOf(n);
+  const how = n <= 8 ? 'varint gaps, stored whole' : n <= 128 ? 'one Elias-Fano block, stored whole in one page' : `${fmt(Math.ceil(n / 128))} blocks of 128, one page read per probe`;
+  const w = Math.min(100, (z.per / 4) * 100);
+  $('#sz-out').innerHTML = `
+    <p class="read"><b>${plural(n, 'member')}</b>: ${how}${z.l === null ? '' : `, l = ${z.l}`}.</p>
+    <div class="meter" role="img" aria-label="${z.per.toFixed(2)} bytes a member"><div class="fill" style="width:${w.toFixed(1)}%"></div><span class="tick" style="left:50%"></span><b>${z.per.toFixed(2)} B</b></div>
+    <div class="scale"><span>0</span><span>2 B</span><span>4 B, a u32</span></div>
+    ${z.pinned ? `<p class="read">${z.pinned.toFixed(2)} B of each member's share is the head, in RAM.</p>` : ''}`;
+}
+
+// ------------------------------------------------------------ deltas
+const DSUBS = [[1, 'ben'], [2, 'cat'], [3, 'dev'], [4, 'eli']];
+const DT0 = Date.UTC(2026, 9, 20, 9, 0, 0);
+let D;
+function dReset() {
+  const rec = (min, sub) => ({ key: tidStr(tidOf((DT0 + min * 60000) * 1000, 0x2c1)), sub, made: min });
+  D = {
+    clock: 30, sub: 2, log: 'The snapshot holds three of ana\'s follows.',
+    base: [rec(1, 1), rec(2, 2), rec(3, 3)],
+    baseIn: { 1: [0, 5, 9], 2: [0, 3, 7, 11], 3: [0, 2], 4: [6, 13] },
+    adds: new Map(), dels: new Map(), inAdd: {}, inDel: {}, tomb: new Map(), made: new Map(), lastDel: null,
+  };
+  for (const r of D.base) D.made.set(r.key, r.made);
+}
+const dNow = () => new Date(DT0 + D.clock * 60000).toISOString().slice(11, 16);
+const dSet = (m, k) => (m[k] ||= new Set());
+function dLive() {
+  const v = D.base.filter((r) => !D.dels.has(r.key)).map((r) => ({ key: r.key, sub: r.sub }));
+  for (const [key, sub] of D.adds) v.push({ key, sub });
+  return v.sort((a, b) => (a.key < b.key ? -1 : 1));
+}
+const dPair = (sub) => dLive().some((r) => r.sub === sub);
+function dInAdd(sub) { if (!dSet(D.inDel, sub).delete(0)) dSet(D.inAdd, sub).add(0); }
+function dInDel(sub) { if (!dSet(D.inAdd, sub).delete(0)) dSet(D.inDel, sub).add(0); }
+const dName = (s) => DSUBS.find((x) => x[0] === s)[1];
+function dAdd(key, sub, t) {
+  const tomb = D.tomb.get(key);
+  if (tomb !== undefined) {
+    if (t < tomb.t) return `A create of ${key} made at ${tomb.madeAt} arrives late. Its tombstone is from ${tomb.at}, which is newer, so the record stays deleted.`;
+    D.tomb.delete(key);
+  }
+  if (dLive().some((r) => r.key === key)) return 'That record is already there.';
+  const pair = dPair(sub);
+  D.adds.set(key, sub);
+  if (!pair) dInAdd(sub);
+  return `Create ${key} → ${dName(sub)}: the out-log delta gains the record. ` + (pair ? `ana already follows ${dName(sub)} through another record, so ${dName(sub)}'s in set doesn't change.` : `${dName(sub)}'s in-set delta gains id 0.`);
+}
+function dFollow() {
+  D.clock += 1;
+  const key = tidStr(tidOf((DT0 + D.clock * 60000) * 1000, 0x2c1));
+  D.made.set(key, D.clock);
+  D.log = dAdd(key, D.sub, D.clock);
+}
+function dUnfollow() {
+  const live = dLive().filter((r) => r.sub === D.sub);
+  if (!live.length) { D.log = `ana has no record naming ${dName(D.sub)}, so there's nothing to delete.`; return; }
+  const { key, sub } = live[live.length - 1];
+  D.clock += 1;
+  D.tomb.set(key, { t: D.clock, at: dNow(), madeAt: new Date(DT0 + D.made.get(key) * 60000).toISOString().slice(11, 16) });
+  D.lastDel = { key, sub };
+  let where;
+  if (D.adds.has(key)) { D.adds.delete(key); where = 'drops the record from the out-log delta'; }
+  else { D.dels.set(key, sub); where = 'masks the base record'; }
+  const others = dPair(sub);
+  if (!others) dInDel(sub);
+  D.log = `Delete at://ana/…/${key}: the out log finds its subject, ${dName(sub)}, and ${where}. ` + (others ? `Another record still names ${dName(sub)}, so the pair stays.` : `No other record names ${dName(sub)}, so the in-set delta removes id 0.`) + ` A tombstone records the delete at ${dNow()}.`;
+}
+function dReplay() {
+  if (!D.lastDel) { D.log = 'Delete something first.'; return; }
+  const { key, sub } = D.lastDel;
+  D.log = dAdd(key, sub, D.made.get(key));
+}
+function dCheckpoint() {
+  const live = dLive();
+  D.base = live.map((r) => ({ key: r.key, sub: r.sub }));
+  for (const [s] of DSUBS) {
+    const set = new Set(D.baseIn[s]);
+    for (const x of D.inAdd[s] || []) set.add(x);
+    for (const x of D.inDel[s] || []) set.delete(x);
+    D.baseIn[s] = [...set].sort((a, b) => a - b);
+  }
+  D.adds = new Map(); D.dels = new Map(); D.inAdd = {}; D.inDel = {};
+  D.log = `Checkpoint: the changed lists go into a patch file (a long list rewrites only the blocks that changed), and the deltas start over. Tombstones (${D.tomb.size} here) stay until they're older than anything a source still replays.`;
+}
+function dRender() {
+  seg($('#dl-sub'), DSUBS.map(([i, n]) => [String(i), n]), String(D.sub), (k) => { D.sub = Number(k); dRender(); });
+  const base = D.base.map((r) => `<tr><td><span class="cell ${D.dels.has(r.key) ? 'del' : 'c-out'}">${r.key}</span></td><td>${dName(r.sub)} (${r.sub})</td><td>${D.dels.has(r.key) ? 'masked by the delta' : 'base'}</td></tr>`).join('');
+  const adds = [...D.adds].sort().map(([k, s]) => `<tr><td><span class="cell c-delta">${k}</span></td><td>${dName(s)} (${s})</td><td>delta</td></tr>`).join('');
+  const sets = DSUBS.map(([s, n]) => {
+    const a = D.inAdd[s] || new Set(), d = D.inDel[s] || new Set();
+    const chips = D.baseIn[s].map((x) => `<span class="cell ${d.has(x) ? 'del' : 'c-in'}">${x}</span>`).join('') + [...a].map((x) => `<span class="cell c-delta">+${x}</span>`).join('');
+    return `<div class="row"><span class="lab">${n} (${s})</span><span class="cells">${chips}</span></div>`;
+  }).join('');
+  const tombs = [...D.tomb].map(([k, v]) => `<span class="cell tomb">(0, ${k}) at ${v.at}</span>`).join(' ') || '<span class="read">none</span>';
+  const read = dLive().reverse().map((r) => dName(r.sub)).join(', ') || 'nothing';
+  $('#dl-out').innerHTML = `
+    <div class="two">
+      <div class="panel det"><div class="k">ana's out log (follow)</div><table class="mini"><tr><th>rkey</th><th>subject</th><th></th></tr>${base}${adds}</table></div>
+      <div class="panel det"><div class="k">in sets (follow)</div>${sets}</div>
+    </div>
+    <div class="panel det" style="margin-top:10px"><div class="k">tombstones</div><span class="cells">${tombs}</span>
+    <p class="read">ListOut(ana) reads: <b>${esc(read)}</b></p></div>
+    <p class="log">${esc(D.log)}</p>`;
+  $('#dl-replay').disabled = !D.lastDel;
+}
+
+// ------------------------------------------------------------ memory
+const PIN = [['directory', 0.877], ['heads', 0.664], ['indexes', 0.514], ['sums, side tables', 0.076]];
+const PAGED = [['out.rkey', 12.949], ['out.subj', 10.381], ['out.small', 6.22], ['out.bysubj', 5.985], ['in.blocks', 4.951], ['in.small', 1.52]];
+function memRender() {
+  const gib = Number($('#mem').value);
+  const gb = gib * 1.073741824;
+  const pin = PIN.reduce((a, x) => a + x[1], 0), paged = PAGED.reduce((a, x) => a + x[1], 0), total = pin + paged;
+  const W = 740, sx = W / total;
+  let x = 10, svg = '';
+  const tone = (i, isPin) => (isPin ? 'f-pin' : 'f-page');
+  const bar = (list, isPin) => list.forEach(([name, v], i) => {
+    const w = v * sx;
+    svg += `<rect class="${tone(i, isPin)}" x="${x.toFixed(1)}" y="40" width="${w.toFixed(1)}" height="30"/>`;
+    if (w > 46) svg += `<text class="mono" x="${(x + 4).toFixed(1)}" y="59">${name}</text>`;
+    x += w;
+  });
+  bar(PIN, true); bar(PAGED, false);
+  const frames = Math.max(0, Math.min(paged, gb - pin));
+  const fw = (pin + frames) * sx;
+  const fits = frames >= paged;
+  svg += `<text class="h" x="10" y="26">pinned ${pin.toFixed(1)} GB</text><text class="h" x="750" y="26" text-anchor="end">paged ${paged.toFixed(1)} GB in 4 KiB pages</text>`;
+  svg += `<rect x="10" y="80" width="${fw.toFixed(1)}" height="12" rx="3" class="f-pin" style="fill:var(--accent-soft);stroke:var(--accent)"/>`;
+  const marks = [[13, '13 GiB: 99.85% of requests had no cache miss'], [44, '44 GiB: every page loaded at open']];
+  for (const [g, label] of marks) {
+    const mx = 10 + Math.min(total, g * 1.073741824) * sx;
+    svg += `<line class="lnd" x1="${mx.toFixed(1)}" y1="74" x2="${mx.toFixed(1)}" y2="104"/><text class="mu" x="${(mx > 540 ? mx - 4 : mx + 4).toFixed(1)}" y="104" text-anchor="${mx > 540 ? 'end' : 'start'}">${label}</text>`;
+  }
+  $('#mem-out').innerHTML = `<svg class="wide" viewBox="0 0 760 112" role="img" aria-label="snapshot sections and the memory budget">${svg}</svg>
+    <p class="read"><b>--memory ${gib} GiB</b> holds the pinned sections and ${frames.toFixed(1)} GB of page frames. ${fits ? 'Everything fits. Open reads every page once, and no request reads the disk after that.' : `That's ${Math.round((frames / paged) * 100)}% of the pages. S3-FIFO keeps the ones requests come back to, and a miss reads one 4 KiB page.`}</p>`;
+}
+
+// ------------------------------------------------------------ the toy graph
+const NAMES = ['ana', 'ben', 'cat', 'dev', 'eli', 'fay', 'gus', 'hal', 'ivy', 'jo', 'kai', 'lu', 'max', 'ned', 'oz', 'pia', 'quin', 'rae', 'sam', 'tia', 'uma', 'vic', 'wes', 'xan'];
+const ID = Object.fromEntries(NAMES.map((n, i) => [n, i]));
+const TOY = { BLOCK: 4, WHOLE: 4, SUBJ: 8, WIDTH: 8 };
+const TOY_DIDS = (() => {
+  const r = rng(42);
+  const v = NAMES.map(() => { let s = ''; for (let i = 0; i < 24; i++) s += B32[Math.floor(r() * 32)]; return s; });
+  return v.sort().map((s) => 'did:plc:' + s);
+})();
+const short = (id) => TOY_DIDS[id].slice(0, 14) + '…';
+const FOLLOWS = [['ana', 'cat'], ['ben', 'cat'], ['ana', 'ben'], ['dev', 'cat'], ['ana', 'eli'], ['eli', 'cat'], ['ana', 'dev'], ['gus', 'cat'],
+  ['ana', 'gus'], ['hal', 'cat'], ['jo', 'cat'], ['ana', 'kai'], ['lu', 'cat'], ['ana', 'ivy'], ['ned', 'cat'], ['ana', 'max'], ['oz', 'cat'],
+  ['ana', 'rae'], ['rae', 'cat'], ['ana', 'oz'], ['tia', 'cat'], ['ana', 'uma'], ['uma', 'cat'], ['ana', 'sam'], ['wes', 'cat'], ['dev', 'hal'],
+  ['vic', 'dev'], ['vic', 'eli'], ['vic', 'fay'], ['vic', 'tia']];
+const BLOCKS = [['vic', 'eli'], ['vic', 'ned'], ['dev', 'vic'], ['jo', 'vic']];
+const G = (() => {
+  const r = rng(9);
+  let t = Date.UTC(2026, 9, 2, 9, 0, 0) * 1000;
+  const g = { out: [{}, {}], inn: [{}, {}] };
+  const add = (rel, a, s) => {
+    t += Math.round((20 + r() * 10800) * 1e6);
+    const key = tidOf(t, 0x0a5 + ID[a]);
+    (g.out[rel][ID[a]] ||= []).push({ key, k: tidStr(key), sub: ID[s] });
+    const set = (g.inn[rel][ID[s]] ||= []);
+    if (!set.includes(ID[a])) set.push(ID[a]);
+  };
+  FOLLOWS.forEach(([a, s]) => add(0, a, s));
+  BLOCKS.forEach(([a, s]) => add(1, a, s));
+  for (const rel of [0, 1]) for (const k in g.inn[rel]) g.inn[rel][k].sort((a, b) => a - b);
+  return g;
+})();
+const chunk = (a, n) => Array.from({ length: Math.ceil(a.length / n) }, (_, i) => a.slice(i * n, i * n + n));
+const shardOf = (id) => [Math.floor(id / TOY.WIDTH), id % TOY.WIDTH];
+const RELS = ['follow', 'block'];
+// index entries for one shard: small lists packed by bytes in id order, heads by bytes
+function entries(rel, dir, sh) {
+  const out = [];
+  let small = 0, head = 0;
+  for (let loc = 0; loc < TOY.WIDTH; loc++) {
+    const id = sh * TOY.WIDTH + loc;
+    const list = dir === 'out' ? G.out[rel][id] : G.inn[rel][id];
+    if (!list) { out.push({ kind: 'none' }); continue; }
+    const n = list.length;
+    if (n <= TOY.WHOLE) {
+      const bytes = dir === 'out'
+        ? 2 + 4 * n + 8 + list.slice(1).reduce((a, x, i) => a + varintLen(x.key - list[i].key), 0)
+        : 1 + (n <= 8 ? list.reduce((a, x, i) => a + varintLen(i ? x - list[i - 1] : x), 0) : 4 + efEncode(list).bytes);
+      out.push({ kind: 'small', at: small }); small += bytes;
+    } else {
+      const nb = Math.ceil(n / TOY.BLOCK);
+      out.push({ kind: 'head', at: head });
+      head += dir === 'out' ? 12 + 16 * nb + (n >= TOY.SUBJ ? 9 * nb : 0) : 8 + 9 * nb;
+    }
+  }
+  return out;
+}
+function idxDet(rel, dir, id) {
+  const [sh, loc] = shardOf(id);
+  const es = entries(rel, dir, sh);
+  const lab = (e) => (e.kind === 'none' ? 'none' : e.kind === 'small' ? `@${e.at}` : `head @${e.at}`);
+  return { e: es[loc], sh, loc, html: `<div class="row"><span class="lab">shard ${sh} r${rel}.${dir}.idx</span>${cells(es.map(lab), (v, i) => (i === loc ? 'on c-pin' : 'c-pin dim'))}</div>` };
+}
+const blockFor = (firsts, x, from = 0) => { let b = -1; for (let i = from; i < firsts.length; i++) if (firsts[i] <= x) b = i; return b; };
+const page = (sh, rel, sec) => `shard ${sh} · r${rel}.${sec}`;
+function efDet(block, x) {
+  const e = efEncode(block);
+  const tr = efProbe(e, x);
+  return { tr, html: `<div class="row"><span class="lab">block</span>${cells(block, (v) => (v === x ? (tr.found ? 'ok' : 'on') : 'c-in'))} <span class="lab">l = ${e.l}</span></div>${efBitsHtml(e, tr)}` };
+}
+const nm = (id) => NAMES[id];
+const res = (t, extra = '') => ({ box: [], kind: 'done', t, d: extra });
+
+function opHas(a, s) {
+  const st = [];
+  st.push({ box: ['directory'], mem: 2, t: `The directory turns both DIDs into ids: ${nm(a)} is ${a} and ${nm(s)} is ${s}.`,
+    d: `<div class="row">${cells([`${short(a)} → ${a}`, `${short(s)} → ${s}`], () => 'c-pin')}</div>` });
+  st.push({ box: ['deltas'], mem: 1, t: `${nm(s)}'s in set has no delta (no writes since the snapshot), so the base answers.` });
+  const set = G.inn[0][s];
+  const ix = idxDet(0, 'in', s);
+  st.push({ box: ['index'], mem: 1, t: `Id ${s} is in shard ${ix.sh}. Its in.idx entry, 4 B in slot ${ix.loc}, points at a head, since the set's ${set.length} members are more than the toy keeps whole.`, d: ix.html });
+  const blocks = chunk(set, TOY.BLOCK), firsts = blocks.map((b) => b[0]);
+  const b = blockFor(firsts, a);
+  st.push({ box: ['heads'], mem: 1, t: `The head keeps each block's first id. A binary search for ${a} picks block ${b}, since ${firsts[b]} ≤ ${a}${b + 1 < firsts.length ? ` < ${firsts[b + 1]}` : ''}.`,
+    d: `<div class="row"><span class="lab">first ids</span>${cells(firsts, (v, i) => (i === b ? 'on c-pin' : 'c-pin dim'))}</div>` });
+  const ef = efDet(blocks[b], a);
+  st.push({ box: ['in.blocks'], pages: [page(ix.sh, 0, 'in.blocks')], blocks: 1,
+    t: ef.tr.found ? `Read block ${b}'s page and probe it in place: skip ${ef.tr.h} zeros in the high bits, compare low bits in that bucket. ${a} is there.` : `Read block ${b}'s page and probe it in place. ${a} isn't there: ${ef.tr.why}.`, d: ef.html });
+  if (!ef.tr.found) { st.push(res(`No. A miss stops here, without opening ${nm(a)}'s out log.`)); return st; }
+  const list = G.out[0][a];
+  const ox = idxDet(0, 'out', a);
+  st.push({ box: ['index'], mem: 1, t: `Has answers with the record's URI, so it opens ${nm(a)}'s out log: shard ${ox.sh}, out.idx slot ${ox.loc}, a whole list at offset ${ox.e.at} of out.small.`, d: ox.html });
+  let pos = -1;
+  list.forEach((r, i) => { if (r.sub === s) pos = i; });
+  st.push({ box: ['out.small'], pages: [page(ox.sh, 0, 'out.small')],
+    t: `One page holds the whole list. Scanning its subject column for ${s} finds position ${pos}, and the rkeys are in the same page.`,
+    d: `<table class="mini"><tr><th>pos</th><th>subject</th><th>rkey</th></tr>${list.map((r, i) => `<tr><td>${i}</td><td>${r.sub} (${nm(r.sub)})</td><td>${i === pos ? `<span class="cell ok">${r.k}</span>` : r.k}</td></tr>`).join('')}</table>` });
+  st.push(res(`Yes: at://${short(a)}/app.bsky.graph.follow/${list[pos].k}`));
+  return st;
+}
+function opListOut() {
+  const a = ID.ana, list = G.out[0][a], limit = 3;
+  const cursor = list.find((r) => r.sub === ID.oz);
+  const st = [];
+  st.push({ box: ['directory'], mem: 1, t: `ana is id ${a}. The cursor is an rkey, ${cursor.k}, and its 13 characters decode to a u64 with no lookup.` });
+  st.push({ box: ['deltas'], mem: 1, t: 'ana\'s out log has no delta, so the result comes from the base alone.' });
+  const ox = idxDet(0, 'out', a);
+  st.push({ box: ['index'], mem: 1, t: `out.idx slot ${ox.loc} points at a head: ${list.length} records in ${Math.ceil(list.length / TOY.BLOCK)} blocks.`, d: ox.html });
+  const blocks = chunk(list, TOY.BLOCK), fk = blocks.map((b) => b[0].key);
+  const end = fk.filter((k) => k < cursor.key).length;
+  const span = Math.floor((limit + TOY.BLOCK - 1) / TOY.BLOCK) + 1, start = Math.max(0, end - span);
+  st.push({ box: ['heads'], mem: 1, t: `The head keeps each block's first rkey. Blocks 0 to ${end - 1} start before the cursor, so the walk starts in block ${end - 1} and goes back. A limit of ${limit} needs blocks ${start} to ${end - 1}.`,
+    d: `<div class="row"><span class="lab">first rkeys</span>${cells(fk.map(tidStr), (v, i) => (i >= start && i < end ? 'on c-pin' : 'c-pin dim'))}</div>` });
+  const got = [];
+  for (let b = end - 1; b >= 0 && got.length < limit; b--) for (let i = blocks[b].length - 1; i >= 0 && got.length < limit; i--) if (blocks[b][i].key < cursor.key) got.push(blocks[b][i]);
+  st.push({ box: ['out.subj', 'out.rkey'], pages: [page(0, 0, 'out.subj'), page(0, 0, 'out.rkey')], blocks: 2 * (end - start),
+    t: `Both columns' blocks ${start} to ${end - 1} are named before either is read. Each block's rkeys are its first rkey plus varint gaps. Walking newest first and skipping rkeys at or after the cursor gives ${got.map((r) => nm(r.sub)).join(', ')}.`,
+    d: blocks.map((bl, b) => `<div class="row"><span class="lab">block ${b}</span>${cells(bl.map((r) => `${r.k} ${nm(r.sub)}`), (v, i) => (b < start || b >= end ? 'dim c-out' : got.includes(bl[i]) ? 'ok' : bl[i] === cursor ? 'on c-out' : 'c-out'))}</div>`).join('') });
+  st.push({ box: ['directory'], mem: limit, t: `Each subject id becomes its DID by an array index into the directory (id × 15 B). The next cursor is ${nm(got[got.length - 1].sub)}'s rkey.` });
+  st.push(res(`${got.map((r) => nm(r.sub)).join(', ')}, cursor ${got[got.length - 1].k}`));
+  return st;
+}
+function opListIn() {
+  const s = ID.cat, after = ID.hal, limit = 4, set = G.inn[0][s];
+  const st = [];
+  st.push({ box: ['directory'], mem: 2, t: `cat is id ${s}. The cursor is a DID, hal's, which is id ${after}: ListIn pages in id order.` });
+  st.push({ box: ['deltas'], mem: 1, t: 'cat\'s in set has no delta.' });
+  const ix = idxDet(0, 'in', s);
+  st.push({ box: ['index'], mem: 1, t: `in.idx slot ${ix.loc} points at a head: ${set.length} members.`, d: ix.html });
+  const blocks = chunk(set, TOY.BLOCK), firsts = blocks.map((b) => b[0]);
+  const b0 = blockFor(firsts, after);
+  st.push({ box: ['heads'], mem: 1, t: `A binary search of the first ids for ${after} lands in block ${b0}. A limit of ${limit} needs that block and the next.`,
+    d: `<div class="row"><span class="lab">first ids</span>${cells(firsts, (v, i) => (i === b0 || i === b0 + 1 ? 'on c-pin' : 'c-pin dim'))}</div>` });
+  const got = [];
+  for (let b = b0; b < blocks.length && got.length < limit; b++) for (const x of blocks[b]) if (x > after && got.length < limit) got.push(x);
+  st.push({ box: ['in.blocks'], pages: [page(0, 0, 'in.blocks')], blocks: 2,
+    t: `Decode blocks ${b0} and ${b0 + 1} and keep ids after ${after}: ${got.join(', ')}. Blocks before the cursor are never read.`,
+    d: blocks.map((bl, b) => `<div class="row"><span class="lab">block ${b}</span>${cells(bl, (v) => (b < b0 || b > b0 + 1 ? 'dim c-in' : got.includes(v) ? 'ok' : 'c-in'))}</div>`).join('') });
+  st.push({ box: ['directory'], mem: limit, t: `Ids to DIDs by array index. The next cursor is ${nm(got[got.length - 1])}'s DID.` });
+  st.push(res(got.map(nm).join(', ')));
+  return st;
+}
+function opIntersect() {
+  const v = ID.vic, s = ID.cat;
+  const st = [];
+  st.push({ box: ['directory'], mem: 2, t: `Which accounts that vic follows also follow cat? vic is ${v} and cat is ${s}. The sides are vic's out log and cat's in set.` });
+  const ox = idxDet(0, 'out', v), ix = idxDet(0, 'in', s);
+  const vl = G.out[0][v], set = G.inn[0][s];
+  st.push({ box: ['index', 'heads', 'out.small'], mem: 3, pages: [page(ox.sh, 0, 'out.small')],
+    t: `Size both sides. vic's out log is a whole list, so its count is in its page (${vl.length} records). cat's set has a head, which holds its count (${set.length}) in RAM.`, d: ox.html + ix.html });
+  const probes = vl.map((r) => r.sub).sort((a, b) => a - b);
+  st.push({ box: [], mem: 0, t: `The smaller side becomes sorted probes: ${probes.map((x) => `${x} (${nm(x)})`).join(', ')}.` });
+  const blocks = chunk(set, TOY.BLOCK), firsts = blocks.map((b) => b[0]);
+  const hit = new Set();
+  let from = 0;
+  for (const x of probes) { const b = blockFor(firsts, x, from); if (b >= 0) { hit.add(b); from = b; } }
+  st.push({ box: ['heads'], mem: probes.length, t: `Each probe binary-searches cat's first ids, starting from the last block found: they land in block${hit.size > 1 ? 's' : ''} ${[...hit].join(' and ')}. The other ${blocks.length - hit.size} are never read.`,
+    d: `<div class="row"><span class="lab">first ids</span>${cells(firsts, (v2, i) => (hit.has(i) ? 'on c-pin' : 'c-pin dim'))}</div>` });
+  const found = probes.filter((x) => set.includes(x));
+  st.push({ box: ['in.blocks'], pages: [page(ix.sh, 0, 'in.blocks')], blocks: hit.size,
+    t: `Probe each block in place. ${found.map(nm).join(', ')} follow cat, and ${probes.filter((x) => !set.includes(x)).map(nm).join(', ')} doesn't.`,
+    d: blocks.map((bl, b) => `<div class="row"><span class="lab">block ${b}</span>${cells(bl, (x) => (!hit.has(b) ? 'dim c-in' : found.includes(x) ? 'ok' : 'c-in'))}</div>`).join('') });
+  st.push(res(`${found.map(nm).join(', ')}: ${hit.size} of cat's ${blocks.length} blocks read. A 31M-follower account has 244k blocks, and 50 probes read at most 50.`));
+  return st;
+}
+function opFilter() {
+  const v = ID.vic, actors = ['ben', 'cat', 'dev', 'eli', 'gus'].map((n) => ID[n]);
+  const st = [];
+  st.push({ box: ['directory'], mem: 1 + actors.length, t: `Filter ${actors.map(nm).join(', ')} for vic, dropping anyone vic blocks or who blocks vic. vic is ${v}, the others ${actors.join(', ')}.` });
+  const outB = G.out[1][v].map((r) => r.sub).sort((a, b) => a - b), inB = G.inn[1][v];
+  const ox = idxDet(1, 'out', v), ix = idxDet(1, 'in', v);
+  st.push({ box: ['index', 'out.small', 'in.small'], mem: 2, pages: [page(ox.sh, 1, 'out.small'), page(ix.sh, 1, 'in.small')],
+    t: `Both of vic's block lists are whole lists, one page each, named in the same pass. The out log's subjects decode once into a sorted array: ${outB.join(', ')}.`, d: ox.html + ix.html });
+  const rows = actors.map((x) => [x, outB.includes(x), inB.includes(x)]);
+  st.push({ box: ['out.small', 'in.small'], mem: 0, t: `Each actor is a binary search in that array, then a probe of vic's in set (${inB.join(' and ')}, the accounts that block vic).`,
+    d: `<table class="mini"><tr><th>actor</th><th>vic blocks</th><th>blocks vic</th></tr>${rows.map(([x, o, i]) => `<tr><td>${x} (${nm(x)})</td><td>${o ? '<span class="cell del">yes</span>' : 'no'}</td><td>${i ? '<span class="cell del">yes</span>' : 'no'}</td></tr>`).join('')}</table>` });
+  const dropped = rows.filter((r) => r[1] || r[2]);
+  const ex = idxDet(1, 'in', ID.eli);
+  st.push({ box: ['index', 'in.small'], mem: 1, pages: [page(ex.sh, 1, 'in.small')],
+    t: 'The response names the rule that dropped each actor, so each drop is checked again by rule. Has(vic blocks eli) probes eli\'s block in set, one more page. dev is already in vic\'s in set.', d: ex.html });
+  st.push(res(`kept ${rows.filter((r) => !r[1] && !r[2]).map((r) => nm(r[0])).join(', ')} · dropped ${dropped.map((r) => `${nm(r[0])} (${r[1] ? 'vic blocks' : 'blocks vic'})`).join(', ')}`));
+  return st;
+}
+const OPS = [
+  ['has', 'Has: dev → cat', () => opHas(ID.dev, ID.cat)],
+  ['miss', 'Has: fay → cat', () => opHas(ID.fay, ID.cat)],
+  ['out', 'ListOut', opListOut],
+  ['in', 'ListIn', opListIn],
+  ['and', 'Intersect', opIntersect],
+  ['filter', 'Filter', opFilter],
+];
+const MAP = [['g-pin', 'pinned, in RAM', ['directory', 'index', 'heads']], ['g-delta', 'in RAM', ['deltas']],
+  ['g-page', 'paged, 4 KiB pages through the cache', ['out.small', 'out.subj', 'out.rkey', 'out.bysubj', 'in.small', 'in.blocks']]];
+let opCur = 'has', stepAt = 0;
+function steps() {
+  const base = OPS.find((o) => o[0] === opCur)[2]();
+  if (!$('#cold').checked) return base;
+  const out = [], fetched = new Set();
+  let round = 1;
+  for (const s of base) {
+    const miss = (s.pages || []).filter((p) => !fetched.has(p));
+    if (miss.length) {
+      out.push({ box: s.box.filter((b) => !['directory', 'index', 'heads', 'deltas'].includes(b)), kind: 'pool', fetch: 1, mem: 0,
+        t: `Pass ${round} stops here: ${miss.length === 1 ? 'a page it needs isn\'t' : `${miss.length} pages it needs aren't`} in memory. The request's miss-pool thread has ${miss.length === 1 ? 'it read (4 KiB' : 'them read (4 KiB each'}, O_DIRECT, checked against the page sum), then runs the lookup again from the top. The steps before this one are all in RAM.`,
+        d: `<div class="row">${cells(miss, () => 'c-page')}</div>` });
+      miss.forEach((p) => fetched.add(p));
+      round++;
+    }
+    out.push(s);
+  }
+  return out;
+}
+function stRender() {
+  seg($('#op'), OPS.map((o) => [o[0], o[1]]), opCur, (k) => { opCur = k; stepAt = 0; stRender(); });
+  const all = steps();
+  stepAt = Math.min(stepAt, all.length - 1);
+  const s = all[stepAt];
+  $('#map').innerHTML = MAP.map(([g, label, boxes]) => `<div class="grp ${g}"><div class="gl">${label}</div><div class="chips">${boxes.map((b) => `<span class="chip ${s.box.includes(b) ? 'on' : ''}">${b}</span>`).join('')}</div></div>`).join('');
+  const sum = { mem: 0, pages: new Set(), blocks: 0, fetch: 0 };
+  all.slice(0, stepAt + 1).forEach((x) => { sum.mem += x.mem || 0; (x.pages || []).forEach((p) => sum.pages.add(p)); sum.blocks += x.blocks || 0; sum.fetch += x.fetch || 0; });
+  $('#st-out').innerHTML = `
+    <div class="stepbox ${s.kind || ''}"><div class="stepno">step ${stepAt + 1} of ${all.length}${s.kind === 'done' ? ' · answer' : ''}</div>
+    <div class="steptext">${esc(s.t)}</div><div class="det">${s.d || ''}</div></div>
+    <div class="counters"><span>lookups in RAM <b>${sum.mem}</b></span><span>pages <b>${sum.pages.size}</b></span><span>blocks <b>${sum.blocks}</b></span>${$('#cold').checked ? `<span>disk rounds <b>${sum.fetch}</b></span>` : ''}</div>`;
+  $('#st-back').disabled = stepAt === 0;
+  $('#st-next').disabled = $('#st-all').disabled = stepAt === all.length - 1;
+}
+
+// ------------------------------------------------------------ wiring
+didRender();
+$('#did-in').addEventListener('input', didRender);
+$('#did-rand').onclick = didRandom;
+$('#did-web').onclick = () => { $('#did-in').value = 'did:web:example.com'; didRender(); };
+const ivRender = () => seg($('#iv'), IV.map((x) => [x[0], x[1]]), ivCur, (k) => { ivCur = k; ivRender(); outRender(); });
+ivRender(); outRender();
+const efPreRender = () => seg($('#ef-pre'), EF_PRE.map((x) => [x[0], x[1]]), efPre, (k) => {
+  const p = EF_PRE.find((x) => x[0] === k);
+  efPre = k; efMiss = p[4];
+  $('#ef-in').value = p[2]; $('#ef-x').value = p[3]; $('#ef-miss').textContent = 'try ' + p[4];
+  efPreRender(); efRender();
+});
+efPreRender(); efRender();
+$('#ef-in').addEventListener('input', () => { efPre = ''; efPreRender(); efRender(); });
+$('#ef-x').addEventListener('input', efRender);
+$('#ef-go').onclick = efRender;
+$('#ef-miss').onclick = () => { $('#ef-x').value = efMiss; efRender(); };
+szRender(); $('#sz').addEventListener('input', szRender);
+dReset(); dRender();
+$('#dl-follow').onclick = () => { dFollow(); dRender(); };
+$('#dl-unfollow').onclick = () => { dUnfollow(); dRender(); };
+$('#dl-replay').onclick = () => { dReplay(); dRender(); };
+$('#dl-ckpt').onclick = () => { dCheckpoint(); dRender(); };
+$('#dl-reset').onclick = () => { dReset(); dRender(); };
+memRender(); $('#mem').addEventListener('input', memRender);
+stRender();
+$('#cold').addEventListener('change', () => { stepAt = 0; stRender(); });
+$('#st-back').onclick = () => { stepAt = Math.max(0, stepAt - 1); stRender(); };
+$('#st-next').onclick = () => { stepAt++; stRender(); };
+$('#st-all').onclick = () => { stepAt = 1e9; stRender(); };
+})();
+</script>
+</main>
+</body>
+</html>

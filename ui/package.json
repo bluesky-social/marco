@@ -12,7 +12,8 @@
     "check-docs": "node docs-build/check.mjs",
     "docs-shots": "node scripts/docs-shots.mjs",
     "home-shots": "node scripts/home-shots.mjs",
-    "og-card": "node scripts/og-card.mjs"
+    "og-card": "node scripts/og-card.mjs",
+    "explainer": "node scripts/explainer.mjs"
   },
   "dependencies": {
     "@bufbuild/protobuf": "2.16.0",
