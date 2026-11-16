@@ -1410,6 +1410,15 @@ pub struct BlockPairsRequest {
         deserialize_with = "::buffa::json_helpers::null_as_default"
     )]
     pub rels: ::buffa::alloc::vec::Vec<::buffa::alloc::string::String>,
+    /// Also the URIs of the records behind a_blocks_b and b_blocks_a.
+    ///
+    /// Field 4: `uris`
+    #[serde(
+        rename = "uris",
+        with = "::buffa::json_helpers::proto_bool",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_false"
+    )]
+    pub uris: bool,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -1419,6 +1428,7 @@ impl ::core::fmt::Debug for BlockPairsRequest {
         f.debug_struct("BlockPairsRequest")
             .field("pairs", &self.pairs)
             .field("rels", &self.rels)
+            .field("uris", &self.uris)
             .finish()
     }
 }
@@ -1460,6 +1470,9 @@ impl ::buffa::Message for BlockPairsRequest {
         for v in &self.rels {
             size += 1u64 + ::buffa::types::string_encoded_len(v) as u64;
         }
+        if self.uris {
+            size += 1u64 + ::buffa::types::BOOL_ENCODED_LEN as u64;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u64;
         ::buffa::saturate_size(size)
     }
@@ -1480,6 +1493,9 @@ impl ::buffa::Message for BlockPairsRequest {
         }
         for v in &self.rels {
             ::buffa::types::put_string_field(2u32, v, buf);
+        }
+        if self.uris {
+            ::buffa::types::put_bool_field(4u32, self.uris, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -1517,6 +1533,13 @@ impl ::buffa::Message for BlockPairsRequest {
                 )?;
                 self.rels.push(__elem);
             }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.uris = ::buffa::types::decode_bool(buf)?;
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -1527,6 +1550,7 @@ impl ::buffa::Message for BlockPairsRequest {
     fn clear(&mut self) {
         self.pairs.clear();
         self.rels.clear();
+        self.uris = false;
         self.__buffa_unknown_fields.clear();
     }
 }
@@ -1592,6 +1616,25 @@ pub struct BlockPairsResponse {
         deserialize_with = "::buffa::json_helpers::null_as_default"
     )]
     pub blocked: ::buffa::alloc::vec::Vec<bool>,
+    /// Only with uris, one each per pair: a's record naming b and b's naming a,
+    /// the newest in any of rels, or empty.
+    ///
+    /// Field 4: `a_blocks_b_uri`
+    #[serde(
+        rename = "aBlocksBUri",
+        alias = "a_blocks_b_uri",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_vec",
+        deserialize_with = "::buffa::json_helpers::null_as_default"
+    )]
+    pub a_blocks_b_uri: ::buffa::alloc::vec::Vec<::buffa::alloc::string::String>,
+    /// Field 5: `b_blocks_a_uri`
+    #[serde(
+        rename = "bBlocksAUri",
+        alias = "b_blocks_a_uri",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_vec",
+        deserialize_with = "::buffa::json_helpers::null_as_default"
+    )]
+    pub b_blocks_a_uri: ::buffa::alloc::vec::Vec<::buffa::alloc::string::String>,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -1602,6 +1645,8 @@ impl ::core::fmt::Debug for BlockPairsResponse {
             .field("a_blocks_b", &self.a_blocks_b)
             .field("b_blocks_a", &self.b_blocks_a)
             .field("blocked", &self.blocked)
+            .field("a_blocks_b_uri", &self.a_blocks_b_uri)
+            .field("b_blocks_a_uri", &self.b_blocks_a_uri)
             .finish()
     }
 }
@@ -1647,6 +1692,12 @@ impl ::buffa::Message for BlockPairsResponse {
                 * ::buffa::types::BOOL_ENCODED_LEN as u64;
             size += 1u64 + ::buffa::encoding::varint_len(payload) as u64 + payload;
         }
+        for v in &self.a_blocks_b_uri {
+            size += 1u64 + ::buffa::types::string_encoded_len(v) as u64;
+        }
+        for v in &self.b_blocks_a_uri {
+            size += 1u64 + ::buffa::types::string_encoded_len(v) as u64;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u64;
         ::buffa::saturate_size(size)
     }
@@ -1680,6 +1731,12 @@ impl ::buffa::Message for BlockPairsResponse {
             for &v in &self.blocked {
                 ::buffa::types::encode_bool(v, buf);
             }
+        }
+        for v in &self.a_blocks_b_uri {
+            ::buffa::types::put_string_field(4u32, v, buf);
+        }
+        for v in &self.b_blocks_a_uri {
+            ::buffa::types::put_string_field(5u32, v, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -1814,6 +1871,28 @@ impl ::buffa::Message for BlockPairsResponse {
                     );
                 }
             }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __elem = ::buffa::types::decode_string(buf)?;
+                ctx.register_element_memory(
+                    ::buffa::__private::element_footprint(&__elem),
+                )?;
+                self.a_blocks_b_uri.push(__elem);
+            }
+            5u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __elem = ::buffa::types::decode_string(buf)?;
+                ctx.register_element_memory(
+                    ::buffa::__private::element_footprint(&__elem),
+                )?;
+                self.b_blocks_a_uri.push(__elem);
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -1825,6 +1904,8 @@ impl ::buffa::Message for BlockPairsResponse {
         self.a_blocks_b.clear();
         self.b_blocks_a.clear();
         self.blocked.clear();
+        self.a_blocks_b_uri.clear();
+        self.b_blocks_a_uri.clear();
         self.__buffa_unknown_fields.clear();
     }
 }
