@@ -681,23 +681,41 @@ pub struct FilterArgs {
     pub drops: Vec<(RelId, Dir)>,
     /// (rel, dir, the list's actor)
     pub sets: Vec<(RelId, Dir, String)>,
+    pub vias: Vec<ViaArgs>,
 }
 
 impl FilterArgs {
     pub fn of(g: &Graph, req: &FilterRequest) -> Result<FilterArgs, ConnectError> {
         let mut drops = Vec::new();
         let mut sets = Vec::new();
-        for d in &req.drop {
-            match d.member_of.as_option() {
-                Some(m) => sets.push((rel_id(g, &m.rel)?, dir_of(&m.dir)?, m.actor.clone())),
-                None => drops.push((rel_id(g, &d.rel)?, dir_of(&d.dir)?)),
+        let mut vias = Vec::new();
+        for (i, d) in req.drop.iter().enumerate() {
+            match (d.member_of.as_option(), d.via.as_option()) {
+                (Some(_), Some(_)) => return Err(bad(format!("drop {i}: member_of or via, not both"))),
+                (None, Some(_)) if !d.rel.is_empty() => {
+                    return Err(bad(format!("drop {i}: via in place of rel and dir, not beside them")))
+                }
+                (None, Some(v)) => vias.push(ViaArgs::of(g, v, vias.len())?),
+                (Some(m), None) => sets.push((rel_id(g, &m.rel)?, dir_of(&m.dir)?, m.actor.clone())),
+                (None, None) => drops.push((rel_id(g, &d.rel)?, dir_of(&d.dir)?)),
             }
         }
-        Ok(FilterArgs { drops, sets })
+        if vias.len() > MAX_VIAS {
+            return Err(bad(format!("at most {MAX_VIAS} vias")));
+        }
+        Ok(FilterArgs { drops, sets, vias })
     }
 }
 
-pub fn filter_(g: &Graph, cx: &ReadCx<'_>, q: &FilterArgs, req: &FilterRequest) -> R<FilterResponse> {
+/// Filter, its rules resolved, and the via reads the cap cut. `cap` is the
+/// most of a subscriber's records a via reads.
+pub fn filter_(
+    g: &Graph,
+    cx: &ReadCx<'_>,
+    q: &FilterArgs,
+    cap: usize,
+    req: &FilterRequest,
+) -> R<(FilterResponse, ViaCuts)> {
     let drops = &q.drops;
     // an unknown or hidden list drops nobody
     let sets: Vec<ListRef> = q
@@ -714,10 +732,23 @@ pub fn filter_(g: &Graph, cx: &ReadCx<'_>, q: &FilterArgs, req: &FilterRequest) 
         Some(v) => g.filter_sets(cx, v, &known, drops, &sets)?.into_iter().collect(),
         None => g.filter_sets(cx, u32::MAX, &known, &[], &sets)?.into_iter().collect(),
     };
+    // via rules ask about the actors the other rules keep; a viewer that's
+    // unknown or hidden subscribes to nothing, and a hidden actor is dropped
+    // for its status
+    let (vias, cuts) = if q.vias.is_empty() {
+        (Vec::new(), ViaCuts::default())
+    } else {
+        let live = viewer.filter(|_| !g.hidden(&req.viewer));
+        let left: Vec<Option<u32>> =
+            req.actors.iter().zip(&ids).map(|(a, id)| id.filter(|x| kept.contains(x) && !g.hidden(a))).collect();
+        let qs: Vec<ViaQuery> = q.vias.iter().map(|v| v.query(g)).collect();
+        g.relationships_via(cx, live, &left, &qs, cap)?
+    };
     let mut actors = Vec::new();
     let mut dropped = Vec::new();
+    let mut via_truncated = Vec::new();
     let mut pend = Ok(());
-    for (a, id) in req.actors.iter().zip(&ids) {
+    for (j, (a, id)) in req.actors.iter().zip(&ids).enumerate() {
         if g.hidden(a) {
             dropped.push(Dropped { actor: a.clone(), rel: "status".into(), ..Default::default() });
             continue;
@@ -747,11 +778,28 @@ pub fn filter_(g: &Graph, cx: &ReadCx<'_>, q: &FilterArgs, req: &FilterRequest) 
                     ..Default::default()
                 });
             }
-            _ => actors.push(a.clone()),
+            _ => {
+                let hits = vias.get(j).map_or(&[][..], Vec::as_slice);
+                match hits.iter().zip(&q.vias).find(|(h, _)| h.list.is_some()) {
+                    Some((h, v)) => dropped.push(Dropped {
+                        actor: a.clone(),
+                        rel: g.relations().get(v.rel()).name.clone(),
+                        dir: dir_pb(v.dir()),
+                        list: list_uri(g, h.list),
+                        ..Default::default()
+                    }),
+                    None => {
+                        if hits.iter().any(|h| h.truncated) {
+                            via_truncated.push(a.clone());
+                        }
+                        actors.push(a.clone());
+                    }
+                }
+            }
         }
     }
     pend?;
-    Ok(FilterResponse { actors, dropped, ..Default::default() })
+    Ok((FilterResponse { actors, dropped, via_truncated, ..Default::default() }, cuts))
 }
 
 /// An EdgesAmong request with its relations resolved.
@@ -970,7 +1018,10 @@ impl svc::Graph for GraphApi {
             return Err(bad("at most 1000 actors"));
         }
         let q = FilterArgs::of(&self.0.graph(), &req)?;
-        Response::ok(run(&self.0, &ctx, "Graph/Filter", move |g, cx| filter_(g, cx, &q, &req)).await?)
+        let cap = self.0.cfg.via_max_records;
+        let (resp, cuts) = run(&self.0, &ctx, "Graph/Filter", move |g, cx| filter_(g, cx, &q, cap, &req)).await?;
+        crate::metrics::via_truncated("Graph/Filter", cuts);
+        Response::ok(resp)
     }
 
     async fn edges_among(

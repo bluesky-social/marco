@@ -156,8 +156,8 @@ struct Serve {
     /// Threads a request that misses the engine's cache moves to.
     #[arg(long, env = "MARCO_MISS_THREADS", default_value_t = 64)]
     miss_threads: usize,
-    /// The most of a subscriber's newest records a via reads (Relationships and BlockPairs), whichever
-    /// call or side names it. An empty answer that a read this cap stopped says so.
+    /// The most of a subscriber's newest records a via reads (Relationships, BlockPairs and Filter),
+    /// whichever call or side names it. An empty answer that a read this cap stopped says so.
     #[arg(long, env = "MARCO_VIA_MAX_RECORDS", default_value_t = marco_core::graph::VIA_MAX_RECORDS)]
     via_max_records: usize,
     /// The most actors one EdgesAmong request takes.
