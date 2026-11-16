@@ -394,6 +394,30 @@ message ListRelationsResponse {
   repeated RelationInfo relations = 1;
   // The relations as TOML.
   string config = 2;
+  // The relationships Relationships and BlockPairs answer (--relationships).
+  repeated RelationshipInfo relationships = 3;
+  // The relationships as TOML.
+  string relationships_config = 4;
+}
+
+message RelationshipInfo {
+  string name = 1;
+  // "direct" or "list".
+  string kind = 2;
+  // direct: the relation.
+  string relation = 3;
+  // list: the relation whose subjects are the lists one subscribes to, the
+  // list relation whose members count, and the relation a list has to be a
+  // subject of to count (empty: any list).
+  string subscription = 4;
+  string membership = 5;
+  string list_filter = 6;
+  // Counts in BlockPairs when it names no rels.
+  bool blocks = 7;
+  // In Relationships when it names no rels.
+  bool in_default = 8;
+  // Only the actor's side: in_uri is always empty.
+  bool private = 9;
 }
 
 message RelationInfo {
@@ -414,6 +438,8 @@ message RelationInfo {
   string subject_collection = 10;
   // Dotted paths and the string each holds while a record is an edge.
   map<string, string> when = 11;
+  // Edges come only through the write API: no source follows collection.
+  bool write_only = 12;
 }
 
 message GetListStatsRequest {

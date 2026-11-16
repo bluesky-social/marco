@@ -1319,6 +1319,9 @@ pub struct RelationshipsRequest {
         deserialize_with = "::buffa::json_helpers::null_as_default"
     )]
     pub others: ::buffa::alloc::vec::Vec<::buffa::alloc::string::String>,
+    /// Relationships (or relations) by name. Empty: the configured
+    /// relationships that are in the default set.
+    ///
     /// Field 3: `rels`
     #[serde(
         rename = "rels",
@@ -2022,6 +2025,8 @@ pub const __VIA_ANSWER_JSON_ANY: ::buffa::type_registry::JsonAnyEntry = ::buffa:
 #[derive(::serde::Serialize, ::serde::Deserialize)]
 #[serde(default)]
 pub struct RelationshipEdge {
+    /// The relationship's name.
+    ///
     /// Field 1: `rel`
     #[serde(
         rename = "rel",
@@ -2029,7 +2034,9 @@ pub struct RelationshipEdge {
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_str"
     )]
     pub rel: ::buffa::alloc::string::String,
-    /// The actor's record naming the other, newest if several.
+    /// The actor's record naming the other, newest if several. For a
+    /// relationship by list: a list the actor subscribes to that holds the
+    /// other, as a Via's answer.
     ///
     /// Field 2: `out_uri`
     #[serde(
@@ -2039,7 +2046,8 @@ pub struct RelationshipEdge {
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_str"
     )]
     pub out_uri: ::buffa::alloc::string::String,
-    /// The other's record naming the actor.
+    /// The other's record naming the actor, or a list the other subscribes to
+    /// that holds the actor. Always empty for a private relationship.
     ///
     /// Field 3: `in_uri`
     #[serde(
@@ -2049,6 +2057,27 @@ pub struct RelationshipEdge {
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_str"
     )]
     pub in_uri: ::buffa::alloc::string::String,
+    /// A relationship by list: out_uri is empty, but the read of the actor's
+    /// lists stopped short, as in a ViaAnswer's truncated.
+    ///
+    /// Field 4: `out_truncated`
+    #[serde(
+        rename = "outTruncated",
+        alias = "out_truncated",
+        with = "::buffa::json_helpers::proto_bool",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_false"
+    )]
+    pub out_truncated: bool,
+    /// The same for in_uri and the other's lists.
+    ///
+    /// Field 5: `in_truncated`
+    #[serde(
+        rename = "inTruncated",
+        alias = "in_truncated",
+        with = "::buffa::json_helpers::proto_bool",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_false"
+    )]
+    pub in_truncated: bool,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -2059,6 +2088,8 @@ impl ::core::fmt::Debug for RelationshipEdge {
             .field("rel", &self.rel)
             .field("out_uri", &self.out_uri)
             .field("in_uri", &self.in_uri)
+            .field("out_truncated", &self.out_truncated)
+            .field("in_truncated", &self.in_truncated)
             .finish()
     }
 }
@@ -2098,6 +2129,12 @@ impl ::buffa::Message for RelationshipEdge {
         if !self.in_uri.is_empty() {
             size += 1u64 + ::buffa::types::string_encoded_len(&self.in_uri) as u64;
         }
+        if self.out_truncated {
+            size += 1u64 + ::buffa::types::BOOL_ENCODED_LEN as u64;
+        }
+        if self.in_truncated {
+            size += 1u64 + ::buffa::types::BOOL_ENCODED_LEN as u64;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u64;
         ::buffa::saturate_size(size)
     }
@@ -2116,6 +2153,12 @@ impl ::buffa::Message for RelationshipEdge {
         }
         if !self.in_uri.is_empty() {
             ::buffa::types::put_string_field(3u32, &self.in_uri, buf);
+        }
+        if self.out_truncated {
+            ::buffa::types::put_bool_field(4u32, self.out_truncated, buf);
+        }
+        if self.in_truncated {
+            ::buffa::types::put_bool_field(5u32, self.in_truncated, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -2151,6 +2194,20 @@ impl ::buffa::Message for RelationshipEdge {
                 )?;
                 ::buffa::types::merge_string(&mut self.in_uri, buf)?;
             }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.out_truncated = ::buffa::types::decode_bool(buf)?;
+            }
+            5u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.in_truncated = ::buffa::types::decode_bool(buf)?;
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -2162,6 +2219,8 @@ impl ::buffa::Message for RelationshipEdge {
         self.rel.clear();
         self.out_uri.clear();
         self.in_uri.clear();
+        self.out_truncated = false;
+        self.in_truncated = false;
         self.__buffa_unknown_fields.clear();
     }
 }
@@ -2353,8 +2412,9 @@ pub struct BlockPairsRequest {
         deserialize_with = "::buffa::json_helpers::null_as_default"
     )]
     pub pairs: ::buffa::alloc::vec::Vec<BlockPair>,
-    /// The relations that count as a block: a record of any of them naming the
-    /// other side. Empty is "block".
+    /// The relationships (or relations) that count as a block: a record of a
+    /// direct one naming the other side, or a list of one by list holding it.
+    /// Empty: the configured relationships that block.
     ///
     /// Field 2: `rels`
     #[serde(
@@ -2598,7 +2658,8 @@ pub struct BlockPairsResponse {
         deserialize_with = "::buffa::json_helpers::null_as_default"
     )]
     pub b_blocks_a: ::buffa::alloc::vec::Vec<bool>,
-    /// Either way: the two can't interact. With via, a list counts too.
+    /// Either way: the two can't interact. A list of a relationship by list,
+    /// or of via, counts too.
     ///
     /// Field 3: `blocked`
     #[serde(
@@ -2626,8 +2687,9 @@ pub struct BlockPairsResponse {
         deserialize_with = "::buffa::json_helpers::null_as_default"
     )]
     pub b_blocks_a_uri: ::buffa::alloc::vec::Vec<::buffa::alloc::string::String>,
-    /// Only with via, one each per pair: a list a subscribes to that holds b,
-    /// and one b subscribes to that holds a, or empty.
+    /// Only with via or a relationship by list among rels, one each per pair:
+    /// a list a subscribes to that holds b, and one b subscribes to that holds
+    /// a, or empty: the first relationship's to match, in rels' order, then via's.
     ///
     /// Field 6: `a_blocks_b_list`
     #[serde(
@@ -2645,7 +2707,7 @@ pub struct BlockPairsResponse {
         deserialize_with = "::buffa::json_helpers::null_as_default"
     )]
     pub b_blocks_a_list: ::buffa::alloc::vec::Vec<::buffa::alloc::string::String>,
-    /// Only with via, one each per pair: a_blocks_b_list (b_blocks_a_list) is
+    /// With those lists, one each per pair: a_blocks_b_list (b_blocks_a_list) is
     /// empty, but the read of a's (b's) lists stopped short, as in
     /// a ViaAnswer's truncated, so a list it didn't reach may still hold the other.
     ///

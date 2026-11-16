@@ -100,8 +100,8 @@ pub fn subscribe_url(base: &str, rels: &Relations, cursor: Option<u64>) -> Strin
         u.push_str(v);
         sep = '&';
     };
-    for r in rels.list.iter().filter(|r| r.owner_of.is_none()) {
-        param(&mut u, "collections", &r.collection);
+    for c in rels.record_collections() {
+        param(&mut u, "collections", c);
     }
     for k in ["commit", "account", "sync"] {
         param(&mut u, "kinds", k);

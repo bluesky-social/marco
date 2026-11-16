@@ -72,8 +72,10 @@ list's URI and the answer is the member's oldest listitem.
 
 ## Relationships
 
-`getRelationships` in one call: for each of up to 100 `others` and each relation, the actor's
+`getRelationships` in one call: for each of up to 100 `others` and each relationship, the actor's
 record naming the other (`outUri`) and the other's record naming the actor (`inUri`).
+Relationships are config ([Relationships](relations.md#relationships)). By default they're
+`follow` and `block`, each one relation both ways, and `block_by_list`, whose URIs are lists.
 
 ```json
 // Relationships {"actor":"did:plc:alice2222…","others":["did:plc:bob222…","did:plc:dave2222…"]}
@@ -87,11 +89,35 @@ record naming the other (`outUri`) and the other's record naming the actor (`inU
     {"rel":"block"}]}]}
 ```
 
-Answers come in the request's order. `rels` empty means every relation between actors (`follow`
-and `block` by default), which leaves out list relations and relations whose subjects are records
-([Records as subjects](relations.md#records-as-subjects)). This is the call a profile's viewer state and a
-feed's hydration make. 50 others × 2 relations take ~30 µs in the engine and ~100 µs over HTTP/2
-([Throughput and latency](perf.html)).
+Answers come in the request's order. `rels` names relationships, and `rels` empty means the
+configured ones in the default set (`follow`, `block` and `block_by_list` by default, less those
+the snapshot has no relations for). A name that isn't a relationship's but is a relation's is that
+relation both ways, so `{"rels":["follow"]}` is the follows alone. This is the call a profile's
+viewer state and a feed's hydration make. 50 others × 2 relations take ~30 µs in the engine and
+~100 µs over HTTP/2 ([Throughput and latency](perf.html)).
+
+A relationship by list answers with lists. `outUri` is a list the actor subscribes to that holds
+the other (Bluesky's `blockingByList`), and `inUri` a list the other subscribes to that holds the
+actor (`blockedByList`). Each is read as a [Via](#via) is, so `outTruncated` and `inTruncated` say
+an empty answer's read stopped short ([What a via reads](#what-a-via-reads)).
+
+```json
+// Relationships {"actor":"did:plc:alice2222…","others":["did:plc:dave2222…"]}
+{"relationships":[{"other":"did:plc:dave22222222222222222222","rels":[
+  {"rel":"follow"},{"rel":"block"},
+  {"rel":"block_by_list","outUri":"at://did:plc:carol2222222222222222222/app.bsky.graph.list/3mzmods222222"}]}]}
+```
+
+A private relationship answers only the actor's side: `inUri` stays empty, since what the other
+holds toward the actor isn't the actor's to see. An operator that keeps mutes would make them
+private ([Mutes and mute lists](relations.md#mutes-and-mute-lists)):
+
+```json
+// Relationships {"actor":"did:plc:alice2222…","others":["did:plc:bob222…"],"rels":["mute","mute_by_list"]}
+{"relationships":[{"other":"did:plc:bob222222222222222222222","rels":[
+  {"rel":"mute","outUri":"at://did:plc:alice…/com.example.graph.mute/did:plc:bob222222222222222222222"},
+  {"rel":"mute_by_list"}]}]}
+```
 
 ## Via
 
@@ -167,6 +193,10 @@ passing 10 of them per record of the cap (10,000 by default). An account that ju
 subscriptions than that is read only in part until the next checkpoint folds the deletes, and its
 empty answers say they're truncated.
 
+The cap is what keeps a call's cost set by the accounts it names rather than by how many lists
+they subscribe to. An account past it is answered about its newest 1,000 subscriptions, and an empty
+answer for it is flagged truncated.
+
 Every read that stops short counts in `marco_via_truncated_total{rpc, reason}`: `"cap"` for an
 account with more records than the cap, and `"deletes"` for one with more recent deletes than a
 read passes.
@@ -183,10 +213,25 @@ requests from callers you don't control, a lower `--via-max-records` bounds that
 ## BlockPairs
 
 Per pair of up to 1,000, whether `a` has a record naming `b` (`aBlocksB`), the reverse
-(`bBlocksA`), and either (`blocked`). `rels` names the relations that count, `block` by default,
-and refuses list relations and relations whose subjects are records. A DID that's unknown, taken
-down or deleted blocks nobody and is blocked by nobody. This is how a thread drops the replies its
-viewer can't interact with.
+(`bBlocksA`), and either (`blocked`). `rels` names the relationships that count, and empty means
+the configured ones that block (`block` and `block_by_list` by default). A relation's name is that
+relation, and a list relation, a relation whose subjects are records or a private relationship is
+refused. A DID that's unknown, taken down or deleted blocks nobody and is blocked by nobody. This
+is how a thread drops the replies its viewer can't interact with.
+
+A relationship by list is checked both ways as `via` is (below), and a pair `blocked` by one has
+its list in `aBlocksBList` or `bBlocksAList`. So a block by mod list counts with the default
+config and no `via`:
+
+```json
+// BlockPairs {"pairs":[{"a":"did:plc:alice2222…","b":"did:plc:dave2222…"}]}
+{"aBlocksB":[false],"bBlocksA":[false],"blocked":[true],
+ "aBlocksBList":["at://did:plc:carol2222222222222222222/app.bsky.graph.list/3mzmods222222"],
+ "bBlocksAList":[""],"aBlocksBTruncated":[false],"bBlocksATruncated":[false]}
+```
+
+With several relationships by list, or one and `via`, a side's list is the first to match, in
+`rels`' order and then `via`'s.
 
 ```json
 // BlockPairs {"pairs":[{"a":"did:plc:alice2222…","b":"did:plc:dave2222…"},
@@ -315,6 +360,7 @@ how a feed or thread drops blocked accounts and a list's members.
 | `{"via":{"rel":"listblock","members":"listitem","kind":"modlist","dir":"DIR_OUT"}}` | actors on a mod list the viewer subscribes to |
 | `{"via":{"rel":"listblock","members":"listitem","kind":"modlist","dir":"DIR_IN"}}` | actors subscribed to a mod list that holds the viewer |
 | `{"via":{"lists":{"uris":["<list URI>"]},"members":"listitem","dir":"DIR_OUT"}}` | actors on the viewer's own lists, such as its mute lists |
+| `{"rel":"block_by_list","dir":"DIR_OUT"}` | a relationship by list: its via with this `dir` (here the first `via` rule's) |
 
 `dropped` names the rule that hit each actor, or `"rel":"status"` for one that's taken down or
 deleted. When several rules hit, a `rel`/`dir` rule is reported before any `memberOf` rule, and
@@ -326,7 +372,8 @@ A `via` rule is a [Via](#via) with the viewer as its actor, read the same way an
 cap ([What a via reads](#what-a-via-reads)). Its drop names the via's `rel` (or `members`, for
 `lists`) and `dir`, and the list that matched in `list`. A kept actor that a via rule may have
 missed, because the subscriber's read stopped short, is also listed in `viaTruncated`. At most 10
-`via` rules a request.
+`via` rules a request, relationships by list among them. A private relationship's rule takes
+`DIR_OUT` alone.
 
 ## EdgesAmong
 

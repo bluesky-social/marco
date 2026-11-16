@@ -92,9 +92,9 @@ pub struct Event {
 }
 
 /// `at://{did}/{collection}/{rkey}` when it's a URI marco takes: a DID
-/// actor, a collection one of the relations has, a valid rkey.
+/// actor, a collection a source follows, a valid rkey.
 pub(crate) fn edge_uri(rels: &marco_core::Relations, did: &str, coll: &str, rkey: &str) -> Option<String> {
-    rels.by_collection(coll)?;
+    rels.by_record_collection(coll)?;
     let uri = format!("at://{did}/{coll}/{rkey}");
     marco_core::relation::parse_uri(&uri).is_some().then_some(uri)
 }

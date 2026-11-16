@@ -25,7 +25,7 @@ use marco_core::did::classify;
 use marco_core::read::{Engine, Hold};
 use marco_core::relation::parse_uri;
 use marco_core::store::Storage;
-use marco_core::{segment, Added, Graph, Rec, Removed};
+use marco_core::{segment, Added, Graph, Rec, RelationshipSet, Removed};
 
 pub use marco_core::{Op, Status};
 
@@ -97,6 +97,10 @@ pub struct Config {
     /// The most of a subscriber's newest records a via reads
     /// (`--via-max-records`).
     pub via_max_records: usize,
+    /// The relationships config (`--relationships`, its TOML); None is
+    /// [`marco_core::relationship::DEFAULT_CONFIG`] less what the snapshot
+    /// has no relations for.
+    pub relationships: Option<String>,
 }
 
 /// Distinct pages failing on the device within the storm window that take
@@ -134,6 +138,7 @@ impl Config {
             compaction: marco_core::CompactPolicy::default(),
             background: marco_core::store::io::Rate::default(),
             via_max_records: marco_core::graph::VIA_MAX_RECORDS,
+            relationships: None,
         }
     }
 }
@@ -357,6 +362,8 @@ pub struct App {
     pub garbage_bytes: AtomicU64,
     /// When compactions committed, the last day's.
     pub compacted_at: Mutex<VecDeque<i64>>,
+    /// What Relationships and BlockPairs answer.
+    pub relationships: RelationshipSet,
 }
 
 pub fn now_ms() -> i64 {
@@ -465,6 +472,27 @@ pub fn open_replayed(cfg: &Config, engine: &Arc<Engine>, upto: Option<u64>) -> R
     Ok(Replayed { graph: g, cursors, segments: n, ops, last, skipped })
 }
 
+/// The relationships a marco serves: `--relationships`, every relation it
+/// names in the snapshot, or the default less what the snapshot lacks.
+fn relationships_of(cfg: &Config, rels: &marco_core::Relations) -> Result<RelationshipSet> {
+    match &cfg.relationships {
+        Some(toml) => {
+            let defs = marco_core::relationship::parse_toml(toml)?;
+            RelationshipSet::resolve(defs, rels).context("--relationships")
+        }
+        None => {
+            let (set, left_out) = RelationshipSet::bsky_default(rels);
+            if !left_out.is_empty() {
+                eprintln!(
+                    "marco: relationships: {} left out, the snapshot has no relations for it",
+                    left_out.join(", ")
+                );
+            }
+            Ok(set)
+        }
+    }
+}
+
 impl App {
     pub fn open(cfg: Config) -> Result<Arc<App>> {
         let engine = cfg.storage.engine_paced(cfg.background)?;
@@ -552,9 +580,11 @@ impl App {
             sources.entry(s.clone()).or_default().expected = true;
         }
         let ready = cfg.expected_sources.is_empty();
+        let relationships = relationships_of(&cfg, g.relations())?;
         let spare = (!cfg.read_only).then(|| g.clone());
         let miss_pool = crate::pool::MissPool::new(cfg.miss_threads);
         let app = Arc::new(App {
+            relationships,
             cfg,
             engine,
             miss_pool,

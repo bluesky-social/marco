@@ -1527,6 +1527,9 @@ pub struct RelationshipsRequestView<'a> {
     pub actor: &'a str,
     /// Field 2: `others`
     pub others: ::buffa::RepeatedView<'a, &'a str>,
+    /// Relationships (or relations) by name. Empty: the configured
+    /// relationships that are in the default set.
+    ///
     /// Field 3: `rels`
     pub rels: ::buffa::RepeatedView<'a, &'a str>,
     /// At most 10. Each other gets one answer per via, in order.
@@ -1842,6 +1845,9 @@ impl RelationshipsRequestOwnedView {
     pub fn others(&self) -> &::buffa::RepeatedView<'_, &'_ str> {
         &self.0.reborrow().others
     }
+    /// Relationships (or relations) by name. Empty: the configured
+    /// relationships that are in the default set.
+    ///
     /// Field 3: `rels`
     #[must_use]
     pub fn rels(&self) -> &::buffa::RepeatedView<'_, &'_ str> {
@@ -2821,16 +2827,30 @@ impl ::serde::Serialize for ViaAnswerOwnedView {
 }
 #[derive(Clone, Debug, Default)]
 pub struct RelationshipEdgeView<'a> {
+    /// The relationship's name.
+    ///
     /// Field 1: `rel`
     pub rel: &'a str,
-    /// The actor's record naming the other, newest if several.
+    /// The actor's record naming the other, newest if several. For a
+    /// relationship by list: a list the actor subscribes to that holds the
+    /// other, as a Via's answer.
     ///
     /// Field 2: `out_uri`
     pub out_uri: &'a str,
-    /// The other's record naming the actor.
+    /// The other's record naming the actor, or a list the other subscribes to
+    /// that holds the actor. Always empty for a private relationship.
     ///
     /// Field 3: `in_uri`
     pub in_uri: &'a str,
+    /// A relationship by list: out_uri is empty, but the read of the actor's
+    /// lists stopped short, as in a ViaAnswer's truncated.
+    ///
+    /// Field 4: `out_truncated`
+    pub out_truncated: bool,
+    /// The same for in_uri and the other's lists.
+    ///
+    /// Field 5: `in_truncated`
+    pub in_truncated: bool,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for RelationshipEdgeView<'a> {
@@ -2884,6 +2904,20 @@ impl<'a> ::buffa::MessageView<'a> for RelationshipEdgeView<'a> {
                 )?;
                 view.in_uri = ::buffa::types::borrow_str(&mut cur)?;
             }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.out_truncated = ::buffa::types::decode_bool(&mut cur)?;
+            }
+            5u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.in_truncated = ::buffa::types::decode_bool(&mut cur)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 let span_len = before_tag.len() - cur.len();
@@ -2909,6 +2943,8 @@ impl<'a> ::buffa::MessageView<'a> for RelationshipEdgeView<'a> {
             rel: self.rel.to_string(),
             out_uri: self.out_uri.to_string(),
             in_uri: self.in_uri.to_string(),
+            out_truncated: self.out_truncated,
+            in_truncated: self.in_truncated,
             __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
             ..::core::default::Default::default()
         })
@@ -2929,6 +2965,12 @@ impl<'a> ::buffa::ViewEncode<'a> for RelationshipEdgeView<'a> {
         if !self.in_uri.is_empty() {
             size += 1u64 + ::buffa::types::string_encoded_len(&self.in_uri) as u64;
         }
+        if self.out_truncated {
+            size += 1u64 + ::buffa::types::BOOL_ENCODED_LEN as u64;
+        }
+        if self.in_truncated {
+            size += 1u64 + ::buffa::types::BOOL_ENCODED_LEN as u64;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u64;
         ::buffa::saturate_size(size)
     }
@@ -2948,6 +2990,12 @@ impl<'a> ::buffa::ViewEncode<'a> for RelationshipEdgeView<'a> {
         }
         if !self.in_uri.is_empty() {
             ::buffa::types::put_string_field(3u32, &self.in_uri, buf);
+        }
+        if self.out_truncated {
+            ::buffa::types::put_bool_field(4u32, self.out_truncated, buf);
+        }
+        if self.in_truncated {
+            ::buffa::types::put_bool_field(5u32, self.in_truncated, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -2978,6 +3026,12 @@ impl<'__a> ::serde::Serialize for RelationshipEdgeView<'__a> {
         }
         if !::buffa::json_helpers::skip_if::is_empty_str(self.in_uri) {
             __map.serialize_entry("inUri", self.in_uri)?;
+        }
+        if self.out_truncated {
+            __map.serialize_entry("outTruncated", &self.out_truncated)?;
+        }
+        if self.in_truncated {
+            __map.serialize_entry("inTruncated", &self.in_truncated)?;
         }
         __map.end()
     }
@@ -3072,24 +3126,44 @@ impl RelationshipEdgeOwnedView {
     pub fn into_bytes(self) -> ::buffa::bytes::Bytes {
         self.0.into_bytes()
     }
+    /// The relationship's name.
+    ///
     /// Field 1: `rel`
     #[must_use]
     pub fn rel(&self) -> &'_ str {
         self.0.reborrow().rel
     }
-    /// The actor's record naming the other, newest if several.
+    /// The actor's record naming the other, newest if several. For a
+    /// relationship by list: a list the actor subscribes to that holds the
+    /// other, as a Via's answer.
     ///
     /// Field 2: `out_uri`
     #[must_use]
     pub fn out_uri(&self) -> &'_ str {
         self.0.reborrow().out_uri
     }
-    /// The other's record naming the actor.
+    /// The other's record naming the actor, or a list the other subscribes to
+    /// that holds the actor. Always empty for a private relationship.
     ///
     /// Field 3: `in_uri`
     #[must_use]
     pub fn in_uri(&self) -> &'_ str {
         self.0.reborrow().in_uri
+    }
+    /// A relationship by list: out_uri is empty, but the read of the actor's
+    /// lists stopped short, as in a ViaAnswer's truncated.
+    ///
+    /// Field 4: `out_truncated`
+    #[must_use]
+    pub fn out_truncated(&self) -> bool {
+        self.0.reborrow().out_truncated
+    }
+    /// The same for in_uri and the other's lists.
+    ///
+    /// Field 5: `in_truncated`
+    #[must_use]
+    pub fn in_truncated(&self) -> bool {
+        self.0.reborrow().in_truncated
     }
 }
 impl ::core::convert::From<::buffa::OwnedView<RelationshipEdgeView<'static>>>
@@ -3398,8 +3472,9 @@ pub struct BlockPairsRequestView<'a> {
     ///
     /// Field 1: `pairs`
     pub pairs: ::buffa::RepeatedView<'a, super::super::__buffa::view::BlockPairView<'a>>,
-    /// The relations that count as a block: a record of any of them naming the
-    /// other side. Empty is "block".
+    /// The relationships (or relations) that count as a block: a record of a
+    /// direct one naming the other side, or a list of one by list holding it.
+    /// Empty: the configured relationships that block.
     ///
     /// Field 2: `rels`
     pub rels: ::buffa::RepeatedView<'a, &'a str>,
@@ -3745,8 +3820,9 @@ impl BlockPairsRequestOwnedView {
     ) -> &::buffa::RepeatedView<'_, super::super::__buffa::view::BlockPairView<'_>> {
         &self.0.reborrow().pairs
     }
-    /// The relations that count as a block: a record of any of them naming the
-    /// other side. Empty is "block".
+    /// The relationships (or relations) that count as a block: a record of a
+    /// direct one naming the other side, or a list of one by list holding it.
+    /// Empty: the configured relationships that block.
     ///
     /// Field 2: `rels`
     #[must_use]
@@ -3811,7 +3887,8 @@ pub struct BlockPairsResponseView<'a> {
     ///
     /// Field 2: `b_blocks_a`
     pub b_blocks_a: ::buffa::RepeatedView<'a, bool>,
-    /// Either way: the two can't interact. With via, a list counts too.
+    /// Either way: the two can't interact. A list of a relationship by list,
+    /// or of via, counts too.
     ///
     /// Field 3: `blocked`
     pub blocked: ::buffa::RepeatedView<'a, bool>,
@@ -3822,14 +3899,15 @@ pub struct BlockPairsResponseView<'a> {
     pub a_blocks_b_uri: ::buffa::RepeatedView<'a, &'a str>,
     /// Field 5: `b_blocks_a_uri`
     pub b_blocks_a_uri: ::buffa::RepeatedView<'a, &'a str>,
-    /// Only with via, one each per pair: a list a subscribes to that holds b,
-    /// and one b subscribes to that holds a, or empty.
+    /// Only with via or a relationship by list among rels, one each per pair:
+    /// a list a subscribes to that holds b, and one b subscribes to that holds
+    /// a, or empty: the first relationship's to match, in rels' order, then via's.
     ///
     /// Field 6: `a_blocks_b_list`
     pub a_blocks_b_list: ::buffa::RepeatedView<'a, &'a str>,
     /// Field 7: `b_blocks_a_list`
     pub b_blocks_a_list: ::buffa::RepeatedView<'a, &'a str>,
-    /// Only with via, one each per pair: a_blocks_b_list (b_blocks_a_list) is
+    /// With those lists, one each per pair: a_blocks_b_list (b_blocks_a_list) is
     /// empty, but the read of a's (b's) lists stopped short, as in
     /// a ViaAnswer's truncated, so a list it didn't reach may still hold the other.
     ///
@@ -4317,7 +4395,8 @@ impl BlockPairsResponseOwnedView {
     pub fn b_blocks_a(&self) -> &::buffa::RepeatedView<'_, bool> {
         &self.0.reborrow().b_blocks_a
     }
-    /// Either way: the two can't interact. With via, a list counts too.
+    /// Either way: the two can't interact. A list of a relationship by list,
+    /// or of via, counts too.
     ///
     /// Field 3: `blocked`
     #[must_use]
@@ -4337,8 +4416,9 @@ impl BlockPairsResponseOwnedView {
     pub fn b_blocks_a_uri(&self) -> &::buffa::RepeatedView<'_, &'_ str> {
         &self.0.reborrow().b_blocks_a_uri
     }
-    /// Only with via, one each per pair: a list a subscribes to that holds b,
-    /// and one b subscribes to that holds a, or empty.
+    /// Only with via or a relationship by list among rels, one each per pair:
+    /// a list a subscribes to that holds b, and one b subscribes to that holds
+    /// a, or empty: the first relationship's to match, in rels' order, then via's.
     ///
     /// Field 6: `a_blocks_b_list`
     #[must_use]
@@ -4350,7 +4430,7 @@ impl BlockPairsResponseOwnedView {
     pub fn b_blocks_a_list(&self) -> &::buffa::RepeatedView<'_, &'_ str> {
         &self.0.reborrow().b_blocks_a_list
     }
-    /// Only with via, one each per pair: a_blocks_b_list (b_blocks_a_list) is
+    /// With those lists, one each per pair: a_blocks_b_list (b_blocks_a_list) is
     /// empty, but the read of a's (b's) lists stopped short, as in
     /// a ViaAnswer's truncated, so a list it didn't reach may still hold the other.
     ///

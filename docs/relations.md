@@ -2,7 +2,7 @@
 title: Relations
 section: marco
 order: 3
-summary: "What marco indexes is config: a relation is a collection whose records name a subject, a DID or another record. The defaults are follow, block and listitem."
+summary: "What marco indexes is config: a relation is a collection whose records name a subject, a DID or another record. The defaults are follow, block and listitem. What Relationships and BlockPairs answer is config too: relationships, one relation both ways or a list one side subscribes to."
 ---
 
 ```hero
@@ -59,6 +59,7 @@ That's the default, the one `marco-load build` uses without `--relations`.
 | `subject_collection` | optional | The subject is the AT URI of a record in this collection instead of a DID. |
 | `list` | optional | Dotted path to an AT URI of a record in the same repo. Edges go from that record instead of from the actor. A list relation's subjects are DIDs. |
 | `when` | optional | Dotted paths and the string each has to hold. A record is an edge only while every one of them does. |
+| `write_only` | optional | `true`: edges come only through the write API. Jetstream, the firehose and the scans never ask for the collection, which only names the relation's keys ([Write-only relations](#write-only-relations)). |
 
 A relation with `list` gets a companion named `<name>.owner`, added for you and never configured.
 There can be 255 relations in all, companions included. A key the table above doesn't list is an
@@ -73,15 +74,17 @@ error, and so is a top-level key other than `[[relation]]`. That way a typo like
 - title: "`marco-load scan-scylla`"
   body: "Holds exactly the relations its config's tables name, takes their definitions from `--relations`, and writes them to the scan's `relations.toml` for a later build."
 - title: "`marco serve`"
-  body: "Reads the relations from the snapshot. Jetstream is asked for those collections only (`wantedCollections`), and the write API refuses a URI whose collection no relation has."
+  body: "Reads the relations from the snapshot. Jetstream is asked for those collections only (`wantedCollections`), less the write-only ones, and the write API refuses a URI whose collection no relation has."
 ```
 
-The snapshot carries its relations, so `marco serve` has no relations flag. The console's
+The snapshot carries its relations, so `marco serve` has no relations flag. Its
+`--relationships` is what reads compare two actors by ([Relationships](#relationships)). The console's
 Relations page and `Admin.ListRelations` show them as TOML, and `Admin.ListRelations` gives each
 relation's keys as fields too (`subjectCollection` and `when` among them).
 
 The snapshot's directory also names the relation features its relations use (`requires`:
-`record_subjects` for `subject_collection` or `$self`, and `when`), and such a directory is format 7.
+`record_subjects` for `subject_collection` or `$self`, `when`, and `write_only`), and such a
+directory is format 7.
 marco refuses to open a snapshot that needs a format or a feature it doesn't know, since it would
 read those records as something else and change their edges on the next write, and so do builds
 from before these keys ([Snapshot formats](operations.md#snapshot-formats)).
@@ -193,10 +196,10 @@ as an edge, and the write API keeps every add. So an exporter writes a row only 
 `when` paths hold, and a delete row for one updated so they don't. `scan-scylla` reads columns, so
 it refuses a relation with `when` or `$self` ([Rebuilding from Scylla](scylla.md)).
 
-Reads that compare two actors leave these relations out. `Relationships` without `rels` means the
-relations between actors, and `BlockPairs` and `EdgesAmong` refuse one in `rels` as they refuse a
-list relation.
-Named in `rels`, `Relationships` takes list URIs as `others`, so
+Reads that compare two actors reach these relations through relationships by list
+([Relationships](#relationships)): `block_by_list` is `listblock`, `listitem` and `modlist`
+together. `BlockPairs` and `EdgesAmong` refuse one of these relations by name in `rels` as they
+refuse a list relation. Named in `rels`, `Relationships` takes list URIs as `others`, so
 `{"actor":"<did>","others":["<list URI>"],"rels":["listblock"]}` gives the actor's subscription
 to each list. In the build input, the `subject` column holds the record's URI
 ([the input format](quickstart.md#the-input-format)).
@@ -206,6 +209,126 @@ ids, and `listitem`'s in set of a member holds the ids of the lists it's on. So 
 `Relationships` and `BlockPairs` probes one with the other and answers "a mod list this actor
 subscribes to holds that one" with the list's URI ([Via](query-api.md#via)). Storing that as
 edges would cost a write per subscriber for every member a list gains.
+
+## Relationships
+
+```diagram
+caption: "A relationship is how `Relationships` and `BlockPairs` compare two actors. A direct one is one relation both ways. One by list meets two relations on the list's id: a subscription from one side, and the list's membership holding the other."
+nodes:
+  - { id: a, label: actor, at: [0, 0], size: [8, 3], tone: blue }
+  - { id: o, label: other, at: [30, 0], size: [8, 3], tone: cyan }
+  - { id: l, label: list URI, sub: "a mod list", at: [15, 5], size: [9, 3], tone: accent }
+edges:
+  - "a.r -> o.l: block (direct)"
+  - "a.b -> l.l: listblock"
+  - "l.r -> o.b: listitem"
+```
+
+What `Relationships` and `BlockPairs` answer is config too, read by `marco serve` at start
+(`--relationships FILE`). A relationship reads relations, so it changes no edge and a new config
+needs a restart, not a rebuild. Without the flag marco serves this, less any entry whose relations
+the snapshot doesn't have:
+
+```toml
+[[relationship]]
+name = "follow"
+kind = "direct"
+relation = "follow"
+
+[[relationship]]
+name = "block"
+kind = "direct"
+relation = "block"
+blocks = true
+
+[[relationship]]
+name = "block_by_list"
+kind = "list"
+subscription = "listblock"
+membership = "listitem"
+list_filter = "modlist"
+blocks = true
+```
+
+| Key | | |
+|---|---|---|
+| `name` | required | What a response calls it (`"rel": "block_by_list"`) and a request names in `rels`. Unique. It can be a relation's name only for a direct relationship over that relation. |
+| `kind` | required | `direct` or `list`. |
+| `relation` | `direct` | A relation between actors: the actor's record naming the other is `outUri`, the other's naming the actor `inUri`. |
+| `subscription` | `list` | A relation whose subjects are lists (it has a `subject_collection`): one side's subscriptions. |
+| `membership` | `list` | The list relation whose members count (`listitem`). |
+| `list_filter` | `list`, optional | Only a list that a live record of this relation names counts (`modlist`: while it's a mod list). Left out, any list counts. |
+| `blocks` | optional | `true`: counts in `BlockPairs` when a request names no `rels`, and in its `blocked`. |
+| `default` | optional | `false`: answered only when a request names it. Default `true`. |
+| `private` | optional | `true`: only the actor's side. `inUri` stays empty, `BlockPairs` refuses it, and a `Filter` rule takes it `DIR_OUT` only. Can't be set with `blocks`. |
+
+A `list` relationship is a [via](query-api.md#via) both ways: `outUri` is a list the actor
+subscribes to that holds the other, `inUri` one the other subscribes to that holds the actor, read
+with the via's cap. The answer is the lowest-id list that matches, so it's the same list from call
+to call while the lists don't change, and a list whose owner is taken down or deleted never
+matches. That's Bluesky's appview's `blockingByList` and `blockedByList`, which count a list only
+while it exists and is a mod list. Its appview picks one list before checking that, so where an
+actor's curation list and a mod list both hold the other, marco finds the mod list and the appview
+may not.
+
+A key a kind doesn't take, an unknown kind or a relation the snapshot doesn't have is an error at
+start, as a relation's unknown key is. `Admin.ListRelations` gives the relationships served, and
+their TOML.
+
+## Write-only relations
+
+Some state isn't in any repo: an appview's mutes, say. A relation with `write_only = true` holds it.
+Its `collection` is an NSID of your own that names its keys, and no source follows it, so nobody can
+publish records into it. Its edges come only through the write API
+([The write API](ingest.md#the-write-api)), where an op's URI is `at://<actor>/<collection>/<rkey>` and any
+valid record key works, such as the subject's DID. A snapshot with one is format 7 and names
+`write_only` in `requires`, so a marco that can't keep it off its sources refuses the snapshot.
+
+marco's reads are open: `ListOut`, `ListIn`, `Has` and `Counts` answer for a write-only relation as
+for any other. Serve one on a listener only your appview reaches.
+
+## Mutes and mute lists
+
+Bluesky's mutes and mute-list subscriptions aren't records, so no source carries them. An
+operator that has them, in its own database, can write them to two write-only relations and answer
+them in `Relationships`:
+
+```toml
+[[relation]]
+name = "mute"
+collection = "com.example.graph.mute"
+subject = "subject"
+write_only = true
+
+[[relation]]
+name = "listmute"
+collection = "com.example.graph.listmute"
+subject = "subject"
+subject_collection = "app.bsky.graph.list"
+write_only = true
+```
+
+```toml
+[[relationship]]
+name = "mute"
+kind = "direct"
+relation = "mute"
+private = true
+
+[[relationship]]
+name = "mute_by_list"
+kind = "list"
+subscription = "listmute"
+membership = "listitem"
+list_filter = "modlist"
+private = true
+```
+
+A viewer's mute of bob is an add of `at://<viewer>/com.example.graph.mute/<bob's DID>` naming bob,
+and its subscription to a mute list an add naming the list's URI. Both are private: the viewer sees
+whom it mutes, and nobody sees who mutes them. An operator that would rather not store them passes a
+viewer's mute lists with each request instead, as a via's `lists`
+([Via](query-api.md#via)).
 
 ## The owner rule
 

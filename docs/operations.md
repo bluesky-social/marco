@@ -120,6 +120,7 @@ console's Settings page shows each one's value and where it came from.
 | `--memory-limit` | `MARCO_MEMORY_LIMIT` | the cgroup's `memory.max` | The whole process's limit (`8GiB`, or `none`). What the process holds beside `--memory` (the graph's deltas in both served copies, a checkpoint's replay, requests) past the limit less `--memory` less 512 MiB comes out of the cache, so a day of writes and its checkpoint stay under it. `marco_process_beside_bytes` is what it holds, `marco_store_bytes{part="reserved"}` what the cache gave up for it. |
 | `--miss-threads` | `MARCO_MISS_THREADS` | 64 | The threads a request that misses the cache moves to. A request that waits over a second for one gets `resource_exhausted`. |
 | `--via-max-records` | `MARCO_VIA_MAX_RECORDS` | 1000 | The most of a subscriber's newest records a `via` reads, whichever call or side names it ([What a via reads](query-api.md#what-a-via-reads)). An empty answer from a read this stopped says it's truncated. |
+| `--relationships FILE` | `MARCO_RELATIONSHIPS` | follow, block, block_by_list | `[[relationship]]` tables: what `Relationships` answers when a request names no `rels`, and what counts as a block in `BlockPairs` ([Relationships](relations.md#relationships)). Without it, the default less any entry whose relations the snapshot doesn't have. A config naming a relation the snapshot lacks stops the start. |
 | `--edges-among-max-actors` | `MARCO_EDGES_AMONG_MAX_ACTORS` | 10000 | The most actors an `EdgesAmong` request takes ([Query API](query-api.md#edgesamong)). |
 | `--trace-ratio` | `MARCO_TRACE_RATIO` | 0 | The share of ops that get a span, 0 to 1. |
 | `--otlp URL` | `MARCO_OTLP` | | An OTLP/HTTP collector's base URL for spans. |
@@ -223,8 +224,8 @@ Grafana dashboard yet.
 ## Snapshot formats
 
 A snapshot's manifest, directory and shard files are format 6. The one exception is the directory
-of a snapshot whose relations use `subject_collection`, `$self` or `when`: it's format 7, and it
-names those features in `requires` ([Relations](relations.md#where-it-lives)). marco checks both
+of a snapshot whose relations use `subject_collection`, `$self`, `when` or `write_only`: it's
+format 7, and it names those features in `requires` ([Relations](relations.md#where-it-lives)). marco checks both
 before it serves or writes anything. A format or feature newer than the build fails with
 `... is newer than this build reads ...` or `... which this build doesn't know: open it with a newer
 build of marco`, and an older format with `... rebuild the snapshot`.

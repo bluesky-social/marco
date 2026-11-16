@@ -47,10 +47,10 @@ pub fn subscribe_url(base: &str, rels: &Relations, cursor: Option<u64>) -> Strin
         u.push_str("/subscribe");
     }
     let mut sep = if u.contains('?') { '&' } else { '?' };
-    for r in rels.list.iter().filter(|r| r.owner_of.is_none()) {
+    for c in rels.record_collections() {
         u.push(sep);
         u.push_str("wantedCollections=");
-        u.push_str(&r.collection);
+        u.push_str(c);
         sep = '&';
     }
     if let Some(c) = cursor {
@@ -71,7 +71,7 @@ pub(crate) fn commit_change(
     record: Option<&serde_json::Value>,
     ev: &mut Event,
 ) {
-    let Some(rel) = rels.by_collection(collection) else { return };
+    let Some(rel) = rels.by_record_collection(collection) else { return };
     let Some(uri) = edge_uri(rels, did, collection, rkey) else {
         ev.skipped.push("bad_uri");
         return;
@@ -246,6 +246,27 @@ mod tests {
         )
         .unwrap();
         assert_eq!((ev.cursor, ev.change), (8, Change::None));
+    }
+
+    /// A write-only relation's collection is the write API's: Jetstream isn't
+    /// asked for it, and a record in it from any repo changes nothing.
+    #[test]
+    fn write_only_relations_are_left_out() {
+        let rels = marco_core::Relations::parse_toml(
+            "[[relation]]\nname = \"follow\"\ncollection = \"app.bsky.graph.follow\"\nsubject = \"subject\"\n\n\
+             [[relation]]\nname = \"mute\"\ncollection = \"com.example.graph.mute\"\nsubject = \"subject\"\n\
+             write_only = true\n",
+        )
+        .unwrap();
+        let u = subscribe_url("wss://js.example", &rels, None);
+        assert_eq!(u, "wss://js.example/subscribe?wantedCollections=app.bsky.graph.follow");
+        assert!(!crate::jetstream2::subscribe_url("wss://js.example", &rels, None).contains("mute"));
+        let ev = decode(
+            br#"{"did":"did:plc:aaaaaaaaaaaaaaaaaaaaaaaa","time_us":7,"kind":"commit","commit":{"operation":"create","collection":"com.example.graph.mute","rkey":"3k","record":{"subject":"did:plc:bbbbbbbbbbbbbbbbbbbbbbbb"}}}"#,
+            &rels,
+        )
+        .unwrap();
+        assert_eq!((ev.change, ev.skipped), (Change::None, vec![]));
     }
 
     #[test]

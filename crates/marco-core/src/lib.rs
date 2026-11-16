@@ -13,6 +13,7 @@ mod obs_hist;
 pub mod outlog;
 pub mod read;
 pub mod relation;
+pub mod relationship;
 pub mod rkey;
 pub mod segment;
 pub mod snapshot;
@@ -25,4 +26,5 @@ pub use graph::{
     COMPACTION_STOPPED, COUNT_EXACT,
 };
 pub use relation::{RelId, Relation, Relations};
+pub use relationship::{Derive, RelationshipSet};
 pub use segment::{Op, Rec, Status};

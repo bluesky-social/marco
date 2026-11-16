@@ -11179,6 +11179,17 @@ pub struct ListRelationsResponseView<'a> {
     ///
     /// Field 2: `config`
     pub config: &'a str,
+    /// The relationships Relationships and BlockPairs answer (--relationships).
+    ///
+    /// Field 3: `relationships`
+    pub relationships: ::buffa::RepeatedView<
+        'a,
+        super::super::__buffa::view::RelationshipInfoView<'a>,
+    >,
+    /// The relationships as TOML.
+    ///
+    /// Field 4: `relationships_config`
+    pub relationships_config: &'a str,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for ListRelationsResponseView<'a> {
@@ -11218,6 +11229,13 @@ impl<'a> ::buffa::MessageView<'a> for ListRelationsResponseView<'a> {
                 )?;
                 view.config = ::buffa::types::borrow_str(&mut cur)?;
             }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.relationships_config = ::buffa::types::borrow_str(&mut cur)?;
+            }
             1u32 => {
                 ::buffa::encoding::check_wire_type(
                     tag,
@@ -11233,6 +11251,26 @@ impl<'a> ::buffa::MessageView<'a> for ListRelationsResponseView<'a> {
                 view.relations
                     .push(
                         <super::super::__buffa::view::RelationInfoView as ::buffa::MessageView>::decode_view_ctx(
+                            sub,
+                            __sub_ctx,
+                        )?,
+                    );
+            }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __sub_ctx = ctx.descend()?;
+                let sub = ::buffa::types::borrow_bytes(&mut cur)?;
+                ctx.register_element_memory(
+                    ::core::mem::size_of::<
+                        super::super::__buffa::view::RelationshipInfoView,
+                    >(),
+                )?;
+                view.relationships
+                    .push(
+                        <super::super::__buffa::view::RelationshipInfoView as ::buffa::MessageView>::decode_view_ctx(
                             sub,
                             __sub_ctx,
                         )?,
@@ -11272,6 +11310,12 @@ impl<'a> ::buffa::MessageView<'a> for ListRelationsResponseView<'a> {
                 .map(|v| v.to_owned_from_source(__buffa_src))
                 .collect::<::core::result::Result<_, ::buffa::DecodeError>>()?,
             config: self.config.to_string(),
+            relationships: self
+                .relationships
+                .iter()
+                .map(|v| v.to_owned_from_source(__buffa_src))
+                .collect::<::core::result::Result<_, ::buffa::DecodeError>>()?,
+            relationships_config: self.relationships_config.to_string(),
             __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
             ..::core::default::Default::default()
         })
@@ -11294,6 +11338,20 @@ impl<'a> ::buffa::ViewEncode<'a> for ListRelationsResponseView<'a> {
         if !self.config.is_empty() {
             size += 1u64 + ::buffa::types::string_encoded_len(&self.config) as u64;
         }
+        for v in &self.relationships {
+            let __slot = __cache.reserve();
+            let inner_size = v.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
+                    + inner_size as u64;
+        }
+        if !self.relationships_config.is_empty() {
+            size
+                += 1u64
+                    + ::buffa::types::string_encoded_len(&self.relationships_config)
+                        as u64;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u64;
         ::buffa::saturate_size(size)
     }
@@ -11315,6 +11373,17 @@ impl<'a> ::buffa::ViewEncode<'a> for ListRelationsResponseView<'a> {
         }
         if !self.config.is_empty() {
             ::buffa::types::put_string_field(2u32, &self.config, buf);
+        }
+        for v in &self.relationships {
+            ::buffa::types::put_len_delimited_header(
+                3u32,
+                u64::from(__cache.consume_next()),
+                buf,
+            );
+            v.write_to(__cache, buf);
+        }
+        if !self.relationships_config.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.relationships_config, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -11342,6 +11411,12 @@ impl<'__a> ::serde::Serialize for ListRelationsResponseView<'__a> {
         }
         if !::buffa::json_helpers::skip_if::is_empty_str(self.config) {
             __map.serialize_entry("config", self.config)?;
+        }
+        if !self.relationships.is_empty() {
+            __map.serialize_entry("relationships", &*self.relationships)?;
+        }
+        if !::buffa::json_helpers::skip_if::is_empty_str(self.relationships_config) {
+            __map.serialize_entry("relationshipsConfig", self.relationships_config)?;
         }
         __map.end()
     }
@@ -11452,6 +11527,25 @@ impl ListRelationsResponseOwnedView {
     pub fn config(&self) -> &'_ str {
         self.0.reborrow().config
     }
+    /// The relationships Relationships and BlockPairs answer (--relationships).
+    ///
+    /// Field 3: `relationships`
+    #[must_use]
+    pub fn relationships(
+        &self,
+    ) -> &::buffa::RepeatedView<
+        '_,
+        super::super::__buffa::view::RelationshipInfoView<'_>,
+    > {
+        &self.0.reborrow().relationships
+    }
+    /// The relationships as TOML.
+    ///
+    /// Field 4: `relationships_config`
+    #[must_use]
+    pub fn relationships_config(&self) -> &'_ str {
+        self.0.reborrow().relationships_config
+    }
 }
 impl ::core::convert::From<::buffa::OwnedView<ListRelationsResponseView<'static>>>
 for ListRelationsResponseOwnedView {
@@ -11476,6 +11570,473 @@ impl ::buffa::HasMessageView for super::super::ListRelationsResponse {
     type ViewHandle = ListRelationsResponseOwnedView;
 }
 impl ::serde::Serialize for ListRelationsResponseOwnedView {
+    fn serialize<__S: ::serde::Serializer>(
+        &self,
+        __s: __S,
+    ) -> ::core::result::Result<__S::Ok, __S::Error> {
+        ::serde::Serialize::serialize(&self.0, __s)
+    }
+}
+#[derive(Clone, Debug, Default)]
+pub struct RelationshipInfoView<'a> {
+    /// Field 1: `name`
+    pub name: &'a str,
+    /// "direct" or "list".
+    ///
+    /// Field 2: `kind`
+    pub kind: &'a str,
+    /// direct: the relation.
+    ///
+    /// Field 3: `relation`
+    pub relation: &'a str,
+    /// list: the relation whose subjects are the lists one subscribes to, the
+    /// list relation whose members count, and the relation a list has to be a
+    /// subject of to count (empty: any list).
+    ///
+    /// Field 4: `subscription`
+    pub subscription: &'a str,
+    /// Field 5: `membership`
+    pub membership: &'a str,
+    /// Field 6: `list_filter`
+    pub list_filter: &'a str,
+    /// Counts in BlockPairs when it names no rels.
+    ///
+    /// Field 7: `blocks`
+    pub blocks: bool,
+    /// In Relationships when it names no rels.
+    ///
+    /// Field 8: `in_default`
+    pub in_default: bool,
+    /// Only the actor's side: in_uri is always empty.
+    ///
+    /// Field 9: `private`
+    pub private: bool,
+    pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
+}
+impl<'a> ::buffa::MessageView<'a> for RelationshipInfoView<'a> {
+    type Owned = super::super::RelationshipInfo;
+    fn decode_view(buf: &'a [u8]) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        let __limit = ::core::cell::Cell::new(::buffa::DEFAULT_UNKNOWN_FIELD_LIMIT);
+        let __elem = ::core::cell::Cell::new(::buffa::DEFAULT_ELEMENT_MEMORY_LIMIT);
+        <Self as ::buffa::MessageView>::decode_view_ctx(
+            buf,
+            ::buffa::DecodeContext::new(::buffa::RECURSION_LIMIT, &__limit)
+                .with_element_memory(&__elem),
+        )
+    }
+    fn decode_view_with_ctx(
+        buf: &'a [u8],
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        <Self as ::buffa::MessageView>::decode_view_ctx(buf, ctx)
+    }
+    #[inline]
+    fn merge_view_field(
+        &mut self,
+        tag: ::buffa::encoding::Tag,
+        cur: &'a [u8],
+        before_tag: &'a [u8],
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<&'a [u8], ::buffa::DecodeError> {
+        let _ = ctx;
+        #[allow(unused_variables)]
+        let view = self;
+        let mut cur = cur;
+        match tag.field_number() {
+            1u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.name = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            2u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.kind = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.relation = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.subscription = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            5u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.membership = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            6u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.list_filter = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            7u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.blocks = ::buffa::types::decode_bool(&mut cur)?;
+            }
+            8u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.in_default = ::buffa::types::decode_bool(&mut cur)?;
+            }
+            9u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.private = ::buffa::types::decode_bool(&mut cur)?;
+            }
+            _ => {
+                ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
+                let span_len = before_tag.len() - cur.len();
+                view.__buffa_unknown_fields.push_record(before_tag, span_len, ctx)?;
+            }
+        }
+        ::core::result::Result::Ok(cur)
+    }
+    fn to_owned_message(
+        &self,
+    ) -> ::core::result::Result<super::super::RelationshipInfo, ::buffa::DecodeError> {
+        self.to_owned_from_source(None)
+    }
+    #[allow(clippy::useless_conversion, clippy::needless_update)]
+    fn to_owned_from_source(
+        &self,
+        __buffa_src: ::core::option::Option<&::buffa::bytes::Bytes>,
+    ) -> ::core::result::Result<super::super::RelationshipInfo, ::buffa::DecodeError> {
+        #[allow(unused_imports)]
+        use ::buffa::alloc::string::ToString as _;
+        let _ = __buffa_src;
+        ::core::result::Result::Ok(super::super::RelationshipInfo {
+            name: self.name.to_string(),
+            kind: self.kind.to_string(),
+            relation: self.relation.to_string(),
+            subscription: self.subscription.to_string(),
+            membership: self.membership.to_string(),
+            list_filter: self.list_filter.to_string(),
+            blocks: self.blocks,
+            in_default: self.in_default,
+            private: self.private,
+            __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
+            ..::core::default::Default::default()
+        })
+    }
+}
+impl<'a> ::buffa::ViewEncode<'a> for RelationshipInfoView<'a> {
+    #[allow(clippy::needless_borrow, clippy::let_and_return)]
+    fn compute_size(&self, _cache: &mut ::buffa::SizeCache) -> u32 {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        let mut size = 0u64;
+        if !self.name.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.name) as u64;
+        }
+        if !self.kind.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.kind) as u64;
+        }
+        if !self.relation.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.relation) as u64;
+        }
+        if !self.subscription.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.subscription) as u64;
+        }
+        if !self.membership.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.membership) as u64;
+        }
+        if !self.list_filter.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.list_filter) as u64;
+        }
+        if self.blocks {
+            size += 1u64 + ::buffa::types::BOOL_ENCODED_LEN as u64;
+        }
+        if self.in_default {
+            size += 1u64 + ::buffa::types::BOOL_ENCODED_LEN as u64;
+        }
+        if self.private {
+            size += 1u64 + ::buffa::types::BOOL_ENCODED_LEN as u64;
+        }
+        size += self.__buffa_unknown_fields.encoded_len() as u64;
+        ::buffa::saturate_size(size)
+    }
+    #[allow(clippy::needless_borrow)]
+    fn write_to(
+        &self,
+        _cache: &mut ::buffa::SizeCache,
+        buf: &mut impl ::buffa::EncodeSink,
+    ) {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        if !self.name.is_empty() {
+            ::buffa::types::put_string_field(1u32, &self.name, buf);
+        }
+        if !self.kind.is_empty() {
+            ::buffa::types::put_string_field(2u32, &self.kind, buf);
+        }
+        if !self.relation.is_empty() {
+            ::buffa::types::put_string_field(3u32, &self.relation, buf);
+        }
+        if !self.subscription.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.subscription, buf);
+        }
+        if !self.membership.is_empty() {
+            ::buffa::types::put_string_field(5u32, &self.membership, buf);
+        }
+        if !self.list_filter.is_empty() {
+            ::buffa::types::put_string_field(6u32, &self.list_filter, buf);
+        }
+        if self.blocks {
+            ::buffa::types::put_bool_field(7u32, self.blocks, buf);
+        }
+        if self.in_default {
+            ::buffa::types::put_bool_field(8u32, self.in_default, buf);
+        }
+        if self.private {
+            ::buffa::types::put_bool_field(9u32, self.private, buf);
+        }
+        self.__buffa_unknown_fields.write_to(buf);
+    }
+}
+/// Serializes this view as protobuf JSON.
+///
+/// Implicit-presence fields with default values are omitted, `required`
+/// fields are always emitted, explicit-presence (`optional`) fields are
+/// emitted only when set, bytes fields are base64-encoded, and enum
+/// values are their proto name strings.
+///
+/// This impl uses `serialize_map(None)` because the number of emitted
+/// fields depends on default-omission rules; serializers that require
+/// known map lengths (e.g. `bincode`) will return a runtime error.
+/// Use the owned message type for those formats.
+impl<'__a> ::serde::Serialize for RelationshipInfoView<'__a> {
+    fn serialize<__S: ::serde::Serializer>(
+        &self,
+        __s: __S,
+    ) -> ::core::result::Result<__S::Ok, __S::Error> {
+        use ::serde::ser::SerializeMap as _;
+        let mut __map = __s.serialize_map(::core::option::Option::None)?;
+        if !::buffa::json_helpers::skip_if::is_empty_str(self.name) {
+            __map.serialize_entry("name", self.name)?;
+        }
+        if !::buffa::json_helpers::skip_if::is_empty_str(self.kind) {
+            __map.serialize_entry("kind", self.kind)?;
+        }
+        if !::buffa::json_helpers::skip_if::is_empty_str(self.relation) {
+            __map.serialize_entry("relation", self.relation)?;
+        }
+        if !::buffa::json_helpers::skip_if::is_empty_str(self.subscription) {
+            __map.serialize_entry("subscription", self.subscription)?;
+        }
+        if !::buffa::json_helpers::skip_if::is_empty_str(self.membership) {
+            __map.serialize_entry("membership", self.membership)?;
+        }
+        if !::buffa::json_helpers::skip_if::is_empty_str(self.list_filter) {
+            __map.serialize_entry("listFilter", self.list_filter)?;
+        }
+        if self.blocks {
+            __map.serialize_entry("blocks", &self.blocks)?;
+        }
+        if self.in_default {
+            __map.serialize_entry("inDefault", &self.in_default)?;
+        }
+        if self.private {
+            __map.serialize_entry("private", &self.private)?;
+        }
+        __map.end()
+    }
+}
+impl<'a> ::buffa::MessageName for RelationshipInfoView<'a> {
+    const PACKAGE: &'static str = "marco.v1";
+    const NAME: &'static str = "RelationshipInfo";
+    const FULL_NAME: &'static str = "marco.v1.RelationshipInfo";
+    const TYPE_URL: &'static str = "type.googleapis.com/marco.v1.RelationshipInfo";
+}
+::buffa::impl_default_view_instance!(RelationshipInfoView);
+::buffa::impl_view_reborrow!(RelationshipInfoView);
+/** Self-contained, `'static` owned view of a `RelationshipInfo` message.
+
+ Wraps [`::buffa::OwnedView`]`<`[`RelationshipInfoView`]`<'static>>`: the decoded view and the [`::buffa::bytes::Bytes`] buffer it borrows from travel together, so the handle is `'static` and `Send + Sync` — suitable for async handlers, spawned tasks, and anywhere a `'static` bound is required.
+
+ Field accessors return borrows tied to `&self`. Use [`Self::view`] to get the full [`RelationshipInfoView`] when you need struct patterns, iteration helpers, or to pass the view to lifetime-parameterised code.*/
+#[derive(Clone, Debug)]
+pub struct RelationshipInfoOwnedView(::buffa::OwnedView<RelationshipInfoView<'static>>);
+impl RelationshipInfoOwnedView {
+    /// Decode an owned view from a [`::buffa::bytes::Bytes`] buffer.
+    ///
+    /// The view borrows directly from the buffer's data; the buffer is
+    /// retained inside the returned handle.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError`] if the buffer contains invalid
+    /// protobuf data.
+    pub fn decode(
+        bytes: ::buffa::bytes::Bytes,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(
+            RelationshipInfoOwnedView(::buffa::OwnedView::decode(bytes)?),
+        )
+    }
+    /// Decode with custom [`::buffa::DecodeOptions`] (recursion limit,
+    /// max message size).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError`] if the buffer is invalid or
+    /// exceeds the configured limits.
+    pub fn decode_with_options(
+        bytes: ::buffa::bytes::Bytes,
+        opts: &::buffa::DecodeOptions,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(
+            RelationshipInfoOwnedView(
+                ::buffa::OwnedView::decode_with_options(bytes, opts)?,
+            ),
+        )
+    }
+    /// Build from an owned message via an encode → decode round-trip.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError::MessageTooLarge`] if the
+    /// message's encoded size exceeds the 2 GiB protobuf limit, or
+    /// another [`::buffa::DecodeError`] if the re-encoded bytes are
+    /// somehow invalid (should not happen for well-formed messages).
+    pub fn from_owned(
+        msg: &super::super::RelationshipInfo,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(
+            RelationshipInfoOwnedView(::buffa::OwnedView::from_owned(msg)?),
+        )
+    }
+    /// Borrow the full [`RelationshipInfoView`] with its lifetime tied to `&self`.
+    #[must_use]
+    pub fn view(&self) -> &RelationshipInfoView<'_> {
+        self.0.reborrow()
+    }
+    /// Convert to the owned message type.
+    ///
+    /// Infallible: this type's constructors wire-decode their
+    /// buffer, and a view produced by wire decoding always
+    /// converts. Delegates to [`::buffa::OwnedView::to_owned_message`],
+    /// whose contract also governs handles converted from a raw
+    /// [`::buffa::OwnedView`].
+    #[must_use]
+    pub fn to_owned_message(&self) -> super::super::RelationshipInfo {
+        self.0.to_owned_message()
+    }
+    /// The underlying bytes buffer.
+    #[must_use]
+    pub fn bytes(&self) -> &::buffa::bytes::Bytes {
+        self.0.bytes()
+    }
+    /// Consume the handle, returning the underlying bytes buffer.
+    #[must_use]
+    pub fn into_bytes(self) -> ::buffa::bytes::Bytes {
+        self.0.into_bytes()
+    }
+    /// Field 1: `name`
+    #[must_use]
+    pub fn name(&self) -> &'_ str {
+        self.0.reborrow().name
+    }
+    /// "direct" or "list".
+    ///
+    /// Field 2: `kind`
+    #[must_use]
+    pub fn kind(&self) -> &'_ str {
+        self.0.reborrow().kind
+    }
+    /// direct: the relation.
+    ///
+    /// Field 3: `relation`
+    #[must_use]
+    pub fn relation(&self) -> &'_ str {
+        self.0.reborrow().relation
+    }
+    /// list: the relation whose subjects are the lists one subscribes to, the
+    /// list relation whose members count, and the relation a list has to be a
+    /// subject of to count (empty: any list).
+    ///
+    /// Field 4: `subscription`
+    #[must_use]
+    pub fn subscription(&self) -> &'_ str {
+        self.0.reborrow().subscription
+    }
+    /// Field 5: `membership`
+    #[must_use]
+    pub fn membership(&self) -> &'_ str {
+        self.0.reborrow().membership
+    }
+    /// Field 6: `list_filter`
+    #[must_use]
+    pub fn list_filter(&self) -> &'_ str {
+        self.0.reborrow().list_filter
+    }
+    /// Counts in BlockPairs when it names no rels.
+    ///
+    /// Field 7: `blocks`
+    #[must_use]
+    pub fn blocks(&self) -> bool {
+        self.0.reborrow().blocks
+    }
+    /// In Relationships when it names no rels.
+    ///
+    /// Field 8: `in_default`
+    #[must_use]
+    pub fn in_default(&self) -> bool {
+        self.0.reborrow().in_default
+    }
+    /// Only the actor's side: in_uri is always empty.
+    ///
+    /// Field 9: `private`
+    #[must_use]
+    pub fn private(&self) -> bool {
+        self.0.reborrow().private
+    }
+}
+impl ::core::convert::From<::buffa::OwnedView<RelationshipInfoView<'static>>>
+for RelationshipInfoOwnedView {
+    fn from(inner: ::buffa::OwnedView<RelationshipInfoView<'static>>) -> Self {
+        RelationshipInfoOwnedView(inner)
+    }
+}
+impl ::core::convert::From<RelationshipInfoOwnedView>
+for ::buffa::OwnedView<RelationshipInfoView<'static>> {
+    fn from(wrapper: RelationshipInfoOwnedView) -> Self {
+        wrapper.0
+    }
+}
+impl ::core::convert::AsRef<::buffa::OwnedView<RelationshipInfoView<'static>>>
+for RelationshipInfoOwnedView {
+    fn as_ref(&self) -> &::buffa::OwnedView<RelationshipInfoView<'static>> {
+        &self.0
+    }
+}
+impl ::buffa::HasMessageView for super::super::RelationshipInfo {
+    type View<'a> = RelationshipInfoView<'a>;
+    type ViewHandle = RelationshipInfoOwnedView;
+}
+impl ::serde::Serialize for RelationshipInfoOwnedView {
     fn serialize<__S: ::serde::Serializer>(
         &self,
         __s: __S,
@@ -11518,6 +12079,10 @@ pub struct RelationInfoView<'a> {
     ///
     /// Field 11: `when` (map)
     pub when: ::buffa::MapView<'a, &'a str, &'a str>,
+    /// Edges come only through the write API: no source follows collection.
+    ///
+    /// Field 12: `write_only`
+    pub write_only: bool,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for RelationInfoView<'a> {
@@ -11620,6 +12185,13 @@ impl<'a> ::buffa::MessageView<'a> for RelationInfoView<'a> {
                 )?;
                 view.subject_collection = ::buffa::types::borrow_str(&mut cur)?;
             }
+            12u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.write_only = ::buffa::types::decode_bool(&mut cur)?;
+            }
             11u32 => {
                 ::buffa::encoding::check_wire_type(
                     tag,
@@ -11698,6 +12270,7 @@ impl<'a> ::buffa::MessageView<'a> for RelationInfoView<'a> {
                 .iter()
                 .map(|(k, v)| (k.to_string(), v.to_string()))
                 .collect(),
+            write_only: self.write_only,
             __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
             ..::core::default::Default::default()
         })
@@ -11747,6 +12320,9 @@ impl<'a> ::buffa::ViewEncode<'a> for RelationInfoView<'a> {
             let entry_size: u64 = 1u64 + ::buffa::types::string_encoded_len(k) as u64
                 + 1u64 + ::buffa::types::string_encoded_len(v) as u64;
             size += 1u64 + ::buffa::encoding::varint_len(entry_size) as u64 + entry_size;
+        }
+        if self.write_only {
+            size += 1u64 + ::buffa::types::BOOL_ENCODED_LEN as u64;
         }
         size += self.__buffa_unknown_fields.encoded_len() as u64;
         ::buffa::saturate_size(size)
@@ -11810,6 +12386,9 @@ impl<'a> ::buffa::ViewEncode<'a> for RelationInfoView<'a> {
                 )
                 .encode(buf);
             ::buffa::types::encode_string(v, buf);
+        }
+        if self.write_only {
+            ::buffa::types::put_bool_field(12u32, self.write_only, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -11895,6 +12474,9 @@ impl<'__a> ::serde::Serialize for RelationInfoView<'__a> {
                 }
             }
             __map.serialize_entry("when", &_WM(&self.when))?;
+        }
+        if self.write_only {
+            __map.serialize_entry("writeOnly", &self.write_only)?;
         }
         __map.end()
     }
@@ -12052,6 +12634,13 @@ impl RelationInfoOwnedView {
     #[must_use]
     pub fn when(&self) -> &::buffa::MapView<'_, &'_ str, &'_ str> {
         &self.0.reborrow().when
+    }
+    /// Edges come only through the write API: no source follows collection.
+    ///
+    /// Field 12: `write_only`
+    #[must_use]
+    pub fn write_only(&self) -> bool {
+        self.0.reborrow().write_only
     }
 }
 impl ::core::convert::From<::buffa::OwnedView<RelationInfoView<'static>>>

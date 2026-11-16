@@ -100,7 +100,7 @@ pub fn decode(frame: &[u8], rels: &Relations) -> Result<Frame, &'static str> {
                     ev.skipped.push("bad_uri");
                     continue;
                 };
-                let Some(rel) = rels.by_collection(coll) else { continue };
+                let Some(rel) = rels.by_record_collection(coll) else { continue };
                 let Some(uri) = edge_uri(rels, repo, coll, rkey) else {
                     ev.skipped.push("bad_uri");
                     continue;

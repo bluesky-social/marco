@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file marco/v1/graph.proto.
  */
 export const file_marco_v1_graph: GenFile = /*@__PURE__*/
-  fileDesc("ChRtYXJjby92MS9ncmFwaC5wcm90bxIIbWFyY28udjEiMwoKSGFzUmVxdWVzdBILCgNyZWwYASABKAkSDAoEZnJvbRgCIAEoCRIKCgJ0bxgDIAEoCSIaCgtIYXNSZXNwb25zZRILCgN1cmkYASABKAkifgoDVmlhEg0KA3JlbBgBIAEoCUgAEiMKBWxpc3RzGAIgASgLMhIubWFyY28udjEuVmlhTGlzdHNIABIPCgdtZW1iZXJzGAMgASgJEgwKBGtpbmQYBCABKAkSGgoDZGlyGAUgASgOMg0ubWFyY28udjEuRGlyQggKBnNvdXJjZSIYCghWaWFMaXN0cxIMCgR1cmlzGAEgAygJIjUKB1BhaXJWaWESCwoDcmVsGAEgASgJEg8KB21lbWJlcnMYAiABKAkSDAoEa2luZBgDIAEoCSJfChRSZWxhdGlvbnNoaXBzUmVxdWVzdBINCgVhY3RvchgBIAEoCRIOCgZvdGhlcnMYAiADKAkSDAoEcmVscxgDIAMoCRIaCgN2aWEYBCADKAsyDS5tYXJjby52MS5WaWEiRgoVUmVsYXRpb25zaGlwc1Jlc3BvbnNlEi0KDXJlbGF0aW9uc2hpcHMYASADKAsyFi5tYXJjby52MS5SZWxhdGlvbnNoaXAiaQoMUmVsYXRpb25zaGlwEg0KBW90aGVyGAEgASgJEigKBHJlbHMYAiADKAsyGi5tYXJjby52MS5SZWxhdGlvbnNoaXBFZGdlEiAKA3ZpYRgDIAMoCzITLm1hcmNvLnYxLlZpYUFuc3dlciIsCglWaWFBbnN3ZXISDAoEbGlzdBgBIAEoCRIRCgl0cnVuY2F0ZWQYAiABKAgiQAoQUmVsYXRpb25zaGlwRWRnZRILCgNyZWwYASABKAkSDwoHb3V0X3VyaRgCIAEoCRIOCgZpbl91cmkYAyABKAkiIQoJQmxvY2tQYWlyEgkKAWEYASABKAkSCQoBYhgCIAEoCSJzChFCbG9ja1BhaXJzUmVxdWVzdBIiCgVwYWlycxgBIAMoCzITLm1hcmNvLnYxLkJsb2NrUGFpchIMCgRyZWxzGAIgAygJEh4KA3ZpYRgDIAEoCzIRLm1hcmNvLnYxLlBhaXJWaWESDAoEdXJpcxgEIAEoCCLrAQoSQmxvY2tQYWlyc1Jlc3BvbnNlEhIKCmFfYmxvY2tzX2IYASADKAgSEgoKYl9ibG9ja3NfYRgCIAMoCBIPCgdibG9ja2VkGAMgAygIEhYKDmFfYmxvY2tzX2JfdXJpGAQgAygJEhYKDmJfYmxvY2tzX2FfdXJpGAUgAygJEhcKD2FfYmxvY2tzX2JfbGlzdBgGIAMoCRIXCg9iX2Jsb2Nrc19hX2xpc3QYByADKAkSHAoUYV9ibG9ja3NfYl90cnVuY2F0ZWQYCCADKAgSHAoUYl9ibG9ja3NfYV90cnVuY2F0ZWQYCSADKAgiXQoOTGlzdE91dFJlcXVlc3QSCwoDcmVsGAEgASgJEg0KBWFjdG9yGAIgASgJEg0KBWxpbWl0GAMgASgNEg4KBmN1cnNvchgEIAEoCRIQCghkaXN0aW5jdBgFIAEoCCJDCg9MaXN0T3V0UmVzcG9uc2USIAoFZWRnZXMYASADKAsyES5tYXJjby52MS5PdXRFZGdlEg4KBmN1cnNvchgCIAEoCSInCgdPdXRFZGdlEgsKA3VyaRgBIAEoCRIPCgdzdWJqZWN0GAIgASgJIkwKDUxpc3RJblJlcXVlc3QSCwoDcmVsGAEgASgJEg8KB3N1YmplY3QYAiABKAkSDQoFbGltaXQYAyABKA0SDgoGY3Vyc29yGAQgASgJIjAKDkxpc3RJblJlc3BvbnNlEg4KBmFjdG9ycxgBIAMoCRIOCgZjdXJzb3IYAiABKAkiLQoNQ291bnRzUmVxdWVzdBIOCgZhY3RvcnMYASADKAkSDAoEcmVscxgCIAMoCSI3Cg5Db3VudHNSZXNwb25zZRIlCgZjb3VudHMYASADKAsyFS5tYXJjby52MS5BY3RvckNvdW50cyI/CgtBY3RvckNvdW50cxINCgVhY3RvchgBIAEoCRIhCgRyZWxzGAIgAygLMhMubWFyY28udjEuUmVsQ291bnRzIlYKCVJlbENvdW50cxILCgNyZWwYASABKAkSEwoLb3V0X3JlY29yZHMYAiABKAQSEQoJaW5fYWN0b3JzGAMgASgEEhQKDG91dF9zdWJqZWN0cxgEIAEoBCJCCghMaXN0U2lkZRILCgNyZWwYASABKAkSGgoDZGlyGAIgASgOMg0ubWFyY28udjEuRGlyEg0KBWFjdG9yGAMgASgJIrABChBJbnRlcnNlY3RSZXF1ZXN0Eh0KAWEYASABKAsyEi5tYXJjby52MS5MaXN0U2lkZRIdCgFiGAIgASgLMhIubWFyY28udjEuTGlzdFNpZGUSDQoFbGltaXQYAyABKA0SGwoCb3AYBCABKA4yDy5tYXJjby52MS5TZXRPcBIOCgZjdXJzb3IYBSABKAkSDQoFY291bnQYBiABKAgSEwoLY291bnRfbGltaXQYByABKA0idgoRSW50ZXJzZWN0UmVzcG9uc2USDgoGYWN0b3JzGAEgAygJEg0KBWFfbGVuGAIgASgEEg0KBWJfbGVuGAMgASgEEg4KBmN1cnNvchgEIAEoCRINCgV0b3RhbBgFIAEoBBIUCgx0b3RhbF9jYXBwZWQYBiABKAgieAoKRmlsdGVyRHJvcBILCgNyZWwYASABKAkSGgoDZGlyGAIgASgOMg0ubWFyY28udjEuRGlyEiUKCW1lbWJlcl9vZhgDIAEoCzISLm1hcmNvLnYxLkxpc3RTaWRlEhoKA3ZpYRgEIAEoCzINLm1hcmNvLnYxLlZpYSJTCg1GaWx0ZXJSZXF1ZXN0Eg4KBnZpZXdlchgBIAEoCRIOCgZhY3RvcnMYAiADKAkSIgoEZHJvcBgDIAMoCzIULm1hcmNvLnYxLkZpbHRlckRyb3AiWwoORmlsdGVyUmVzcG9uc2USDgoGYWN0b3JzGAEgAygJEiIKB2Ryb3BwZWQYAiADKAsyES5tYXJjby52MS5Ecm9wcGVkEhUKDXZpYV90cnVuY2F0ZWQYAyADKAkiTwoHRHJvcHBlZBINCgVhY3RvchgBIAEoCRILCgNyZWwYAiABKAkSGgoDZGlyGAMgASgOMg0ubWFyY28udjEuRGlyEgwKBGxpc3QYBCABKAkiQAoRRWRnZXNBbW9uZ1JlcXVlc3QSDgoGYWN0b3JzGAEgAygJEgwKBHJlbHMYAiADKAkSDQoFbGltaXQYAyABKA0iggEKEkVkZ2VzQW1vbmdSZXNwb25zZRIiCgVlZGdlcxgBIAMoCzITLm1hcmNvLnYxLkFtb25nRWRnZRIkCgZjb3VudHMYAiADKAsyFC5tYXJjby52MS5BbW9uZ0NvdW50Eg8KB3Vua25vd24YAyADKAkSEQoJdHJ1bmNhdGVkGAQgASgIIj8KCUFtb25nRWRnZRIMCgRmcm9tGAEgASgJEgsKA3JlbBgCIAEoCRIKCgJ0bxgDIAEoCRILCgN1cmkYBCABKAkiKAoKQW1vbmdDb3VudBILCgNyZWwYASABKAkSDQoFZWRnZXMYAiABKAQiVQoHV3JpdGVPcBIeCgNhZGQYASABKAsyDy5tYXJjby52MS5BZGRPcEgAEiQKBmRlbGV0ZRgCIAEoCzISLm1hcmNvLnYxLkRlbGV0ZU9wSABCBAoCb3AiRAoFQWRkT3ASCwoDdXJpGAEgASgJEg8KB3N1YmplY3QYAiABKAkSDAoEbGlzdBgEIAEoCRIPCgd0aW1lX3VzGAMgASgDIigKCERlbGV0ZU9wEgsKA3VyaRgBIAEoCRIPCgd0aW1lX3VzGAIgASgDIocBCgtXcml0ZVJlc3VsdBIPCgVhZGRlZBgBIAEoCEgAEhAKBmV4aXN0cxgCIAEoCEgAEhEKB2RlbGV0ZWQYAyABKAhIABIRCgdyZW1vdmVkGAQgASgJSAASEwoJbm90X2ZvdW5kGAUgASgISAASDwoFZXJyb3IYBiABKAlIAEIJCgdvdXRjb21lIj4KDFdyaXRlUmVxdWVzdBIeCgNvcHMYASADKAsyES5tYXJjby52MS5Xcml0ZU9wEg4KBmN1cnNvchgCIAEoCSJHCg1Xcml0ZVJlc3BvbnNlEiYKB3Jlc3VsdHMYASADKAsyFS5tYXJjby52MS5Xcml0ZVJlc3VsdBIOCgZjdXJzb3IYAiABKAkiQwoRV3JpdGVCYXRjaFJlcXVlc3QSHgoDb3BzGAEgAygLMhEubWFyY28udjEuV3JpdGVPcBIOCgZjdXJzb3IYAiABKAkiTAoSV3JpdGVCYXRjaFJlc3BvbnNlEiYKB3Jlc3VsdHMYASADKAsyFS5tYXJjby52MS5Xcml0ZVJlc3VsdBIOCgZjdXJzb3IYAiABKAkqMwoDRGlyEhMKD0RJUl9VTlNQRUNJRklFRBAAEgsKB0RJUl9PVVQQARIKCgZESVJfSU4QAipDCgVTZXRPcBIWChJTRVRfT1BfVU5TUEVDSUZJRUQQABIOCgpTRVRfT1BfQU5EEAESEgoOU0VUX09QX0FORF9OT1QQAjKOBgoFR3JhcGgSNwoDSGFzEhQubWFyY28udjEuSGFzUmVxdWVzdBoVLm1hcmNvLnYxLkhhc1Jlc3BvbnNlIgOQAgESVQoNUmVsYXRpb25zaGlwcxIeLm1hcmNvLnYxLlJlbGF0aW9uc2hpcHNSZXF1ZXN0Gh8ubWFyY28udjEuUmVsYXRpb25zaGlwc1Jlc3BvbnNlIgOQAgESTAoKQmxvY2tQYWlycxIbLm1hcmNvLnYxLkJsb2NrUGFpcnNSZXF1ZXN0GhwubWFyY28udjEuQmxvY2tQYWlyc1Jlc3BvbnNlIgOQAgESQwoHTGlzdE91dBIYLm1hcmNvLnYxLkxpc3RPdXRSZXF1ZXN0GhkubWFyY28udjEuTGlzdE91dFJlc3BvbnNlIgOQAgESQAoGTGlzdEluEhcubWFyY28udjEuTGlzdEluUmVxdWVzdBoYLm1hcmNvLnYxLkxpc3RJblJlc3BvbnNlIgOQAgESQAoGQ291bnRzEhcubWFyY28udjEuQ291bnRzUmVxdWVzdBoYLm1hcmNvLnYxLkNvdW50c1Jlc3BvbnNlIgOQAgESSQoJSW50ZXJzZWN0EhoubWFyY28udjEuSW50ZXJzZWN0UmVxdWVzdBobLm1hcmNvLnYxLkludGVyc2VjdFJlc3BvbnNlIgOQAgESQAoGRmlsdGVyEhcubWFyY28udjEuRmlsdGVyUmVxdWVzdBoYLm1hcmNvLnYxLkZpbHRlclJlc3BvbnNlIgOQAgESTAoKRWRnZXNBbW9uZxIbLm1hcmNvLnYxLkVkZ2VzQW1vbmdSZXF1ZXN0GhwubWFyY28udjEuRWRnZXNBbW9uZ1Jlc3BvbnNlIgOQAgESOgoFV3JpdGUSFi5tYXJjby52MS5Xcml0ZVJlcXVlc3QaFy5tYXJjby52MS5Xcml0ZVJlc3BvbnNlKAESRwoKV3JpdGVCYXRjaBIbLm1hcmNvLnYxLldyaXRlQmF0Y2hSZXF1ZXN0GhwubWFyY28udjEuV3JpdGVCYXRjaFJlc3BvbnNlYgZwcm90bzM");
+  fileDesc("ChRtYXJjby92MS9ncmFwaC5wcm90bxIIbWFyY28udjEiMwoKSGFzUmVxdWVzdBILCgNyZWwYASABKAkSDAoEZnJvbRgCIAEoCRIKCgJ0bxgDIAEoCSIaCgtIYXNSZXNwb25zZRILCgN1cmkYASABKAkifgoDVmlhEg0KA3JlbBgBIAEoCUgAEiMKBWxpc3RzGAIgASgLMhIubWFyY28udjEuVmlhTGlzdHNIABIPCgdtZW1iZXJzGAMgASgJEgwKBGtpbmQYBCABKAkSGgoDZGlyGAUgASgOMg0ubWFyY28udjEuRGlyQggKBnNvdXJjZSIYCghWaWFMaXN0cxIMCgR1cmlzGAEgAygJIjUKB1BhaXJWaWESCwoDcmVsGAEgASgJEg8KB21lbWJlcnMYAiABKAkSDAoEa2luZBgDIAEoCSJfChRSZWxhdGlvbnNoaXBzUmVxdWVzdBINCgVhY3RvchgBIAEoCRIOCgZvdGhlcnMYAiADKAkSDAoEcmVscxgDIAMoCRIaCgN2aWEYBCADKAsyDS5tYXJjby52MS5WaWEiRgoVUmVsYXRpb25zaGlwc1Jlc3BvbnNlEi0KDXJlbGF0aW9uc2hpcHMYASADKAsyFi5tYXJjby52MS5SZWxhdGlvbnNoaXAiaQoMUmVsYXRpb25zaGlwEg0KBW90aGVyGAEgASgJEigKBHJlbHMYAiADKAsyGi5tYXJjby52MS5SZWxhdGlvbnNoaXBFZGdlEiAKA3ZpYRgDIAMoCzITLm1hcmNvLnYxLlZpYUFuc3dlciIsCglWaWFBbnN3ZXISDAoEbGlzdBgBIAEoCRIRCgl0cnVuY2F0ZWQYAiABKAgibQoQUmVsYXRpb25zaGlwRWRnZRILCgNyZWwYASABKAkSDwoHb3V0X3VyaRgCIAEoCRIOCgZpbl91cmkYAyABKAkSFQoNb3V0X3RydW5jYXRlZBgEIAEoCBIUCgxpbl90cnVuY2F0ZWQYBSABKAgiIQoJQmxvY2tQYWlyEgkKAWEYASABKAkSCQoBYhgCIAEoCSJzChFCbG9ja1BhaXJzUmVxdWVzdBIiCgVwYWlycxgBIAMoCzITLm1hcmNvLnYxLkJsb2NrUGFpchIMCgRyZWxzGAIgAygJEh4KA3ZpYRgDIAEoCzIRLm1hcmNvLnYxLlBhaXJWaWESDAoEdXJpcxgEIAEoCCLrAQoSQmxvY2tQYWlyc1Jlc3BvbnNlEhIKCmFfYmxvY2tzX2IYASADKAgSEgoKYl9ibG9ja3NfYRgCIAMoCBIPCgdibG9ja2VkGAMgAygIEhYKDmFfYmxvY2tzX2JfdXJpGAQgAygJEhYKDmJfYmxvY2tzX2FfdXJpGAUgAygJEhcKD2FfYmxvY2tzX2JfbGlzdBgGIAMoCRIXCg9iX2Jsb2Nrc19hX2xpc3QYByADKAkSHAoUYV9ibG9ja3NfYl90cnVuY2F0ZWQYCCADKAgSHAoUYl9ibG9ja3NfYV90cnVuY2F0ZWQYCSADKAgiXQoOTGlzdE91dFJlcXVlc3QSCwoDcmVsGAEgASgJEg0KBWFjdG9yGAIgASgJEg0KBWxpbWl0GAMgASgNEg4KBmN1cnNvchgEIAEoCRIQCghkaXN0aW5jdBgFIAEoCCJDCg9MaXN0T3V0UmVzcG9uc2USIAoFZWRnZXMYASADKAsyES5tYXJjby52MS5PdXRFZGdlEg4KBmN1cnNvchgCIAEoCSInCgdPdXRFZGdlEgsKA3VyaRgBIAEoCRIPCgdzdWJqZWN0GAIgASgJIkwKDUxpc3RJblJlcXVlc3QSCwoDcmVsGAEgASgJEg8KB3N1YmplY3QYAiABKAkSDQoFbGltaXQYAyABKA0SDgoGY3Vyc29yGAQgASgJIjAKDkxpc3RJblJlc3BvbnNlEg4KBmFjdG9ycxgBIAMoCRIOCgZjdXJzb3IYAiABKAkiLQoNQ291bnRzUmVxdWVzdBIOCgZhY3RvcnMYASADKAkSDAoEcmVscxgCIAMoCSI3Cg5Db3VudHNSZXNwb25zZRIlCgZjb3VudHMYASADKAsyFS5tYXJjby52MS5BY3RvckNvdW50cyI/CgtBY3RvckNvdW50cxINCgVhY3RvchgBIAEoCRIhCgRyZWxzGAIgAygLMhMubWFyY28udjEuUmVsQ291bnRzIlYKCVJlbENvdW50cxILCgNyZWwYASABKAkSEwoLb3V0X3JlY29yZHMYAiABKAQSEQoJaW5fYWN0b3JzGAMgASgEEhQKDG91dF9zdWJqZWN0cxgEIAEoBCJCCghMaXN0U2lkZRILCgNyZWwYASABKAkSGgoDZGlyGAIgASgOMg0ubWFyY28udjEuRGlyEg0KBWFjdG9yGAMgASgJIrABChBJbnRlcnNlY3RSZXF1ZXN0Eh0KAWEYASABKAsyEi5tYXJjby52MS5MaXN0U2lkZRIdCgFiGAIgASgLMhIubWFyY28udjEuTGlzdFNpZGUSDQoFbGltaXQYAyABKA0SGwoCb3AYBCABKA4yDy5tYXJjby52MS5TZXRPcBIOCgZjdXJzb3IYBSABKAkSDQoFY291bnQYBiABKAgSEwoLY291bnRfbGltaXQYByABKA0idgoRSW50ZXJzZWN0UmVzcG9uc2USDgoGYWN0b3JzGAEgAygJEg0KBWFfbGVuGAIgASgEEg0KBWJfbGVuGAMgASgEEg4KBmN1cnNvchgEIAEoCRINCgV0b3RhbBgFIAEoBBIUCgx0b3RhbF9jYXBwZWQYBiABKAgieAoKRmlsdGVyRHJvcBILCgNyZWwYASABKAkSGgoDZGlyGAIgASgOMg0ubWFyY28udjEuRGlyEiUKCW1lbWJlcl9vZhgDIAEoCzISLm1hcmNvLnYxLkxpc3RTaWRlEhoKA3ZpYRgEIAEoCzINLm1hcmNvLnYxLlZpYSJTCg1GaWx0ZXJSZXF1ZXN0Eg4KBnZpZXdlchgBIAEoCRIOCgZhY3RvcnMYAiADKAkSIgoEZHJvcBgDIAMoCzIULm1hcmNvLnYxLkZpbHRlckRyb3AiWwoORmlsdGVyUmVzcG9uc2USDgoGYWN0b3JzGAEgAygJEiIKB2Ryb3BwZWQYAiADKAsyES5tYXJjby52MS5Ecm9wcGVkEhUKDXZpYV90cnVuY2F0ZWQYAyADKAkiTwoHRHJvcHBlZBINCgVhY3RvchgBIAEoCRILCgNyZWwYAiABKAkSGgoDZGlyGAMgASgOMg0ubWFyY28udjEuRGlyEgwKBGxpc3QYBCABKAkiQAoRRWRnZXNBbW9uZ1JlcXVlc3QSDgoGYWN0b3JzGAEgAygJEgwKBHJlbHMYAiADKAkSDQoFbGltaXQYAyABKA0iggEKEkVkZ2VzQW1vbmdSZXNwb25zZRIiCgVlZGdlcxgBIAMoCzITLm1hcmNvLnYxLkFtb25nRWRnZRIkCgZjb3VudHMYAiADKAsyFC5tYXJjby52MS5BbW9uZ0NvdW50Eg8KB3Vua25vd24YAyADKAkSEQoJdHJ1bmNhdGVkGAQgASgIIj8KCUFtb25nRWRnZRIMCgRmcm9tGAEgASgJEgsKA3JlbBgCIAEoCRIKCgJ0bxgDIAEoCRILCgN1cmkYBCABKAkiKAoKQW1vbmdDb3VudBILCgNyZWwYASABKAkSDQoFZWRnZXMYAiABKAQiVQoHV3JpdGVPcBIeCgNhZGQYASABKAsyDy5tYXJjby52MS5BZGRPcEgAEiQKBmRlbGV0ZRgCIAEoCzISLm1hcmNvLnYxLkRlbGV0ZU9wSABCBAoCb3AiRAoFQWRkT3ASCwoDdXJpGAEgASgJEg8KB3N1YmplY3QYAiABKAkSDAoEbGlzdBgEIAEoCRIPCgd0aW1lX3VzGAMgASgDIigKCERlbGV0ZU9wEgsKA3VyaRgBIAEoCRIPCgd0aW1lX3VzGAIgASgDIocBCgtXcml0ZVJlc3VsdBIPCgVhZGRlZBgBIAEoCEgAEhAKBmV4aXN0cxgCIAEoCEgAEhEKB2RlbGV0ZWQYAyABKAhIABIRCgdyZW1vdmVkGAQgASgJSAASEwoJbm90X2ZvdW5kGAUgASgISAASDwoFZXJyb3IYBiABKAlIAEIJCgdvdXRjb21lIj4KDFdyaXRlUmVxdWVzdBIeCgNvcHMYASADKAsyES5tYXJjby52MS5Xcml0ZU9wEg4KBmN1cnNvchgCIAEoCSJHCg1Xcml0ZVJlc3BvbnNlEiYKB3Jlc3VsdHMYASADKAsyFS5tYXJjby52MS5Xcml0ZVJlc3VsdBIOCgZjdXJzb3IYAiABKAkiQwoRV3JpdGVCYXRjaFJlcXVlc3QSHgoDb3BzGAEgAygLMhEubWFyY28udjEuV3JpdGVPcBIOCgZjdXJzb3IYAiABKAkiTAoSV3JpdGVCYXRjaFJlc3BvbnNlEiYKB3Jlc3VsdHMYASADKAsyFS5tYXJjby52MS5Xcml0ZVJlc3VsdBIOCgZjdXJzb3IYAiABKAkqMwoDRGlyEhMKD0RJUl9VTlNQRUNJRklFRBAAEgsKB0RJUl9PVVQQARIKCgZESVJfSU4QAipDCgVTZXRPcBIWChJTRVRfT1BfVU5TUEVDSUZJRUQQABIOCgpTRVRfT1BfQU5EEAESEgoOU0VUX09QX0FORF9OT1QQAjKOBgoFR3JhcGgSNwoDSGFzEhQubWFyY28udjEuSGFzUmVxdWVzdBoVLm1hcmNvLnYxLkhhc1Jlc3BvbnNlIgOQAgESVQoNUmVsYXRpb25zaGlwcxIeLm1hcmNvLnYxLlJlbGF0aW9uc2hpcHNSZXF1ZXN0Gh8ubWFyY28udjEuUmVsYXRpb25zaGlwc1Jlc3BvbnNlIgOQAgESTAoKQmxvY2tQYWlycxIbLm1hcmNvLnYxLkJsb2NrUGFpcnNSZXF1ZXN0GhwubWFyY28udjEuQmxvY2tQYWlyc1Jlc3BvbnNlIgOQAgESQwoHTGlzdE91dBIYLm1hcmNvLnYxLkxpc3RPdXRSZXF1ZXN0GhkubWFyY28udjEuTGlzdE91dFJlc3BvbnNlIgOQAgESQAoGTGlzdEluEhcubWFyY28udjEuTGlzdEluUmVxdWVzdBoYLm1hcmNvLnYxLkxpc3RJblJlc3BvbnNlIgOQAgESQAoGQ291bnRzEhcubWFyY28udjEuQ291bnRzUmVxdWVzdBoYLm1hcmNvLnYxLkNvdW50c1Jlc3BvbnNlIgOQAgESSQoJSW50ZXJzZWN0EhoubWFyY28udjEuSW50ZXJzZWN0UmVxdWVzdBobLm1hcmNvLnYxLkludGVyc2VjdFJlc3BvbnNlIgOQAgESQAoGRmlsdGVyEhcubWFyY28udjEuRmlsdGVyUmVxdWVzdBoYLm1hcmNvLnYxLkZpbHRlclJlc3BvbnNlIgOQAgESTAoKRWRnZXNBbW9uZxIbLm1hcmNvLnYxLkVkZ2VzQW1vbmdSZXF1ZXN0GhwubWFyY28udjEuRWRnZXNBbW9uZ1Jlc3BvbnNlIgOQAgESOgoFV3JpdGUSFi5tYXJjby52MS5Xcml0ZVJlcXVlc3QaFy5tYXJjby52MS5Xcml0ZVJlc3BvbnNlKAESRwoKV3JpdGVCYXRjaBIbLm1hcmNvLnYxLldyaXRlQmF0Y2hSZXF1ZXN0GhwubWFyY28udjEuV3JpdGVCYXRjaFJlc3BvbnNlYgZwcm90bzM");
 
 /**
  * @generated from message marco.v1.HasRequest
@@ -193,6 +193,9 @@ export type RelationshipsRequest = Message<"marco.v1.RelationshipsRequest"> & {
   others: string[];
 
   /**
+   * Relationships (or relations) by name. Empty: the configured
+   * relationships that are in the default set.
+   *
    * @generated from field: repeated string rels = 3;
    */
   rels: string[];
@@ -295,23 +298,43 @@ export const ViaAnswerSchema: GenMessage<ViaAnswer> = /*@__PURE__*/
  */
 export type RelationshipEdge = Message<"marco.v1.RelationshipEdge"> & {
   /**
+   * The relationship's name.
+   *
    * @generated from field: string rel = 1;
    */
   rel: string;
 
   /**
-   * The actor's record naming the other, newest if several.
+   * The actor's record naming the other, newest if several. For a
+   * relationship by list: a list the actor subscribes to that holds the
+   * other, as a Via's answer.
    *
    * @generated from field: string out_uri = 2;
    */
   outUri: string;
 
   /**
-   * The other's record naming the actor.
+   * The other's record naming the actor, or a list the other subscribes to
+   * that holds the actor. Always empty for a private relationship.
    *
    * @generated from field: string in_uri = 3;
    */
   inUri: string;
+
+  /**
+   * A relationship by list: out_uri is empty, but the read of the actor's
+   * lists stopped short, as in a ViaAnswer's truncated.
+   *
+   * @generated from field: bool out_truncated = 4;
+   */
+  outTruncated: boolean;
+
+  /**
+   * The same for in_uri and the other's lists.
+   *
+   * @generated from field: bool in_truncated = 5;
+   */
+  inTruncated: boolean;
 };
 
 /**
@@ -356,8 +379,9 @@ export type BlockPairsRequest = Message<"marco.v1.BlockPairsRequest"> & {
   pairs: BlockPair[];
 
   /**
-   * The relations that count as a block: a record of any of them naming the
-   * other side. Empty is "block".
+   * The relationships (or relations) that count as a block: a record of a
+   * direct one naming the other side, or a list of one by list holding it.
+   * Empty: the configured relationships that block.
    *
    * @generated from field: repeated string rels = 2;
    */
@@ -405,7 +429,8 @@ export type BlockPairsResponse = Message<"marco.v1.BlockPairsResponse"> & {
   bBlocksA: boolean[];
 
   /**
-   * Either way: the two can't interact. With via, a list counts too.
+   * Either way: the two can't interact. A list of a relationship by list,
+   * or of via, counts too.
    *
    * @generated from field: repeated bool blocked = 3;
    */
@@ -425,8 +450,9 @@ export type BlockPairsResponse = Message<"marco.v1.BlockPairsResponse"> & {
   bBlocksAUri: string[];
 
   /**
-   * Only with via, one each per pair: a list a subscribes to that holds b,
-   * and one b subscribes to that holds a, or empty.
+   * Only with via or a relationship by list among rels, one each per pair:
+   * a list a subscribes to that holds b, and one b subscribes to that holds
+   * a, or empty: the first relationship's to match, in rels' order, then via's.
    *
    * @generated from field: repeated string a_blocks_b_list = 6;
    */
@@ -438,7 +464,7 @@ export type BlockPairsResponse = Message<"marco.v1.BlockPairsResponse"> & {
   bBlocksAList: string[];
 
   /**
-   * Only with via, one each per pair: a_blocks_b_list (b_blocks_a_list) is
+   * With those lists, one each per pair: a_blocks_b_list (b_blocks_a_list) is
    * empty, but the read of a's (b's) lists stopped short, as in
    * a ViaAnswer's truncated, so a list it didn't reach may still hold the other.
    *
@@ -1447,6 +1473,12 @@ export const SetOpSchema: GenEnum<SetOp> = /*@__PURE__*/
  * Relations are named in config ("follow", "block", "listitem"). A rel field
  * takes a name; an empty rels list means every relation.
  *
+ * Relationships and BlockPairs report relationships, also from config
+ * (marco serve --relationships): "follow" and "block", each one relation
+ * both ways, and "block_by_list", a mod list one side subscribes to that
+ * holds the other. Their rels take a relationship's name, or a relation's,
+ * which is that relation both ways.
+ *
  * Lists: a list relation (listitem) keeps edges from a list to its members,
  * and an actor field there takes the list's AT URI. ListOut of a list is its
  * members, newest first; ListIn of a DID is the lists it's on; Has(list, did)
@@ -1470,8 +1502,9 @@ export const Graph: GenService<{
     output: typeof HasResponseSchema;
   },
   /**
-   * Per other and relation: the actor's record naming the other, and the
-   * other's naming the actor (getRelationships). At most 100 others. With
+   * Per other and relationship: the actor's record naming the other, and
+   * the other's naming the actor (getRelationships), or for a relationship
+   * by list the lists. At most 100 others. With
    * via, also per other and via a list one side subscribes to that holds the
    * other side.
    *

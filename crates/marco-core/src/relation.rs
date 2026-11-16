@@ -32,6 +32,11 @@
 //! relation gets a companion, `<name>.owner`, holding the records as actor
 //! -> list. Companions are added here, never configured.
 //!
+//! A relation with `write_only` is fed only through the write API: Jetstream,
+//! the firehose and the scans never ask for or take its collection, which
+//! only names its keys. That's for state no public repo holds, such as an
+//! operator's mutes.
+//!
 //! A relation with `subject_collection` takes a record's AT URI in that
 //! collection as the subject, and `subject = "$self"` the record's own URI:
 //! either is a node keyed by its URI, as a list is. `when` makes a record an
@@ -54,16 +59,18 @@ pub const SELF: &str = "$self";
 
 /// A `[[relation]]` table's keys: [`Relation`]'s fields. `owner_of` is a
 /// companion's, which a scan's relations.toml writes back.
-pub const RELATION_KEYS: [&str; 7] =
-    ["name", "collection", "subject", "subject_collection", "list", "owner_of", "when"];
+pub const RELATION_KEYS: [&str; 8] =
+    ["name", "collection", "subject", "subject_collection", "list", "owner_of", "when", "write_only"];
 
 /// What a relation can need a reader to understand before it keeps the
 /// relation's edges right: subjects that are records (`subject_collection`,
 /// `$self`), and `when`. A snapshot's directory lists the ones its
 /// relations use (`requires`), and a binary that doesn't know one of them
 /// refuses the snapshot, since it would read those records as something
-/// else and change the edges on the next write.
-pub const FEATURES: [&str; 2] = ["record_subjects", "when"];
+/// else and change the edges on the next write. One that doesn't know
+/// `write_only` would follow the relation's collection on Jetstream and
+/// take anyone's records into it.
+pub const FEATURES: [&str; 3] = ["record_subjects", "when", "write_only"];
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Relation {
@@ -84,6 +91,10 @@ pub struct Relation {
     /// Dotted paths and the string each must hold for a record to be an edge.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub when: BTreeMap<String, String>,
+    /// Edges come only through the write API: no source follows the
+    /// collection.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub write_only: bool,
 }
 
 /// A record as an edge: its subject (a DID, or a record's AT URI) and, for a
@@ -137,6 +148,9 @@ impl Relation {
         }
         if !self.when.is_empty() {
             v.push(FEATURES[1]);
+        }
+        if self.write_only {
+            v.push(FEATURES[2]);
         }
         v
     }
@@ -235,6 +249,7 @@ impl Relations {
                 list: None,
                 owner_of: Some(x.name.clone()),
                 when: BTreeMap::new(),
+                write_only: x.write_only,
             });
             all.push(x);
             all.extend(owner);
@@ -277,6 +292,7 @@ impl Relations {
             list: list.map(Into::into),
             owner_of: None,
             when: BTreeMap::new(),
+            write_only: false,
         };
         Relations::new(vec![
             rel("follow", "app.bsky.graph.follow", None),
@@ -383,6 +399,18 @@ impl Relations {
 
     pub fn by_collection(&self, collection: &str) -> Option<RelId> {
         self.list.iter().position(|r| r.collection == collection && r.owner_of.is_none()).map(|i| i as RelId)
+    }
+
+    /// The relation a source's record in `collection` belongs to: no
+    /// write-only one, whose edges come only through the write API.
+    pub fn by_record_collection(&self, collection: &str) -> Option<RelId> {
+        self.by_collection(collection).filter(|&r| !self.list[r as usize].write_only)
+    }
+
+    /// The collections a source follows: every relation's but the
+    /// companions' and the write-only ones'.
+    pub fn record_collections(&self) -> impl Iterator<Item = &str> {
+        self.list.iter().filter(|r| r.owner_of.is_none() && !r.write_only).map(|r| r.collection.as_str())
     }
 
     pub fn by_name(&self, name: &str) -> Option<RelId> {
@@ -607,6 +635,7 @@ when = { "kind.name" = "gold", visible = "yes" }
             list: Some("l".into()),
             owner_of: Some("o".into()),
             when: [("p".into(), "v".into())].into(),
+            write_only: true,
         };
         let fields = serde_json::to_value(&full).unwrap();
         let mut keys: Vec<&str> = fields.as_object().unwrap().keys().map(String::as_str).collect();
@@ -651,6 +680,43 @@ when = { "kind.name" = "gold", visible = "yes" }
         )
         .unwrap();
         assert_eq!(only_when.requires(), ["when"]);
+    }
+
+    /// A write-only relation: no source's collection, a feature a snapshot
+    /// needs, and the write API's collection still.
+    #[test]
+    fn write_only() {
+        let r = Relations::parse_toml(
+            r#"
+[[relation]]
+name = "follow"
+collection = "app.bsky.graph.follow"
+subject = "subject"
+
+[[relation]]
+name = "mute"
+collection = "com.example.graph.mute"
+subject = "subject"
+write_only = true
+
+[[relation]]
+name = "listitem"
+collection = "app.bsky.graph.listitem"
+subject = "subject"
+list = "list"
+"#,
+        )
+        .unwrap();
+        assert_eq!(r.by_collection("com.example.graph.mute"), Some(1), "the write API's");
+        assert_eq!(r.by_record_collection("com.example.graph.mute"), None, "no source's");
+        assert_eq!(r.by_record_collection("app.bsky.graph.follow"), Some(0));
+        assert_eq!(r.record_collections().collect::<Vec<_>>(), ["app.bsky.graph.follow", "app.bsky.graph.listitem"]);
+        assert_eq!(r.requires(), ["write_only"]);
+        assert_eq!(r.actor_rels(), vec![0, 1], "a mute is between actors");
+        let toml = toml::to_string(&r).unwrap();
+        assert!(toml.contains("write_only = true"), "{toml}");
+        assert_eq!(Relations::parse_toml(&toml).unwrap().list, r.list);
+        assert!(!serde_json::to_string(&Relations::bsky_default().list).unwrap().contains("write_only"));
     }
 
     #[test]

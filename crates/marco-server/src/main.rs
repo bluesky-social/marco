@@ -160,6 +160,11 @@ struct Serve {
     /// whichever call or side names it. An empty answer that a read this cap stopped says so.
     #[arg(long, env = "MARCO_VIA_MAX_RECORDS", default_value_t = marco_core::graph::VIA_MAX_RECORDS)]
     via_max_records: usize,
+    /// A relationships config (TOML, [[relationship]] tables): what Relationships and BlockPairs
+    /// answer when a request names none. Default: follow, block and block_by_list, less those the
+    /// snapshot has no relations for.
+    #[arg(long, env = "MARCO_RELATIONSHIPS")]
+    relationships: Option<PathBuf>,
     /// The most actors one EdgesAmong request takes.
     #[arg(long, env = "MARCO_EDGES_AMONG_MAX_ACTORS", default_value_t = marco_server::graph_svc::EDGES_AMONG_MAX)]
     edges_among_max_actors: usize,
@@ -223,6 +228,7 @@ fn flags(m: &ArgMatches, s: &Serve) -> Vec<FlagInfo> {
         ("memory_limit", s.memory_limit.clone().unwrap_or_else(|| "cgroup".into())),
         ("miss_threads", s.miss_threads.to_string()),
         ("via_max_records", s.via_max_records.to_string()),
+        ("relationships", opt(&s.relationships)),
         ("edges_among_max_actors", s.edges_among_max_actors.to_string()),
         ("jetstream", s.jetstream.clone().unwrap_or_else(|| "—".into())),
         ("jetstream_v2", s.jetstream_v2.clone().unwrap_or_else(|| "—".into())),
@@ -391,6 +397,11 @@ fn main() -> Result<()> {
                 storage,
                 miss_threads: s.miss_threads,
                 via_max_records: s.via_max_records,
+                relationships: s
+                    .relationships
+                    .as_ref()
+                    .map(|p| std::fs::read_to_string(p).with_context(|| format!("--relationships {}", p.display())))
+                    .transpose()?,
                 edges_among_max: s.edges_among_max_actors,
                 memory_limit,
                 ..Config::new(s.snapshot.clone())

@@ -8,6 +8,12 @@ package marco.v1;
 // Relations are named in config ("follow", "block", "listitem"). A rel field
 // takes a name; an empty rels list means every relation.
 //
+// Relationships and BlockPairs report relationships, also from config
+// (marco serve --relationships): "follow" and "block", each one relation
+// both ways, and "block_by_list", a mod list one side subscribes to that
+// holds the other. Their rels take a relationship's name, or a relation's,
+// which is that relation both ways.
+//
 // Lists: a list relation (listitem) keeps edges from a list to its members,
 // and an actor field there takes the list's AT URI. ListOut of a list is its
 // members, newest first; ListIn of a DID is the lists it's on; Has(list, did)
@@ -21,8 +27,9 @@ service Graph {
   rpc Has(HasRequest) returns (HasResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
   }
-  // Per other and relation: the actor's record naming the other, and the
-  // other's naming the actor (getRelationships). At most 100 others. With
+  // Per other and relationship: the actor's record naming the other, and
+  // the other's naming the actor (getRelationships), or for a relationship
+  // by list the lists. At most 100 others. With
   // via, also per other and via a list one side subscribes to that holds the
   // other side.
   rpc Relationships(RelationshipsRequest) returns (RelationshipsResponse) {
@@ -132,6 +139,8 @@ message PairVia {
 message RelationshipsRequest {
   string actor = 1;
   repeated string others = 2;
+  // Relationships (or relations) by name. Empty: the configured
+  // relationships that are in the default set.
   repeated string rels = 3;
   // At most 10. Each other gets one answer per via, in order.
   repeated Via via = 4;
@@ -160,11 +169,20 @@ message ViaAnswer {
 }
 
 message RelationshipEdge {
+  // The relationship's name.
   string rel = 1;
-  // The actor's record naming the other, newest if several.
+  // The actor's record naming the other, newest if several. For a
+  // relationship by list: a list the actor subscribes to that holds the
+  // other, as a Via's answer.
   string out_uri = 2;
-  // The other's record naming the actor.
+  // The other's record naming the actor, or a list the other subscribes to
+  // that holds the actor. Always empty for a private relationship.
   string in_uri = 3;
+  // A relationship by list: out_uri is empty, but the read of the actor's
+  // lists stopped short, as in a ViaAnswer's truncated.
+  bool out_truncated = 4;
+  // The same for in_uri and the other's lists.
+  bool in_truncated = 5;
 }
 
 message BlockPair {
@@ -176,8 +194,9 @@ message BlockPairsRequest {
   // At most 1000. An unknown DID, or one taken down or deleted, blocks
   // nobody and is blocked by nobody.
   repeated BlockPair pairs = 1;
-  // The relations that count as a block: a record of any of them naming the
-  // other side. Empty is "block".
+  // The relationships (or relations) that count as a block: a record of a
+  // direct one naming the other side, or a list of one by list holding it.
+  // Empty: the configured relationships that block.
   repeated string rels = 2;
   // Also blocks by list, both ways: a list a subscribes to that holds b,
   // and the reverse.
@@ -191,17 +210,19 @@ message BlockPairsResponse {
   repeated bool a_blocks_b = 1;
   // b's record names a.
   repeated bool b_blocks_a = 2;
-  // Either way: the two can't interact. With via, a list counts too.
+  // Either way: the two can't interact. A list of a relationship by list,
+  // or of via, counts too.
   repeated bool blocked = 3;
   // Only with uris, one each per pair: a's record naming b and b's naming a,
   // the newest in any of rels, or empty.
   repeated string a_blocks_b_uri = 4;
   repeated string b_blocks_a_uri = 5;
-  // Only with via, one each per pair: a list a subscribes to that holds b,
-  // and one b subscribes to that holds a, or empty.
+  // Only with via or a relationship by list among rels, one each per pair:
+  // a list a subscribes to that holds b, and one b subscribes to that holds
+  // a, or empty: the first relationship's to match, in rels' order, then via's.
   repeated string a_blocks_b_list = 6;
   repeated string b_blocks_a_list = 7;
-  // Only with via, one each per pair: a_blocks_b_list (b_blocks_a_list) is
+  // With those lists, one each per pair: a_blocks_b_list (b_blocks_a_list) is
   // empty, but the read of a's (b's) lists stopped short, as in
   // a ViaAnswer's truncated, so a list it didn't reach may still hold the other.
   repeated bool a_blocks_b_truncated = 8;

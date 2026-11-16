@@ -1299,7 +1299,7 @@ async fn list_subjects() {
         .unwrap()
         .into_owned();
     let names: Vec<&str> = rs.relationships[0].rels.iter().map(|r| r.rel.as_str()).collect();
-    assert_eq!(names, ["follow", "block"], "the relations between actors");
+    assert_eq!(names, ["follow", "block", "block_by_list"], "the default relationships: the snapshot has list blocks");
     let rs = g
         .relationships(RelationshipsRequest {
             actor: v.clone(),
@@ -1452,12 +1452,16 @@ async fn vias() {
     assert_eq!(r.a_blocks_b_list[4], cur, "with no kind a curation list counts");
     assert_eq!(r.a_blocks_b_uri, [e(), e(), block_uri.clone(), e(), e(), e()]);
     assert_eq!(r.b_blocks_a_uri, [e(), e(), e(), block_uri.clone(), e(), e()]);
-    // uris without via: the direct blocks and their records, no list fields
-    let req = BlockPairsRequest { pairs: pairs.clone(), uris: true, ..Default::default() };
+    // uris without via, block alone: the direct blocks and their records, no list fields
+    let req = BlockPairsRequest { pairs: pairs.clone(), uris: true, rels: vec!["block".into()], ..Default::default() };
     let r = g.block_pairs(req).await.unwrap().into_owned();
     assert_eq!(r.a_blocks_b_uri, [e(), e(), block_uri.clone(), e(), e(), e()]);
     assert_eq!(r.blocked, [false, false, true, true, false, false]);
     assert!(r.a_blocks_b_list.is_empty() && r.a_blocks_b_truncated.is_empty());
+    // no rels: the default's blocks, block_by_list among them, as via with a kind
+    let r = g.block_pairs(BlockPairsRequest { pairs: pairs.clone(), ..Default::default() }).await.unwrap().into_owned();
+    assert_eq!(r.blocked, [true, true, true, true, false, true]);
+    assert_eq!(r.a_blocks_b_list, [ml.clone(), back.clone(), e(), e(), e(), e()]);
 
     // Filter: the same vias as drop rules, after a block rule
     let filter = |drop: Vec<FilterDrop>| FilterRequest {

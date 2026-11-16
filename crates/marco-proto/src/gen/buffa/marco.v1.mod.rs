@@ -102,6 +102,7 @@ pub mod __buffa {
         reg.register_json_any(super::__DELTA_LIST_JSON_ANY);
         reg.register_json_any(super::__LIST_RELATIONS_REQUEST_JSON_ANY);
         reg.register_json_any(super::__LIST_RELATIONS_RESPONSE_JSON_ANY);
+        reg.register_json_any(super::__RELATIONSHIP_INFO_JSON_ANY);
         reg.register_json_any(super::__RELATION_INFO_JSON_ANY);
         reg.register_json_any(super::__GET_LIST_STATS_REQUEST_JSON_ANY);
         reg.register_json_any(super::__GET_LIST_STATS_RESPONSE_JSON_ANY);
@@ -404,6 +405,10 @@ pub use self::__buffa::view::ListRelationsRequestOwnedView;
 pub use self::__buffa::view::ListRelationsResponseView;
 #[doc(inline)]
 pub use self::__buffa::view::ListRelationsResponseOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::RelationshipInfoView;
+#[doc(inline)]
+pub use self::__buffa::view::RelationshipInfoOwnedView;
 #[doc(inline)]
 pub use self::__buffa::view::RelationInfoView;
 #[doc(inline)]

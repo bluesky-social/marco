@@ -534,6 +534,12 @@ pub const GRAPH_WRITE_BATCH_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::serve
 /// Relations are named in config ("follow", "block", "listitem"). A rel field
 /// takes a name; an empty rels list means every relation.
 ///
+/// Relationships and BlockPairs report relationships, also from config
+/// (marco serve --relationships): "follow" and "block", each one relation
+/// both ways, and "block_by_list", a mod list one side subscribes to that
+/// holds the other. Their rels take a relationship's name, or a relation's,
+/// which is that relation both ways.
+///
 /// Lists: a list relation (listitem) keeps edges from a list to its members,
 /// and an actor field there takes the list's AT URI. ListOut of a list is its
 /// members, newest first; ListIn of a DID is the lists it's on; Has(list, did)
@@ -612,8 +618,9 @@ pub trait Graph: Send + Sync + 'static {
             > + Send + use<'a, Self>,
         >,
     > + Send;
-    /// Per other and relation: the actor's record naming the other, and the
-    /// other's naming the actor (getRelationships). At most 100 others. With
+    /// Per other and relationship: the actor's record naming the other, and
+    /// the other's naming the actor (getRelationships), or for a relationship
+    /// by list the lists. At most 100 others. With
     /// via, also per other and via a list one side subscribes to that holds the
     /// other side.
     ///

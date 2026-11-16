@@ -572,6 +572,7 @@ impl svc::Admin for AdminApi {
                     owner_of: r.owner_of.clone().unwrap_or_default(),
                     subject_collection: r.subject_collection.clone().unwrap_or_default(),
                     when: r.when.iter().map(|(k, v)| (k.clone(), v.clone())).collect(),
+                    write_only: r.write_only,
                     ..Default::default()
                 }
             })
@@ -581,7 +582,30 @@ impl svc::Admin for AdminApi {
             list: g.relations().list.iter().filter(|r| r.owner_of.is_none()).cloned().collect(),
         };
         let config = toml::to_string(&user).unwrap_or_default();
-        Response::ok(ListRelationsResponse { relations, config, ..Default::default() })
+        let set = &self.0.relationships;
+        let relationships = set
+            .defs()
+            .iter()
+            .map(|d| RelationshipInfo {
+                name: d.name.clone(),
+                kind: d.kind.clone(),
+                relation: d.relation.clone().unwrap_or_default(),
+                subscription: d.subscription.clone().unwrap_or_default(),
+                membership: d.membership.clone().unwrap_or_default(),
+                list_filter: d.list_filter.clone().unwrap_or_default(),
+                blocks: d.blocks,
+                in_default: d.default,
+                private: d.private,
+                ..Default::default()
+            })
+            .collect();
+        Response::ok(ListRelationsResponse {
+            relations,
+            config,
+            relationships,
+            relationships_config: set.to_toml(),
+            ..Default::default()
+        })
     }
 
     async fn get_list_stats(
